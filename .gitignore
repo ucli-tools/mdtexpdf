@@ -1,0 +1,28 @@
+# Generated PDFs
+*.pdf
+template.tex
+
+# Except example.pdf
+!example.pdf
+
+# Temporary LaTeX files
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.dvi
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Editor specific files
+.vscode/
+.idea/
+*.swp
+*~
