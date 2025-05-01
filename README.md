@@ -69,7 +69,7 @@ To use mdtexpdf, you need:
 If you have `make` installed, you can simply run:
 
 ```bash
-git clone https://github.com/yourusername/mdtexpdf.git
+git clone https://github.com/ucli-tools/mdtexpdf.git
 cd mdtexpdf
 make
 ```
