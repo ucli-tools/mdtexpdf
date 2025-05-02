@@ -292,9 +292,69 @@ check_prerequisites() {
 
 # Function to convert markdown to PDF
 convert() {
-    if [ -z "$1" ]; then
+    # Initialize variables for command-line arguments
+    ARG_TITLE=""
+    ARG_AUTHOR=""
+    ARG_DATE=""
+    ARG_FOOTER=""
+    ARG_NO_FOOTER=false
+    
+    # Parse command-line arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -t|--title)
+                ARG_TITLE="$2"
+                shift 2
+                ;;
+            -a|--author)
+                ARG_AUTHOR="$2"
+                shift 2
+                ;;
+            -d|--date)
+                ARG_DATE="$2"
+                shift 2
+                ;;
+            -f|--footer)
+                ARG_FOOTER="$2"
+                shift 2
+                ;;
+            --no-footer)
+                ARG_NO_FOOTER=true
+                shift
+                ;;
+            *)
+                # First non-option argument is the input file
+                if [ -z "$INPUT_FILE" ]; then
+                    INPUT_FILE="$1"
+                # Second non-option argument is the output file
+                elif [ -z "$OUTPUT_FILE" ]; then
+                    OUTPUT_FILE="$1"
+                else
+                    echo -e "${RED}Error: Unexpected argument '$1'.${NC}"
+                    echo -e "Usage: mdtexpdf convert [options] <input.md> [output.pdf]"
+                    echo -e "Options:"
+                    echo -e "  -t, --title TITLE     Set document title"
+                    echo -e "  -a, --author AUTHOR   Set document author"
+                    echo -e "  -d, --date DATE       Set document date"
+                    echo -e "  -f, --footer TEXT     Set footer text"
+                    echo -e "  --no-footer           Disable footer"
+                    return 1
+                fi
+                shift
+                ;;
+        esac
+    done
+    
+    # Check if input file is specified
+    if [ -z "$INPUT_FILE" ]; then
         echo -e "${RED}Error: No input file specified.${NC}"
-        echo -e "Usage: mdtexpdf convert <input.md> [output.pdf]"
+        echo -e "Usage: mdtexpdf convert [options] <input.md> [output.pdf]"
+        echo -e "Options:"
+        echo -e "  -t, --title TITLE     Set document title"
+        echo -e "  -a, --author AUTHOR   Set document author"
+        echo -e "  -d, --date DATE       Set document date"
+        echo -e "  -f, --footer TEXT     Set footer text"
+        echo -e "  --no-footer           Disable footer"
         return 1
     fi
 
@@ -303,8 +363,7 @@ convert() {
         return 1
     fi
 
-    # Get input and output file names
-    INPUT_FILE="$1"
+    # Check if input file exists
     if [ ! -f "$INPUT_FILE" ]; then
         echo -e "${RED}Error: Input file '$INPUT_FILE' not found.${NC}"
         return 1
@@ -315,10 +374,8 @@ convert() {
     echo -e "${BLUE}Creating backup of original markdown file: $BACKUP_FILE${NC}"
     cp "$INPUT_FILE" "$BACKUP_FILE"
 
-    # If output file is specified, use it; otherwise derive from input file
-    if [ -n "$2" ]; then
-        OUTPUT_FILE="$2"
-    else
+    # If output file is not specified, derive from input file
+    if [ -z "$OUTPUT_FILE" ]; then
         OUTPUT_FILE="${INPUT_FILE%.md}.pdf"
     fi
 
@@ -372,8 +429,14 @@ convert() {
             echo -e "${GREEN}A template.tex file is required. Create one now? (y/n) [y]:${NC}"
         fi
         
-        read CREATE_TEMPLATE
-        CREATE_TEMPLATE=${CREATE_TEMPLATE:-"y"}
+        # Skip prompt if arguments were provided
+        if [ -n "$ARG_TITLE" ] || [ -n "$ARG_AUTHOR" ] || [ -n "$ARG_DATE" ] || [ -n "$ARG_FOOTER" ] || [ "$ARG_NO_FOOTER" = true ]; then
+            CREATE_TEMPLATE="y"
+            echo -e "${BLUE}Using command-line arguments, automatically creating template...${NC}"
+        else
+            read CREATE_TEMPLATE
+            CREATE_TEMPLATE=${CREATE_TEMPLATE:-"y"}
+        fi
         
         echo -e "${BLUE}Debug: User chose to create template: $CREATE_TEMPLATE${NC}"
         
@@ -386,7 +449,11 @@ convert() {
             # Check if the file has a first-level heading (# Title) before asking for title
             FIRST_HEADING=$(grep -m 1 "^# " "$INPUT_FILE" | sed 's/^# //')
             
-            if [ -n "$FIRST_HEADING" ]; then
+            # Set title based on command-line argument or prompt user
+            if [ -n "$ARG_TITLE" ]; then
+                TITLE="$ARG_TITLE"
+                echo -e "${GREEN}Using title from command-line argument: '$TITLE'${NC}"
+            elif [ -n "$FIRST_HEADING" ]; then
                 # If a first-level heading was found, use it as the default title
                 echo -e "${BLUE}Found title in document: '$FIRST_HEADING'${NC}"
                 echo -e "${GREEN}Enter document title (press Enter to use the found title) [${FIRST_HEADING}]:${NC}"
@@ -409,27 +476,45 @@ convert() {
                 TITLE=${TITLE:-"$DEFAULT_TITLE"}
             fi
             
-            # Get author name
-            echo -e "${GREEN}Enter author name [$(whoami)]:${NC}"
-            read AUTHOR
-            AUTHOR=${AUTHOR:-"$(whoami)"}
-            
-            # Get document date
-            echo -e "${GREEN}Enter document date [$(date +"%B %d, %Y")]:${NC}"
-            read DOC_DATE
-            DOC_DATE=${DOC_DATE:-"$(date +"%B %d, %Y")"}
-            
-            # Ask about footer preferences
-            echo -e "${GREEN}Do you want to add a footer to your document? (y/n) [y]:${NC}"
-            read ADD_FOOTER
-            ADD_FOOTER=${ADD_FOOTER:-"y"}
-            
-            if [[ $ADD_FOOTER =~ ^[Yy]$ ]]; then
-                echo -e "${GREEN}Enter footer text (press Enter for default '© All rights reserved $(date +"%Y")'):${NC}"
-                read FOOTER_TEXT
-                FOOTER_TEXT=${FOOTER_TEXT:-"© All rights reserved $(date +"%Y")"}
+            # Set author based on command-line argument or prompt user
+            if [ -n "$ARG_AUTHOR" ]; then
+                AUTHOR="$ARG_AUTHOR"
+                echo -e "${GREEN}Using author from command-line argument: '$AUTHOR'${NC}"
             else
+                echo -e "${GREEN}Enter author name [$(whoami)]:${NC}"
+                read AUTHOR
+                AUTHOR=${AUTHOR:-"$(whoami)"}
+            fi
+            
+            # Set date based on command-line argument or prompt user
+            if [ -n "$ARG_DATE" ]; then
+                DOC_DATE="$ARG_DATE"
+                echo -e "${GREEN}Using date from command-line argument: '$DOC_DATE'${NC}"
+            else
+                echo -e "${GREEN}Enter document date [$(date +"%B %d, %Y")]:${NC}"
+                read DOC_DATE
+                DOC_DATE=${DOC_DATE:-"$(date +"%B %d, %Y")"}
+            fi
+            
+            # Set footer preferences based on command-line arguments or prompt user
+            if [ "$ARG_NO_FOOTER" = true ]; then
                 FOOTER_TEXT=""
+                echo -e "${GREEN}Footer disabled via command-line argument${NC}"
+            elif [ -n "$ARG_FOOTER" ]; then
+                FOOTER_TEXT="$ARG_FOOTER"
+                echo -e "${GREEN}Using footer text from command-line argument: '$FOOTER_TEXT'${NC}"
+            else
+                echo -e "${GREEN}Do you want to add a footer to your document? (y/n) [y]:${NC}"
+                read ADD_FOOTER
+                ADD_FOOTER=${ADD_FOOTER:-"y"}
+                
+                if [[ $ADD_FOOTER =~ ^[Yy]$ ]]; then
+                    echo -e "${GREEN}Enter footer text (press Enter for default '© All rights reserved $(date +"%Y")'):${NC}"
+                    read FOOTER_TEXT
+                    FOOTER_TEXT=${FOOTER_TEXT:-"© All rights reserved $(date +"%Y")"}
+                else
+                    FOOTER_TEXT=""
+                fi
             fi
             
             # Create a template file in the current directory
@@ -760,10 +845,16 @@ help() {
     echo -e "${PURPLE}Code:${NC}        https://github.com/mik-tf/mdtexpdf\n"
     
     echo -e "${PURPLE}Commands:${NC}"
-    echo -e "  ${GREEN}convert <input.md> [output.pdf]${NC}"
+    echo -e "  ${GREEN}convert [options] <input.md> [output.pdf]${NC}"
     echo -e "                  ${BLUE}Convert a Markdown file to PDF using LaTeX${NC}"
+    echo -e "                  ${BLUE}Options:${NC}"
+    echo -e "                    ${BLUE}-t, --title TITLE     Set document title${NC}"
+    echo -e "                    ${BLUE}-a, --author AUTHOR   Set document author${NC}"
+    echo -e "                    ${BLUE}-d, --date DATE       Set document date${NC}"
+    echo -e "                    ${BLUE}-f, --footer TEXT     Set footer text${NC}"
+    echo -e "                    ${BLUE}--no-footer           Disable footer${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
-    echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md output.pdf\n"
+    echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert -a \"John Doe\" -t \"My Document\" document.md output.pdf\n"
     
     echo -e "  ${GREEN}create <output.md> [title] [author]${NC}"
     echo -e "                  ${BLUE}Create a new Markdown document with LaTeX template${NC}"

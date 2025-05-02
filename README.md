@@ -11,6 +11,7 @@
   - [Manual Installation](#manual-installation)
 - [Usage](#usage)
   - [Converting Markdown to PDF](#converting-markdown-to-pdf)
+    - [Non-Interactive Mode with Command-Line Arguments](#non-interactive-mode-with-command-line-arguments)
   - [Creating New Markdown Documents](#creating-new-markdown-documents)
   - [LaTeX Math Support](#latex-math-support)
   - [Customizing Templates](#customizing-templates)
@@ -111,6 +112,29 @@ mdtexpdf convert document.md output.pdf
 ```
 
 You can run this command from any directory - the tool will intelligently search for templates in standard locations or create one if needed.
+
+#### Non-Interactive Mode with Command-Line Arguments
+
+For automated workflows or batch processing, you can bypass the interactive prompts by providing command-line arguments:
+
+```bash
+mdtexpdf convert -t "Document Title" -a "Author Name" -d "May 2, 2025" document.md
+```
+
+Available options:
+- `-t, --title TITLE`: Set the document title
+- `-a, --author AUTHOR`: Set the document author
+- `-d, --date DATE`: Set the document date
+- `-f, --footer TEXT`: Set custom footer text
+- `--no-footer`: Disable the footer completely
+
+Example for automated testing or CI/CD pipelines:
+
+```bash
+mdtexpdf convert examples/example1.md -a "Test Author" -t "Test Document" -d "Today" --no-footer
+```
+
+When these arguments are provided, the tool will not prompt for any information and will use the specified values instead.
 
 ### Creating New Markdown Documents
 
