@@ -1,13 +1,4 @@
----
-title: "LaTeX Math in Markdown"
-author: "UCLI Tools"
-date: "May 02, 2025"
-output:
-  pdf_document:
-    template: template.tex
----
-
-<!-- # LaTeX Math in Markdown -->
+# LaTeX Math in Markdown
 
 This document demonstrates how to use LaTeX math equations in Markdown.
 

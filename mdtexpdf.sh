@@ -310,6 +310,11 @@ convert() {
         return 1
     fi
 
+    # Create a backup of the original markdown file
+    BACKUP_FILE="${INPUT_FILE}.bak"
+    echo -e "${BLUE}Creating backup of original markdown file: $BACKUP_FILE${NC}"
+    cp "$INPUT_FILE" "$BACKUP_FILE"
+
     # If output file is specified, use it; otherwise derive from input file
     if [ -n "$2" ]; then
         OUTPUT_FILE="$2"
@@ -511,9 +516,30 @@ EOF
     # Check if conversion was successful
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}Success! PDF created as $OUTPUT_FILE${NC}"
+        
+        # Clean up: Remove template.tex file if it was created in the current directory
+        if [ -f "$(pwd)/template.tex" ]; then
+            echo -e "${BLUE}Cleaning up: Removing template.tex${NC}"
+            rm -f "$(pwd)/template.tex"
+        fi
+        
+        # Restore the original markdown file from backup
+        if [ -f "$BACKUP_FILE" ]; then
+            echo -e "${BLUE}Restoring original markdown file from backup${NC}"
+            mv "$BACKUP_FILE" "$INPUT_FILE"
+        fi
+        
+        echo -e "${GREEN}Cleanup complete. Only the PDF and original markdown file remain.${NC}"
         return 0
     else
         echo -e "${RED}Error: PDF conversion failed.${NC}"
+        
+        # Restore the original markdown file from backup even if conversion failed
+        if [ -f "$BACKUP_FILE" ]; then
+            echo -e "${BLUE}Restoring original markdown file from backup${NC}"
+            mv "$BACKUP_FILE" "$INPUT_FILE"
+        fi
+        
         return 1
     fi
 }

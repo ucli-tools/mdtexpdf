@@ -1,13 +1,4 @@
----
-title: "Cloud Marketplace Implementation Plan"
-author: "UCLI Tools"
-date: "May 02, 2025"
-output:
-  pdf_document:
-    template: template.tex
----
-
-<!-- # Cloud Marketplace Implementation Plan -->
+# Cloud Marketplace Implementation Plan
 
 This document outlines our phased approach to implementing a Cloud Marketplace backend using a modern serverless architecture. We have designed a two-phase plan to ensure incremental progress and modular development.
 
