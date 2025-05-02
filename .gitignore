@@ -3,7 +3,8 @@
 template.tex
 
 # Except example.pdf
-!example.pdf
+!example1.pdf
+!example2.pdf
 
 # Temporary LaTeX files
 *.aux
