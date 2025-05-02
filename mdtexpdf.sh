@@ -42,16 +42,58 @@ create_template_file() {
     doc_author=${doc_author:-"Author"}
     
     cat > "$template_path" << EOF
-\\documentclass[12pt]{article}
-\\usepackage[utf8]{inputenc}
-\\usepackage[T1]{fontenc}
-\\usepackage{geometry}
-\\usepackage{fancyhdr}
-\\usepackage{graphicx}
-\\usepackage{amsmath}
-\\usepackage{amssymb}
-\\usepackage{hyperref}
-\\usepackage{xcolor}
+    \\documentclass[12pt]{article}
+    \\usepackage[utf8]{inputenc}
+    \\usepackage[T1]{fontenc}
+    \\usepackage{lmodern}  % Load Latin Modern fonts (scalable)
+    \\usepackage{geometry}
+    \\usepackage{fancyhdr}
+    \\usepackage{graphicx}
+    \\usepackage{amsmath}
+    \\usepackage{amssymb}
+    \\usepackage{amsthm}   % For theorem and proof environments
+    \\usepackage{hyperref}
+    \\usepackage{xcolor}
+    \\usepackage{longtable}
+    \\usepackage{booktabs}
+    \\usepackage{array}
+    \\usepackage{calc}
+    \\usepackage{etoolbox}
+    \\usepackage{upquote}
+    \\usepackage{newunicodechar}
+    \\usepackage{textcomp}
+    \\usepackage{fancyvrb}
+    \\usepackage{listings}
+    \\usepackage{float}
+    \\usepackage[protrusion=false,expansion=false]{microtype}  % Disable font expansion
+    \\usepackage{enumitem}
+    \\usepackage[version=4]{mhchem}
+    \\usepackage{framed}   % For snugshade environment
+    
+    % Define \real command if it doesn't exist (alternative to realnum package)
+    \\providecommand{\\real}[1]{#1}
+    
+    % Define \arraybackslash if it doesn't exist
+    \\providecommand{\\arraybackslash}{\\let\\\\\\tabularnewline}
+    
+    % Define Unicode box-drawing characters
+    \\newunicodechar{├}{\\texttt{|--}}
+    \\newunicodechar{│}{\\texttt{|}}
+    \\newunicodechar{└}{\\texttt{\`--}}
+    \\newunicodechar{─}{\\texttt{-}}
+    
+    % Configure listings for code blocks
+    \\lstset{
+      basicstyle=\\ttfamily\\small,
+      breaklines=true,
+      columns=flexible,
+      keepspaces=true,
+      showstringspaces=false,
+      frame=single,
+      framesep=5pt,
+      framexleftmargin=5pt,
+      tabsize=4
+    }
 
 % Set page geometry
 \\geometry{a4paper, margin=1in}
