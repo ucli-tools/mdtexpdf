@@ -49,6 +49,7 @@ mdtexpdf is a command-line tool designed to simplify the process of creating pro
 - **Tables and Figures**: Support for tables, images, and other Markdown elements
 - **Theorem Environments**: Use LaTeX theorem environments in your Markdown
 - **Chemical Equations**: Support for chemical formulas and equations
+- **Automatic Equation Line Breaking**: Long mathematical equations automatically wrap to fit the page width
 - **Easy Installation**: Simple install and uninstall process
 - **User-Friendly**: Colorized output and helpful error messages
 
@@ -165,6 +166,7 @@ mdtexpdf supports LaTeX math equations in your Markdown files:
 
 - **Inline equations**: Use `$E = mc^2$` or `\(F = ma\)`
 - **Display equations**: Use `$$\int_{a}^{b} f(x) \, dx$$` or `\begin{equation}...\end{equation}`
+- **Automatic line breaking**: Long display equations with text content will automatically wrap to fit the page width, preventing content from extending beyond the page margins in the PDF output. This is handled by custom LaTeX settings and a Lua filter that detects text-heavy equations.
 
 ### Customizing Templates
 
@@ -196,6 +198,10 @@ If you encounter errors:
 3. Verify you have a working LaTeX distribution
 4. Check for syntax errors in your Markdown or LaTeX equations
 5. For specific LaTeX packages, ensure they are installed with your LaTeX distribution
+6. If long equations still extend beyond page margins:
+   - Try breaking the equation manually using `\\` in appropriate places
+   - For text-heavy equations, use `\text{...}` for each text segment to help the automatic line breaking
+   - Consider using explicit environments like `\begin{multline*}...\end{multline*}` for very long equations
 
 ## Using Makefile
 
