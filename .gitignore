@@ -2,9 +2,8 @@
 *.pdf
 template.tex
 
-# Except example.pdf
-!example1.pdf
-!example2.pdf
+# Except example files with any number
+!example[0-9]*.pdf
 
 # Temporary LaTeX files
 *.aux

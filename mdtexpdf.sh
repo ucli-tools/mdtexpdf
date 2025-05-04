@@ -125,6 +125,29 @@ create_template_file() {
 \\providecommand{\\tightlist}{%
   \\setlength{\\itemsep}{0pt}\\setlength{\\parskip}{0pt}}
 
+% Configure equation handling for better line breaking
+% Using the amsmath package which is already loaded
+
+% Adjust the text size for display math to fit more content
+\\everymath{\\displaystyle\\small}
+
+% Define a custom environment for long text-heavy equations
+\\newenvironment{longmath}{%
+  \\begin{multline*}\\small
+}{%
+  \\end{multline*}
+}
+
+% Increase the line width for equations to allow more content per line
+\\setlength{\\multlinegap}{0pt}
+
+% Allow line breaks at certain operators in math mode
+\\allowdisplaybreaks[4]
+\\sloppy  % Allow more flexible line breaking
+
+% Define a command to handle long text in equations
+\\newcommand{\\longtext}[1]{\\text{\\small #1}}
+
 % Define theorem environments
 \\newtheorem{theorem}{Theorem}
 \\newtheorem{lemma}{Lemma}
@@ -248,9 +271,10 @@ check_prerequisites() {
         
         # List of required packages
         REQUIRED_PACKAGES=(
-            "geometry" "fancyhdr" "graphicx" "amsmath" "amssymb" "hyperref" "xcolor" 
-            "booktabs" "longtable" "amsthm" "fancyvrb" "framed" "listings" "array" 
+            "geometry" "fancyhdr" "graphicx" "amsmath" "amssymb" "hyperref" "xcolor"
+            "booktabs" "longtable" "amsthm" "fancyvrb" "framed" "listings" "array"
             "enumitem" "etoolbox" "float" "lmodern" "textcomp" "upquote" "microtype" "mhchem"
+            "breqn"  # For automatic line breaking in equations
         )
         
         for package in "${REQUIRED_PACKAGES[@]}"; do
@@ -586,7 +610,33 @@ EOF
         fi
     fi
 
+    # Find the path to the Lua filter for long equations
+    SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+    LUA_FILTER_PATH=""
+
+    # Check in current directory first
+    if [ -f "$(pwd)/long_equation_filter.lua" ]; then
+        LUA_FILTER_PATH="$(pwd)/long_equation_filter.lua"
+    # Check in script directory
+    elif [ -f "$SCRIPT_DIR/long_equation_filter.lua" ]; then
+        LUA_FILTER_PATH="$SCRIPT_DIR/long_equation_filter.lua"
+    # Check in system directory
+    elif [ -f "/usr/local/share/mdtexpdf/long_equation_filter.lua" ]; then
+        LUA_FILTER_PATH="/usr/local/share/mdtexpdf/long_equation_filter.lua"
+    fi
+
+    # Debug output to show which filter is being used
+    if [ -n "$LUA_FILTER_PATH" ]; then
+        echo -e "${BLUE}Using Lua filter for long equation handling: $LUA_FILTER_PATH${NC}"
+        FILTER_OPTION="--lua-filter=$LUA_FILTER_PATH"
+    else
+        echo -e "${YELLOW}Warning: long_equation_filter.lua not found. Long equations may not wrap properly.${NC}"
+        FILTER_OPTION=""
+    fi
+
     # Run pandoc with the selected PDF engine
+    echo -e "${BLUE}Using enhanced equation line breaking for text-heavy equations${NC}"
+    
     pandoc "$INPUT_FILE" \
         --from markdown \
         --to pdf \
@@ -594,6 +644,7 @@ EOF
         --template="$TEMPLATE_PATH" \
         --pdf-engine=$PDF_ENGINE \
         $PANDOC_OPTS \
+        $FILTER_OPTION \
         --variable=geometry:margin=1in \
         --highlight-style=tango \
         --standalone
@@ -776,8 +827,21 @@ install() {
         sudo cp "$0" /usr/local/bin/mdtexpdf
         sudo chmod 755 /usr/local/bin/mdtexpdf
         
-        # Copy templates to the shared directory
+        # Copy the Lua filter if it exists
         SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+        if [ -f "$SCRIPT_DIR/long_equation_filter.lua" ]; then
+            sudo cp "$SCRIPT_DIR/long_equation_filter.lua" /usr/local/share/mdtexpdf/
+            sudo chmod 644 /usr/local/share/mdtexpdf/long_equation_filter.lua
+            echo -e "${GREEN}✓ Installed long_equation_filter.lua for handling text-heavy equations${NC}"
+        elif [ -f "$(pwd)/long_equation_filter.lua" ]; then
+            sudo cp "$(pwd)/long_equation_filter.lua" /usr/local/share/mdtexpdf/
+            sudo chmod 644 /usr/local/share/mdtexpdf/long_equation_filter.lua
+            echo -e "${GREEN}✓ Installed long_equation_filter.lua for handling text-heavy equations${NC}"
+        else
+            echo -e "${YELLOW}Warning: long_equation_filter.lua not found. Long equations may not wrap properly.${NC}"
+        fi
+        
+        # Copy templates to the shared directory
         
         # Look for templates in various locations
         if [ -d "$SCRIPT_DIR/templates" ]; then
