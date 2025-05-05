@@ -41,11 +41,33 @@ create_template_file() {
     doc_title=${doc_title:-"Title"}
     doc_author=${doc_author:-"Author"}
     
+    # Determine if we're using XeLaTeX or LuaLaTeX
+    local use_unicode_math=false
+    if [ "$PDF_ENGINE" = "xelatex" ] || [ "$PDF_ENGINE" = "lualatex" ]; then
+        use_unicode_math=true
+    fi
+    
     cat > "$template_path" << EOF
     \\documentclass[12pt]{article}
-    \\usepackage[utf8]{inputenc}
-    \\usepackage[T1]{fontenc}
-    \\usepackage{lmodern}  % Load Latin Modern fonts (scalable)
+    
+    % Conditional packages based on LaTeX engine
+    \\usepackage{iftex}
+    \\ifluatex
+        % LuaLaTeX-specific setup
+        \\usepackage{fontspec}
+        % Let fontspec use its default fonts
+    \\else
+        \\ifxetex
+            % XeLaTeX-specific setup
+            \\usepackage{fontspec}
+            % Let fontspec use its default fonts
+        \\else
+            % pdfLaTeX-specific setup
+            \\usepackage[utf8]{inputenc}
+            \\usepackage[T1]{fontenc}
+            \\usepackage{lmodern}  % Load Latin Modern fonts (scalable)
+        \\fi
+    \\fi
     \\usepackage{geometry}
     \\usepackage{fancyhdr}
     \\usepackage{graphicx}
@@ -76,11 +98,67 @@ create_template_file() {
     % Define \arraybackslash if it doesn't exist
     \\providecommand{\\arraybackslash}{\\let\\\\\\tabularnewline}
     
+    % Define \pandocbounded command used by Pandoc for complex math expressions
+    \\providecommand{\\pandocbounded}[1]{\\ensuremath{#1}}
+    
+    % Define \pandocbounded command used by Pandoc for complex math expressions
+    \\providecommand{\\pandocbounded}[1]{\\ensuremath{#1}}
+    
     % Define Unicode box-drawing characters
     \\newunicodechar{├}{\\texttt{|--}}
     \\newunicodechar{│}{\\texttt{|}}
     \\newunicodechar{└}{\\texttt{\`--}}
     \\newunicodechar{─}{\\texttt{-}}
+    
+    % Define common mathematical Unicode characters
+    \\ifluatex\\else\\ifxetex\\else
+        % These definitions are only needed for pdfLaTeX
+        % For XeLaTeX and LuaLaTeX, unicode-math handles these
+        \\usepackage{accents}  % For vector arrows and other accents
+        
+        % U+20D1 COMBINING RIGHT HARPOON ABOVE
+        \\newunicodechar{⃑}{\\vec}
+        
+        % Other common mathematical symbols
+        \\newunicodechar{ℝ}{\\mathbb{R}}
+        \\newunicodechar{ℤ}{\\mathbb{Z}}
+        \\newunicodechar{ℕ}{\\mathbb{N}}
+        \\newunicodechar{ℚ}{\\mathbb{Q}}
+        \\newunicodechar{ℂ}{\\mathbb{C}}
+        \\newunicodechar{∞}{\\infty}
+        \\newunicodechar{∫}{\\int}
+        \\newunicodechar{∑}{\\sum}
+        \\newunicodechar{∏}{\\prod}
+        \\newunicodechar{√}{\\sqrt}
+        \\newunicodechar{∂}{\\partial}
+        \\newunicodechar{∇}{\\nabla}
+        \\newunicodechar{∆}{\\Delta}
+        \\newunicodechar{∈}{\\in}
+        \\newunicodechar{∉}{\\notin}
+        \\newunicodechar{∋}{\\ni}
+        \\newunicodechar{⊂}{\\subset}
+        \\newunicodechar{⊃}{\\supset}
+        \\newunicodechar{⊆}{\\subseteq}
+        \\newunicodechar{⊇}{\\supseteq}
+        \\newunicodechar{∪}{\\cup}
+        \\newunicodechar{∩}{\\cap}
+        \\newunicodechar{≠}{\\neq}
+        \\newunicodechar{≤}{\\leq}
+        \\newunicodechar{≥}{\\geq}
+        \\newunicodechar{≈}{\\approx}
+        \\newunicodechar{≡}{\\equiv}
+        \\newunicodechar{∼}{\\sim}
+        \\newunicodechar{∝}{\\propto}
+        \\newunicodechar{′}{\\prime}
+        \\newunicodechar{″}{\\prime\\prime}
+        \\newunicodechar{‴}{\\prime\\prime\\prime}
+        \\newunicodechar{→}{\\rightarrow}
+        \\newunicodechar{←}{\\leftarrow}
+        \\newunicodechar{↔}{\\leftrightarrow}
+        \\newunicodechar{⇒}{\\Rightarrow}
+        \\newunicodechar{⇐}{\\Leftarrow}
+        \\newunicodechar{⇔}{\\Leftrightarrow}
+    \\fi\\fi
     
     % Configure listings for code blocks
     \\lstset{
@@ -246,13 +324,32 @@ check_prerequisites() {
     # Check for LaTeX engines
     echo -e "${YELLOW}Checking for LaTeX engines...${NC}"
     LATEX_INSTALLED=false
+    
+    # Check for LaTeX engines
+    LUALATEX_AVAILABLE=false
+    XELATEX_AVAILABLE=false
+    PDFLATEX_AVAILABLE=false
+    
+    if check_command lualatex; then
+        LUALATEX_AVAILABLE=true
+    fi
+    
+    if check_command xelatex; then
+        XELATEX_AVAILABLE=true
+    fi
+    
     if check_command pdflatex; then
+        PDFLATEX_AVAILABLE=true
+    fi
+    
+    # Prioritize pdfLaTeX for better compatibility
+    if [ "$PDFLATEX_AVAILABLE" = true ]; then
         LATEX_INSTALLED=true
         PDF_ENGINE="pdflatex"
-    elif check_command xelatex; then
+    elif [ "$XELATEX_AVAILABLE" = true ]; then
         LATEX_INSTALLED=true
         PDF_ENGINE="xelatex"
-    elif check_command lualatex; then
+    elif [ "$LUALATEX_AVAILABLE" = true ]; then
         LATEX_INSTALLED=true
         PDF_ENGINE="lualatex"
     fi
@@ -312,6 +409,71 @@ check_prerequisites() {
     echo -e "${GREEN}All prerequisites are installed!${NC}"
     echo
     return 0
+}
+
+# Function to preprocess markdown file for better LaTeX compatibility
+preprocess_markdown() {
+    local input_file="$1"
+    local temp_file="${input_file}.temp"
+    
+    echo -e "${BLUE}Preprocessing markdown file for better LaTeX compatibility...${NC}"
+    
+    # Create a copy of the file
+    cp "$input_file" "$temp_file"
+    
+    # Replace problematic Unicode characters with LaTeX commands
+    if [ "$PDF_ENGINE" = "pdflatex" ]; then
+        echo -e "${YELLOW}Using pdfLaTeX engine - replacing problematic Unicode characters with LaTeX commands${NC}"
+        
+        # Replace combining right harpoon (U+20D1) with \vec command
+        # This is tricky because it's a combining character, so we need to capture the character it combines with
+        sed -i 's/\\overset{⃑}/\\vec/g' "$temp_file"
+        
+        # Replace other common mathematical Unicode characters
+        sed -i 's/ℝ/\\mathbb{R}/g' "$temp_file"
+        sed -i 's/ℤ/\\mathbb{Z}/g' "$temp_file"
+        sed -i 's/ℕ/\\mathbb{N}/g' "$temp_file"
+        sed -i 's/ℚ/\\mathbb{Q}/g' "$temp_file"
+        sed -i 's/ℂ/\\mathbb{C}/g' "$temp_file"
+        sed -i 's/∞/\\infty/g' "$temp_file"
+        sed -i 's/∫/\\int/g' "$temp_file"
+        sed -i 's/∑/\\sum/g' "$temp_file"
+        sed -i 's/∏/\\prod/g' "$temp_file"
+        sed -i 's/√/\\sqrt/g' "$temp_file"
+        sed -i 's/∂/\\partial/g' "$temp_file"
+        sed -i 's/∇/\\nabla/g' "$temp_file"
+        sed -i 's/∆/\\Delta/g' "$temp_file"
+        sed -i 's/∈/\\in/g' "$temp_file"
+        sed -i 's/∉/\\notin/g' "$temp_file"
+        sed -i 's/∋/\\ni/g' "$temp_file"
+        sed -i 's/⊂/\\subset/g' "$temp_file"
+        sed -i 's/⊃/\\supset/g' "$temp_file"
+        sed -i 's/⊆/\\subseteq/g' "$temp_file"
+        sed -i 's/⊇/\\supseteq/g' "$temp_file"
+        sed -i 's/∪/\\cup/g' "$temp_file"
+        sed -i 's/∩/\\cap/g' "$temp_file"
+        sed -i 's/≠/\\neq/g' "$temp_file"
+        sed -i 's/≤/\\leq/g' "$temp_file"
+        sed -i 's/≥/\\geq/g' "$temp_file"
+        sed -i 's/≈/\\approx/g' "$temp_file"
+        sed -i 's/≡/\\equiv/g' "$temp_file"
+        sed -i 's/∼/\\sim/g' "$temp_file"
+        sed -i 's/∝/\\propto/g' "$temp_file"
+        sed -i 's/′/\\prime/g' "$temp_file"
+        sed -i 's/″/\\prime\\prime/g' "$temp_file"
+        sed -i 's/‴/\\prime\\prime\\prime/g' "$temp_file"
+        sed -i 's/→/\\rightarrow/g' "$temp_file"
+        sed -i 's/←/\\leftarrow/g' "$temp_file"
+        sed -i 's/↔/\\leftrightarrow/g' "$temp_file"
+        sed -i 's/⇒/\\Rightarrow/g' "$temp_file"
+        sed -i 's/⇐/\\Leftarrow/g' "$temp_file"
+        sed -i 's/⇔/\\Leftrightarrow/g' "$temp_file"
+    fi
+    
+    # Move the temp file back to the original
+    mv "$temp_file" "$input_file"
+    
+    echo -e "${GREEN}Preprocessing complete${NC}"
 }
 
 # Function to convert markdown to PDF
@@ -402,6 +564,9 @@ convert() {
     if [ -z "$OUTPUT_FILE" ]; then
         OUTPUT_FILE="${INPUT_FILE%.md}.pdf"
     fi
+    
+    # Preprocess the markdown file for better LaTeX compatibility
+    preprocess_markdown "$INPUT_FILE"
 
     # Convert markdown to PDF using pandoc with our template
     echo -e "${YELLOW}Converting $INPUT_FILE to PDF...${NC}"
