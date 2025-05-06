@@ -8,6 +8,12 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Default TOC depth (3 = subsubsection level)
+DEFAULT_TOC_DEPTH=2
+
+# Default TOC setting (false = no TOC)
+DEFAULT_TOC=false
+
 # Function to check if a command exists
 check_command() {
     if ! command -v "$1" &> /dev/null; then
@@ -303,6 +309,13 @@ $([ -n "$date_footer" ] && echo "\\fancyfoot[L]{$date_footer}")
 \\maketitle
 \$endif\$
 
+% Set TOC depth and generate TOC if needed
+\\setcounter{tocdepth}{$ARG_TOC_DEPTH}
+\$if(toc)\$
+\\tableofcontents
+\\newpage
+\$endif\$
+
 \$body\$
 
 \\end{document}
@@ -489,6 +502,8 @@ convert() {
     ARG_NO_FOOTER=false
     ARG_DATE_FOOTER=""
     ARG_NO_DATE=false
+    ARG_TOC_DEPTH=$DEFAULT_TOC_DEPTH
+    ARG_TOC=$DEFAULT_TOC
     
     # Parse command-line arguments
     while [[ $# -gt 0 ]]; do
@@ -496,6 +511,14 @@ convert() {
             -t|--title)
                 ARG_TITLE="$2"
                 shift 2
+                ;;
+            --toc-depth)
+                ARG_TOC_DEPTH="$2"
+                shift 2
+                ;;
+            --toc)
+                ARG_TOC=true
+                shift
                 ;;
             -a|--author)
                 ARG_AUTHOR="$2"
@@ -576,6 +599,8 @@ convert() {
                     echo -e "Options:"
                     echo -e "  -t, --title TITLE     Set document title"
                     echo -e "  -a, --author AUTHOR   Set document author"
+                    echo -e "  --toc                 Include table of contents"
+                    echo -e "  --toc-depth DEPTH     Set table of contents depth (1-5, default: $DEFAULT_TOC_DEPTH)"
                     echo -e "  -d, --date [VALUE]    Set document date. Special values:"
                     echo -e "                          - no argument: current date in default format"
                     echo -e "                          - \"no\": disable date"
@@ -602,6 +627,8 @@ convert() {
         echo -e "Options:"
         echo -e "  -t, --title TITLE     Set document title"
         echo -e "  -a, --author AUTHOR   Set document author"
+        echo -e "  --toc                 Include table of contents"
+        echo -e "  --toc-depth DEPTH     Set table of contents depth (1-5, default: $DEFAULT_TOC_DEPTH)"
         echo -e "  -d, --date [VALUE]    Set document date. Special values:"
         echo -e "                          - no argument: current date in default format"
         echo -e "                          - \"no\": disable date"
@@ -872,32 +899,52 @@ EOF
         fi
     fi
 
-    # Find the path to the Lua filter for long equations
+    # Find the path to the Lua filters
     SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-    LUA_FILTER_PATH=""
-
-    # Check in current directory first
+    LUA_FILTERS=()
+    
+    # Check for long equation filter
     if [ -f "$(pwd)/long_equation_filter.lua" ]; then
-        LUA_FILTER_PATH="$(pwd)/long_equation_filter.lua"
-    # Check in script directory
+        LUA_FILTERS+=("$(pwd)/long_equation_filter.lua")
+        echo -e "${BLUE}Using Lua filter for long equation handling: $(pwd)/long_equation_filter.lua${NC}"
     elif [ -f "$SCRIPT_DIR/long_equation_filter.lua" ]; then
-        LUA_FILTER_PATH="$SCRIPT_DIR/long_equation_filter.lua"
-    # Check in system directory
+        LUA_FILTERS+=("$SCRIPT_DIR/long_equation_filter.lua")
+        echo -e "${BLUE}Using Lua filter for long equation handling: $SCRIPT_DIR/long_equation_filter.lua${NC}"
     elif [ -f "/usr/local/share/mdtexpdf/long_equation_filter.lua" ]; then
-        LUA_FILTER_PATH="/usr/local/share/mdtexpdf/long_equation_filter.lua"
-    fi
-
-    # Debug output to show which filter is being used
-    if [ -n "$LUA_FILTER_PATH" ]; then
-        echo -e "${BLUE}Using Lua filter for long equation handling: $LUA_FILTER_PATH${NC}"
-        FILTER_OPTION="--lua-filter=$LUA_FILTER_PATH"
+        LUA_FILTERS+=("/usr/local/share/mdtexpdf/long_equation_filter.lua")
+        echo -e "${BLUE}Using Lua filter for long equation handling: /usr/local/share/mdtexpdf/long_equation_filter.lua${NC}"
     else
         echo -e "${YELLOW}Warning: long_equation_filter.lua not found. Long equations may not wrap properly.${NC}"
-        FILTER_OPTION=""
     fi
+    
+    # Check for image size filter
+    if [ -f "$(pwd)/image_size_filter.lua" ]; then
+        LUA_FILTERS+=("$(pwd)/image_size_filter.lua")
+        echo -e "${BLUE}Using Lua filter for automatic image sizing: $(pwd)/image_size_filter.lua${NC}"
+    elif [ -f "$SCRIPT_DIR/image_size_filter.lua" ]; then
+        LUA_FILTERS+=("$SCRIPT_DIR/image_size_filter.lua")
+        echo -e "${BLUE}Using Lua filter for automatic image sizing: $SCRIPT_DIR/image_size_filter.lua${NC}"
+    elif [ -f "/usr/local/share/mdtexpdf/image_size_filter.lua" ]; then
+        LUA_FILTERS+=("/usr/local/share/mdtexpdf/image_size_filter.lua")
+        echo -e "${BLUE}Using Lua filter for automatic image sizing: /usr/local/share/mdtexpdf/image_size_filter.lua${NC}"
+    else
+        echo -e "${YELLOW}Warning: image_size_filter.lua not found. Images may not be properly sized.${NC}"
+    fi
+    
+    # Build filter options
+    FILTER_OPTION=""
+    for filter in "${LUA_FILTERS[@]}"; do
+        FILTER_OPTION="$FILTER_OPTION --lua-filter=$filter"
+    done
 
     # Run pandoc with the selected PDF engine
     echo -e "${BLUE}Using enhanced equation line breaking for text-heavy equations${NC}"
+    
+    # Add TOC option if requested
+    TOC_OPTION=""
+    if [ "$ARG_TOC" = true ]; then
+        TOC_OPTION="--toc"
+    fi
     
     pandoc "$INPUT_FILE" \
         --from markdown \
@@ -909,6 +956,7 @@ EOF
         $FILTER_OPTION \
         --variable=geometry:margin=1in \
         --highlight-style=tango \
+        $TOC_OPTION \
         --standalone
 
     # Check if conversion was successful
@@ -1089,8 +1137,10 @@ install() {
         sudo cp "$0" /usr/local/bin/mdtexpdf
         sudo chmod 755 /usr/local/bin/mdtexpdf
         
-        # Copy the Lua filter if it exists
+        # Copy the Lua filters if they exist
         SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+        
+        # Copy long equation filter
         if [ -f "$SCRIPT_DIR/long_equation_filter.lua" ]; then
             sudo cp "$SCRIPT_DIR/long_equation_filter.lua" /usr/local/share/mdtexpdf/
             sudo chmod 644 /usr/local/share/mdtexpdf/long_equation_filter.lua
@@ -1101,6 +1151,19 @@ install() {
             echo -e "${GREEN}✓ Installed long_equation_filter.lua for handling text-heavy equations${NC}"
         else
             echo -e "${YELLOW}Warning: long_equation_filter.lua not found. Long equations may not wrap properly.${NC}"
+        fi
+        
+        # Copy image size filter
+        if [ -f "$SCRIPT_DIR/image_size_filter.lua" ]; then
+            sudo cp "$SCRIPT_DIR/image_size_filter.lua" /usr/local/share/mdtexpdf/
+            sudo chmod 644 /usr/local/share/mdtexpdf/image_size_filter.lua
+            echo -e "${GREEN}✓ Installed image_size_filter.lua for automatic image sizing${NC}"
+        elif [ -f "$(pwd)/image_size_filter.lua" ]; then
+            sudo cp "$(pwd)/image_size_filter.lua" /usr/local/share/mdtexpdf/
+            sudo chmod 644 /usr/local/share/mdtexpdf/image_size_filter.lua
+            echo -e "${GREEN}✓ Installed image_size_filter.lua for automatic image sizing${NC}"
+        else
+            echo -e "${YELLOW}Warning: image_size_filter.lua not found. Images may not be properly sized.${NC}"
         fi
         
         # Copy templates to the shared directory
@@ -1176,6 +1239,8 @@ help() {
     echo -e "                  ${BLUE}Options:${NC}"
     echo -e "                    ${BLUE}-t, --title TITLE     Set document title${NC}"
     echo -e "                    ${BLUE}-a, --author AUTHOR   Set document author${NC}"
+    echo -e "                    ${BLUE}--toc                 Include table of contents${NC}"
+    echo -e "                    ${BLUE}--toc-depth DEPTH     Set table of contents depth (1-5, default: $DEFAULT_TOC_DEPTH)${NC}"
     echo -e "                    ${BLUE}-d, --date [VALUE]    Set document date. Special values:${NC}"
     echo -e "                    ${BLUE}                        - no argument: current date in default format${NC}"
     echo -e "                    ${BLUE}                        - \"no\": disable date${NC}"
@@ -1189,7 +1254,7 @@ help() {
     echo -e "                    ${BLUE}--no-footer           Disable footer${NC}"
     echo -e "                    ${BLUE}--date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\"${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
-    echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert -a \"John Doe\" -t \"My Document\" document.md output.pdf\n"
+    echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert -a \"John Doe\" -t \"My Document\" --toc --toc-depth 3 document.md output.pdf\n"
     
     echo -e "  ${GREEN}create <output.md> [title] [author]${NC}"
     echo -e "                  ${BLUE}Create a new Markdown document with LaTeX template${NC}"
