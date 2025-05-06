@@ -36,6 +36,7 @@ create_template_file() {
     local footer_text="$2"
     local doc_title="$3"
     local doc_author="$4"
+    local date_footer="$5"
     
     # Use default values if not provided
     doc_title=${doc_title:-"Title"}
@@ -188,6 +189,7 @@ create_template_file() {
 % Footer with custom text and page number
 \\fancyfoot[C]{$footer_text}
 \\fancyfoot[R]{\\thepage}
+$([ -n "$date_footer" ] && echo "\\fancyfoot[L]{$date_footer}")
 \\renewcommand{\\footrulewidth}{0.4pt}
 
 % First page style (no header)
@@ -195,6 +197,7 @@ create_template_file() {
   \\fancyhf{}
   \\fancyfoot[C]{$footer_text}
   \\fancyfoot[R]{\\thepage}
+  $([ -n "$date_footer" ] && echo "\\fancyfoot[L]{$date_footer}")
   \\renewcommand{\\footrulewidth}{0.4pt}
   \\renewcommand{\\headrulewidth}{0pt}
 }
@@ -280,7 +283,7 @@ create_template_file() {
 \$if(date)\$
 \\date{\$date\$}
 \$else\$
-\\date{\\today}
+\\date{}
 \$endif\$
 
 % Hyperref setup
@@ -484,6 +487,8 @@ convert() {
     ARG_DATE=""
     ARG_FOOTER=""
     ARG_NO_FOOTER=false
+    ARG_DATE_FOOTER=""
+    ARG_NO_DATE=false
     
     # Parse command-line arguments
     while [[ $# -gt 0 ]]; do
@@ -497,8 +502,47 @@ convert() {
                 shift 2
                 ;;
             -d|--date)
-                ARG_DATE="$2"
-                shift 2
+                if [[ "$2" == -* ]] || [ -z "$2" ]; then
+                    # No argument provided or next argument is another option
+                    ARG_DATE="$(date +"%B %d, %Y")"
+                    echo -e "${GREEN}Using current date: $ARG_DATE${NC}"
+                    shift
+                else
+                    # Argument provided
+                    case "$2" in
+                        "no")
+                            ARG_NO_DATE=true
+                            echo -e "${GREEN}Date will be disabled${NC}"
+                            ;;
+                        "yes")
+                            ARG_DATE="$(date +"%B %d, %Y")"
+                            echo -e "${GREEN}Using current date: $ARG_DATE${NC}"
+                            ;;
+                        "YYYY-MM-DD")
+                            ARG_DATE="$(date +"%Y-%m-%d")"
+                            echo -e "${GREEN}Using current date in YYYY-MM-DD format: $ARG_DATE${NC}"
+                            ;;
+                        "DD/MM/YY")
+                            ARG_DATE="$(date +"%d/%m/%y")"
+                            echo -e "${GREEN}Using current date in DD/MM/YY format: $ARG_DATE${NC}"
+                            ;;
+                        "Month Day, Year"|"month day, year")
+                            ARG_DATE="$(date +"%B %d, %Y")"
+                            echo -e "${GREEN}Using current date in Month Day, Year format: $ARG_DATE${NC}"
+                            ;;
+                        *)
+                            # Use the provided value as the date
+                            ARG_DATE="$2"
+                            echo -e "${GREEN}Using custom date: $ARG_DATE${NC}"
+                            ;;
+                    esac
+                    shift 2
+                fi
+                ;;
+            --no-date)
+                ARG_NO_DATE=true
+                echo -e "${GREEN}Date will be disabled${NC}"
+                shift
                 ;;
             -f|--footer)
                 ARG_FOOTER="$2"
@@ -507,6 +551,17 @@ convert() {
             --no-footer)
                 ARG_NO_FOOTER=true
                 shift
+                ;;
+            --date-footer)
+                if [[ "$2" == -* ]] || [ -z "$2" ]; then
+                    # No argument provided or next argument is another option
+                    ARG_DATE_FOOTER="DD/MM/YY"
+                    shift
+                else
+                    # Argument provided
+                    ARG_DATE_FOOTER="$2"
+                    shift 2
+                fi
                 ;;
             *)
                 # First non-option argument is the input file
@@ -521,9 +576,18 @@ convert() {
                     echo -e "Options:"
                     echo -e "  -t, --title TITLE     Set document title"
                     echo -e "  -a, --author AUTHOR   Set document author"
-                    echo -e "  -d, --date DATE       Set document date"
+                    echo -e "  -d, --date [VALUE]    Set document date. Special values:"
+                    echo -e "                          - no argument: current date in default format"
+                    echo -e "                          - \"no\": disable date"
+                    echo -e "                          - \"yes\": current date in default format"
+                    echo -e "                          - \"YYYY-MM-DD\": current date in YYYY-MM-DD format"
+                    echo -e "                          - \"DD/MM/YY\": current date in DD/MM/YY format"
+                    echo -e "                          - \"Month Day, Year\": current date in Month Day, Year format"
+                    echo -e "                          - any other value: use as custom date text"
+                    echo -e "  --no-date             Disable date (same as -d \"no\")"
                     echo -e "  -f, --footer TEXT     Set footer text"
                     echo -e "  --no-footer           Disable footer"
+                    echo -e "  --date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\""
                     return 1
                 fi
                 shift
@@ -538,9 +602,18 @@ convert() {
         echo -e "Options:"
         echo -e "  -t, --title TITLE     Set document title"
         echo -e "  -a, --author AUTHOR   Set document author"
-        echo -e "  -d, --date DATE       Set document date"
+        echo -e "  -d, --date [VALUE]    Set document date. Special values:"
+        echo -e "                          - no argument: current date in default format"
+        echo -e "                          - \"no\": disable date"
+        echo -e "                          - \"yes\": current date in default format"
+        echo -e "                          - \"YYYY-MM-DD\": current date in YYYY-MM-DD format"
+        echo -e "                          - \"DD/MM/YY\": current date in DD/MM/YY format"
+        echo -e "                          - \"Month Day, Year\": current date in Month Day, Year format"
+        echo -e "                          - any other value: use as custom date text"
+        echo -e "  --no-date             Disable date (same as -d \"no\")"
         echo -e "  -f, --footer TEXT     Set footer text"
         echo -e "  --no-footer           Disable footer"
+        echo -e "  --date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\""
         return 1
     fi
 
@@ -676,7 +749,10 @@ convert() {
             fi
             
             # Set date based on command-line argument or prompt user
-            if [ -n "$ARG_DATE" ]; then
+            if [ "$ARG_NO_DATE" = true ]; then
+                DOC_DATE=""
+                echo -e "${GREEN}Date is disabled${NC}"
+            elif [ -n "$ARG_DATE" ]; then
                 DOC_DATE="$ARG_DATE"
                 echo -e "${GREEN}Using date from command-line argument: '$DOC_DATE'${NC}"
             else
@@ -706,10 +782,31 @@ convert() {
                 fi
             fi
             
+            # Format the date footer if specified
+            DATE_FOOTER_TEXT=""
+            if [ -n "$ARG_DATE_FOOTER" ]; then
+                case "$ARG_DATE_FOOTER" in
+                    "DD/MM/YY")
+                        DATE_FOOTER_TEXT="$(date +"%d/%m/%y")"
+                        ;;
+                    "YYYY-MM-DD")
+                        DATE_FOOTER_TEXT="$(date +"%Y-%m-%d")"
+                        ;;
+                    "Month Day, Year"|"month day, year")
+                        DATE_FOOTER_TEXT="$(date +"%B %d, %Y")"
+                        ;;
+                    *)
+                        # Use the provided format as a custom date format
+                        DATE_FOOTER_TEXT="$ARG_DATE_FOOTER"
+                        ;;
+                esac
+                echo -e "${GREEN}Adding date to footer: $DATE_FOOTER_TEXT${NC}"
+            fi
+            
             # Create a template file in the current directory
             TEMPLATE_PATH="$(pwd)/template.tex"
             echo -e "${YELLOW}Creating template file: $TEMPLATE_PATH${NC}"
-            create_template_file "$TEMPLATE_PATH" "$FOOTER_TEXT" "$TITLE" "$AUTHOR"
+            create_template_file "$TEMPLATE_PATH" "$FOOTER_TEXT" "$TITLE" "$AUTHOR" "$DATE_FOOTER_TEXT"
             
             if [ ! -f "$TEMPLATE_PATH" ]; then
                 echo -e "${RED}Error: Failed to create template.tex.${NC}"
@@ -733,7 +830,7 @@ convert() {
 ---
 title: "$TITLE"
 author: "$AUTHOR"
-date: "$DOC_DATE"
+$([ -n "$DOC_DATE" ] && echo "date: \"$DOC_DATE\"")
 output:
   pdf_document:
     template: template.tex
@@ -902,7 +999,7 @@ create() {
     echo -e "${YELLOW}Creating template file: $TEMPLATE_PATH${NC}"
     
     # Create the template file
-    create_template_file "$TEMPLATE_PATH" "$FOOTER_TEXT" "$TITLE" "$AUTHOR"
+    create_template_file "$TEMPLATE_PATH" "$FOOTER_TEXT" "$TITLE" "$AUTHOR" ""
     
     if [ ! -f "$TEMPLATE_PATH" ]; then
         echo -e "${RED}Error: Failed to create template.tex.${NC}"
@@ -919,7 +1016,7 @@ create() {
 ---
 title: "$TITLE"
 author: "$AUTHOR"
-date: "$DOC_DATE"
+$([ -n "$DOC_DATE" ] && echo "date: \"$DOC_DATE\"")
 output:
   pdf_document:
     template: template.tex
@@ -1079,9 +1176,18 @@ help() {
     echo -e "                  ${BLUE}Options:${NC}"
     echo -e "                    ${BLUE}-t, --title TITLE     Set document title${NC}"
     echo -e "                    ${BLUE}-a, --author AUTHOR   Set document author${NC}"
-    echo -e "                    ${BLUE}-d, --date DATE       Set document date${NC}"
+    echo -e "                    ${BLUE}-d, --date [VALUE]    Set document date. Special values:${NC}"
+    echo -e "                    ${BLUE}                        - no argument: current date in default format${NC}"
+    echo -e "                    ${BLUE}                        - \"no\": disable date${NC}"
+    echo -e "                    ${BLUE}                        - \"yes\": current date in default format${NC}"
+    echo -e "                    ${BLUE}                        - \"YYYY-MM-DD\": current date in YYYY-MM-DD format${NC}"
+    echo -e "                    ${BLUE}                        - \"DD/MM/YY\": current date in DD/MM/YY format${NC}"
+    echo -e "                    ${BLUE}                        - \"Month Day, Year\": current date in Month Day, Year format${NC}"
+    echo -e "                    ${BLUE}                        - any other value: use as custom date text${NC}"
+    echo -e "                    ${BLUE}--no-date             Disable date (same as -d \"no\")${NC}"
     echo -e "                    ${BLUE}-f, --footer TEXT     Set footer text${NC}"
     echo -e "                    ${BLUE}--no-footer           Disable footer${NC}"
+    echo -e "                    ${BLUE}--date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\"${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert -a \"John Doe\" -t \"My Document\" document.md output.pdf\n"
     

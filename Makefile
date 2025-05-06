@@ -14,8 +14,9 @@ delete:
 
 test:
 	cd examples/ && \
-	$(INSTALL_NAME) convert example1.md -t "Test 1 Title" -a "Test Author" -d "2000/01/02" -f "Copyright Test Line" && \
-	$(INSTALL_NAME) convert example2.md -t "Test 2 Title" -a "Test Author" -d "2000/01/02" -f "Copyright Test Line" && \
-	$(INSTALL_NAME) convert example3.md -t "Test 3 Title" -a "Test Author" -d "2000/01/02" -f "Copyright Test Line" && \
+	$(INSTALL_NAME) convert example1.md -t "Test 1 Title" -a "Test Author" -d "yes" -f "© Example Name. All rights reserved. | example.com" --date-footer && \
+	$(INSTALL_NAME) convert example2.md -t "Test 2 Title" -a "Test Author" -d "no" -f "© Example Name. All rights reserved. | example.com" --date-footer "YYYY-MM-DD" && \
+	$(INSTALL_NAME) convert example3.md -t "Test 3 Title" -a "Test Author" -d "2000/01/02" -f "© Example Name. All rights reserved. | example.com" --date-footer "Month Day, Year" && \
+	$(INSTALL_NAME) convert example4.md -t "Test 4 Title" -a "Test Author" -d "YYYY-MM-DD" -f "© Example Name. All rights reserved. | example.com" && \
 	rm -f template.tex && \
 	rm -f *.bak
