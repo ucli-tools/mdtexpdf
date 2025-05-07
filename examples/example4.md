@@ -84,6 +84,13 @@ This is some other texts.
 
 Below is another graph.
 
+![Bag times for AI and Control groups](./img/image-example1-graphics.jpg)
+*Figure 1. Average time taken to complete problem-solving tasks for the AI Interaction Group and the Control Group. Error bars represent standard deviation.*
+
+This is some other texts.
+
+Below is another graph.
+
 ![Graph 2](./img/image-example2-graphics.jpg)
 Something something something. Error bars represent standard deviation
 
