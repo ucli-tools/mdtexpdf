@@ -673,19 +673,7 @@ convert() {
     # Preprocess the markdown file for better LaTeX compatibility
     preprocess_markdown "$INPUT_FILE"
     
-    # Fix image captions to ensure they appear on a new line
-    if [ -f "$(dirname "$(readlink -f "$0")")/scripts/fix_image_captions.sh" ]; then
-        echo -e "${BLUE}Fixing image captions for better formatting...${NC}"
-        "$(dirname "$(readlink -f "$0")")/scripts/fix_image_captions.sh" "$INPUT_FILE"
-    elif [ -f "$(pwd)/scripts/fix_image_captions.sh" ]; then
-        echo -e "${BLUE}Fixing image captions for better formatting...${NC}"
-        "$(pwd)/scripts/fix_image_captions.sh" "$INPUT_FILE"
-    elif [ -f "/usr/local/share/mdtexpdf/scripts/fix_image_captions.sh" ]; then
-        echo -e "${BLUE}Fixing image captions for better formatting...${NC}"
-        "/usr/local/share/mdtexpdf/scripts/fix_image_captions.sh" "$INPUT_FILE"
-    else
-        echo -e "${YELLOW}Warning: fix_image_captions.sh not found. Image captions may not be properly formatted.${NC}"
-    fi
+    # Image captions are now handled by the image_size_filter.lua Lua filter
 
     # Convert markdown to PDF using pandoc with our template
     echo -e "${YELLOW}Converting $INPUT_FILE to PDF...${NC}"
