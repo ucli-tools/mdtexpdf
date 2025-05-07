@@ -73,10 +73,27 @@ However, a statistically significant difference was found in the time taken to c
 | Memory Recall Score | 18.2 ± 2.5 | 17.9 ± 2.8 | 0.61 | 0.54 |
 | Problem-Solving Time (minutes) | 25.8 ± 4.1 | 29.1 ± 4.5 | -3.78 | < 0.001 |
 
-### Figure 1: Average Problem-Solving Completion Times by Group
+### Other Section
 
-![Bar chart comparing average problem-solving times for AI and Control groups](./img/image-exampe1-graphics.jpg)
-*Figure 1. Average time taken to complete problem-solving tasks for the AI Interaction Group and the Control Group. Error bars represent standard deviation.*
+This is a a graph:
+
+![Bar chart comparing average problem-solving times for AI and Control groups](./img/image-example1-graphics.jpg)
+Figure 1. Average time taken to complete problem-solving tasks for the AI Interaction Group and the Control Group. Error bars represent standard deviation.
+
+This is some other texts.
+
+Below is another graph.
+
+![Graph 2](./img/image-example2-graphics.jpg)
+Something something something. Error bars represent standard deviation
+
+This is some other texts.
+
+Below is another graph.
+
+![Graph 2](./img/image-example2-graphics.jpg)
+This is another thing under the latest pdf.
+
 
 ## 5. Discussion
 
