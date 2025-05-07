@@ -241,6 +241,11 @@ $([ -n "$date_footer" ] && echo "\\fancyfoot[L]{$date_footer}")
 \\newtheorem{corollary}{Corollary}
 \\newtheorem{definition}{Definition}
 
+% Custom figure caption handling
+\\usepackage{caption}
+\\captionsetup{font=small,labelfont=bf,textfont=it}
+\\renewcommand{\\figurename}{Figure}
+
 % Define Pandoc's code highlighting environments
 \\definecolor{shadecolor}{RGB}{248,248,248}
 \\newenvironment{Shaded}{\\begin{snugshade}}{\end{snugshade}}
@@ -667,6 +672,20 @@ convert() {
     
     # Preprocess the markdown file for better LaTeX compatibility
     preprocess_markdown "$INPUT_FILE"
+    
+    # Fix image captions to ensure they appear on a new line
+    if [ -f "$(dirname "$(readlink -f "$0")")/scripts/fix_image_captions.sh" ]; then
+        echo -e "${BLUE}Fixing image captions for better formatting...${NC}"
+        "$(dirname "$(readlink -f "$0")")/scripts/fix_image_captions.sh" "$INPUT_FILE"
+    elif [ -f "$(pwd)/scripts/fix_image_captions.sh" ]; then
+        echo -e "${BLUE}Fixing image captions for better formatting...${NC}"
+        "$(pwd)/scripts/fix_image_captions.sh" "$INPUT_FILE"
+    elif [ -f "/usr/local/share/mdtexpdf/scripts/fix_image_captions.sh" ]; then
+        echo -e "${BLUE}Fixing image captions for better formatting...${NC}"
+        "/usr/local/share/mdtexpdf/scripts/fix_image_captions.sh" "$INPUT_FILE"
+    else
+        echo -e "${YELLOW}Warning: fix_image_captions.sh not found. Image captions may not be properly formatted.${NC}"
+    fi
 
     # Convert markdown to PDF using pandoc with our template
     echo -e "${YELLOW}Converting $INPUT_FILE to PDF...${NC}"
