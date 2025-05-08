@@ -205,11 +205,16 @@ $([ -n "$date_footer" ] && echo "\\fancyfoot[L]{$date_footer}")
   \\fancyfoot[R]{\\thepage}
   $([ -n "$date_footer" ] && echo "\\fancyfoot[L]{$date_footer}")
   \\renewcommand{\\footrulewidth}{0.4pt}
-  \\renewcommand{\\headrulewidth}{0pt}
+  \renewcommand{\headrulewidth}{0pt}
 }
 
-% Define \\tightlist command used by pandoc
-\\providecommand{\\tightlist}{%
+% Adjust paragraph spacing: add a full line skip between paragraphs
+\setlength{\parskip}{\baselineskip}
+% Remove paragraph indentation
+\setlength{\parindent}{0pt}
+
+% Define \tightlist command used by pandoc
+\providecommand{\tightlist}{%
   \\setlength{\\itemsep}{0pt}\\setlength{\\parskip}{0pt}}
 
 % Configure equation handling for better line breaking
