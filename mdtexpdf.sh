@@ -109,13 +109,10 @@ create_template_file() {
     \\providecommand{\\pandocbounded}[1]{\\ensuremath{#1}}
     
     % Define \pandocbounded command used by Pandoc for complex math expressions
-    \\providecommand{\\pandocbounded}[1]{\\ensuremath{#1}}
-    
-    % Define Unicode box-drawing characters
-    \\newunicodechar{├}{\\texttt{|--}}
-    \\newunicodechar{│}{\\texttt{|}}
-    \\newunicodechar{└}{\\texttt{\`--}}
-    \\newunicodechar{─}{\\texttt{-}}
+    \providecommand{\pandocbounded}[1]{\ensuremath{#1}}
+
+    % Define \passthrough command, sometimes used by Pandoc with --listings
+    \providecommand{\passthrough}[1]{#1}
     
     % Define common mathematical Unicode characters
     \\ifluatex\\else\\ifxetex\\else
@@ -127,7 +124,14 @@ create_template_file() {
         \\newunicodechar{⃑}{\\vec}
         
         % Other common mathematical symbols
-        \\newunicodechar{ℝ}{\\mathbb{R}}
+
+        % Define Unicode box-drawing characters for pdfLaTeX
+        \newunicodechar{├}{\texttt{|--}}
+        \newunicodechar{│}{\texttt{|}}
+        \newunicodechar{└}{\texttt{$(printf %s '\`')--}}
+        \newunicodechar{─}{\texttt{-}}
+        % For non-listings context, rely on inputenc and font capabilities for pdflatex
+        \newunicodechar{ℝ}{\mathbb{R}}
         \\newunicodechar{ℤ}{\\mathbb{Z}}
         \\newunicodechar{ℕ}{\\mathbb{N}}
         \\newunicodechar{ℚ}{\\mathbb{Q}}
@@ -168,16 +172,72 @@ create_template_file() {
     \\fi\\fi
     
     % Configure listings for code blocks
-    \\lstset{
-      basicstyle=\\ttfamily\\small,
-      breaklines=true,
-      columns=flexible,
+    \lstset{
+      basicstyle=\ttfamily\small,
+      breaklines=true,          % Enable automatic line breaking
+      breakatwhitespace=true,   % Only break at whitespace
+      columns=fullflexible,     % More flexible column adjustment for better breaking
       keepspaces=true,
       showstringspaces=false,
       frame=single,
       framesep=5pt,
       framexleftmargin=5pt,
-      tabsize=4
+      tabsize=4,
+      extendedchars=true,       % Allow extended characters (UTF-8)
+      literate={ï»¿}{}{0}        % Remove UTF-8 BOM
+               {é}{{\'{e}}}1
+               {è}{{\`{e}}}1
+               {ê}{{\^{e}}}1
+               {ë}{{\"{e}}}1
+               {É}{{\'{E}}}1
+               {È}{{\`{E}}}1
+               {Ê}{{\^{E}}}1
+               {Ë}{{\"{E}}}1
+               {á}{{\'{a}}}1
+               {à}{{\`{a}}}1
+               {â}{{\^{a}}}1
+               {ä}{{\"{a}}}1
+               {Á}{{\'{A}}}1
+               {À}{{\`{A}}}1
+               {Â}{{\^{A}}}1
+               {Ä}{{\"{A}}}1
+               {ó}{{\'{o}}}1
+               {ò}{{\`{o}}}1
+               {ô}{{\^{o}}}1
+               {ö}{{\"{o}}}1
+               {Ó}{{\'{O}}}1
+               {Ò}{{\`{O}}}1
+               {Ô}{{\^{O}}}1
+               {Ö}{{\"{O}}}1
+               {í}{{\'{i}}}1
+               {ì}{{\`{i}}}1
+               {î}{{\^{i}}}1
+               {ï}{{\"{i}}}1
+               {Í}{{\'{I}}}1
+               {Ì}{{\`{I}}}1
+               {Î}{{\^{I}}}1
+               {Ï}{{\"{I}}}1
+               {ú}{{\'{u}}}1
+               {ù}{{\`{u}}}1
+               {û}{{\^{u}}}1
+               {ü}{{\"{u}}}1
+               {Ú}{{\'{U}}}1
+               {Ù}{{\`{U}}}1
+               {Û}{{\^{U}}}1
+               {Ü}{{\"{U}}}1
+               {ç}{{\c{c}}}1
+               {Ç}{{\c{C}}}1
+               {ñ}{{\~{n}}}1
+               {Ñ}{{\~{N}}}1
+               {ß}{{\ss}}1
+$(if [ "$PDF_ENGINE" = "pdflatex" ]; then
+cat << 'INNER_LST_LITERALS_EOF'
+               {├}{{\texttt{|--}}}3
+               {│}{{\texttt{|}}}1
+               {└}{{\texttt{`--}}}3
+               {─}{{\texttt{-}}}1
+INNER_LST_LITERALS_EOF
+fi)
     }
 
 % Set page geometry
@@ -980,6 +1040,7 @@ EOF
         $FILTER_OPTION \
         --variable=geometry:margin=1in \
         --highlight-style=tango \
+        --listings \
         $TOC_OPTION \
         --standalone
 
