@@ -13,6 +13,7 @@
     - [Sectio Tertia](#sectio-tertia)
       - [Subsectio Secunda](#subsectio-secunda)
   - [Caput Tertium](#caput-tertium)
+  - [List](#list)
 
 ## Caput Primum
 
@@ -55,3 +56,78 @@ Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit la
 Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?
 
 Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur?
+
+
+## List
+
+- **Technology**
+  - *Artificial Intelligence*
+    - Machine Learning
+      - Supervised Learning
+        - Regression Algorithms
+        - Classification Algorithms
+      - Unsupervised Learning
+        - Clustering Techniques
+        - Dimensionality Reduction
+      - Reinforcement Learning
+        - Value-Based Methods
+        - Policy-Based Methods
+    - Natural Language Processing
+      - Text Classification
+      - Sentiment Analysis
+      - Language Generation
+  - *Blockchain*
+    - Cryptocurrencies
+      - Bitcoin
+      - Ethereum
+    - Smart Contracts
+      - Decentralized Applications (dApps)
+      - Security Protocols
+- **Science**
+  - *Physics*
+    - Classical Mechanics
+      - Newton's Laws
+      - Conservation of Energy
+    - Quantum Mechanics
+      - Wave-Particle Duality
+      - Quantum Entanglement
+  - *Biology*
+    - Cell Structure
+      - Organelles
+      - Cell Membrane
+    - Genetics
+      - DNA Structure
+      - Gene Expression
+- **History**
+  - Ancient Civilizations
+    - Mesopotamia
+    - Ancient Egypt
+  - Middle Ages
+    - Feudal System
+    - Crusades
+  - Modern Era
+    - Industrial Revolution
+    - World Wars
+- **Literature**
+  - *Classical Literature*
+    - Homer’s Epics
+      - Iliad
+      - Odyssey
+    - Greek Tragedies
+      - Sophocles
+      - Euripides
+  - *Contemporary Literature*
+    - Postmodern Fiction
+    - Literary Movements
+      - Modernism
+      - Postcolonialism
+- **Economics**
+  - *Microeconomics*
+    - Supply and Demand
+    - Consumer Behavior
+  - *Macroeconomics*
+    - Fiscal Policy
+    - Monetary Policy
+  - *International Trade*
+    - Trade Theories
+    - Globalization Effects
