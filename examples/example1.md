@@ -92,7 +92,95 @@ Tables work too:
 
 Code blocks are supported:
 
+# Code Examples in Different Programming Languages
+
+## Python
+Python is known for its simplicity and readability. Below is a basic "Hello, World!" example:
+
 ```python
-def hello_world():
-    print("Hello, world!")
+print("Hello, World!")
+```
+
+JavaScript is a versatile language used for web development. Here's a function example:
+
+## JavaScript
+```javascript
+function greet() {
+  console.log("Hello, World!");
+}
+greet();
+```
+
+Java's object-oriented approach is fundamental in enterprise environments. A simple Java program:
+
+## Java
+```java
+public class HelloWorld {
+  public static void main(String[] args) {
+    System.out.println("Hello, World!");
+  }
+}
+```
+
+C++ offers high performance and is used in system programming. A basic C++ example:
+
+## C++
+```cpp
+#include <iostream>
+int main() {
+  std::cout << "Hello, World!" << std::endl;
+  return 0;
+}
+```
+
+Ruby emphasizes simplicity and productivity. A Ruby script looks like this:
+
+## Ruby
+```ruby
+puts "Hello, World!"
+```
+
+Go (Golang) is designed for efficient concurrency. Here's a simple Go program:
+
+## Go
+```go
+package main
+import "fmt"
+func main() {
+  fmt.Println("Hello, World!")
+}
+```
+
+PHP is widely used for server-side web development. A basic PHP script:
+
+## PHP
+```php
+<?php
+echo "Hello, World!";
+?>
+```
+
+Swift is Apple's language for iOS/macOS development. A Swift example:
+
+## Swift
+```swift
+print("Hello, World!")
+```
+
+Kotlin is a modern language for Android development, interoperable with Java. Example:
+
+## Kotlin
+```kotlin
+fun main() {
+  println("Hello, World!")
+}
+```
+
+Rust focuses on memory safety without sacrificing performance. A Rust example:
+
+## Rust
+```rust
+fn main() {
+  println!("Hello, World!");
+}
 ```
