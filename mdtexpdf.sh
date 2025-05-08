@@ -213,9 +213,21 @@ $([ -n "$date_footer" ] && echo "\\fancyfoot[L]{$date_footer}")
 % Remove paragraph indentation
 \setlength{\parindent}{0pt}
 
-% Define \tightlist command used by pandoc
-\providecommand{\tightlist}{%
-  \\setlength{\\itemsep}{0pt}\\setlength{\\parskip}{0pt}}
+% Configure list appearance using enumitem
+\renewlist{itemize}{itemize}{6}  % Explicitly redefine itemize to allow 6 levels
+\setlist[itemize]{label=\textbullet} % Use a standard bullet for all levels of itemize
+
+% Optionally, do the same for enumerate for consistency if it's ever used deeply
+\renewlist{enumerate}{enumerate}{6} % Explicitly redefine enumerate to allow 6 levels
+% Default numbering (1., a., i., etc.) should apply, or we can customize:
+% \setlist[enumerate,1]{label=\arabic*.}
+% \setlist[enumerate,2]{label=\alph*.}
+% etc. For now, just ensuring depth.
+
+% Define \tightlist as an empty command.
+% This prevents an "Undefined control sequence" error if pandoc emits \tightlist,
+% while avoiding the original \tightlist definition that might cause issues with deep nesting.
+\providecommand{\tightlist}{}
 
 % Configure equation handling for better line breaking
 % Using the amsmath package which is already loaded
