@@ -14,6 +14,9 @@ DEFAULT_TOC_DEPTH=2
 # Default TOC setting (false = no TOC)
 DEFAULT_TOC=false
 
+# Default section numbering (true = numbered sections)
+DEFAULT_SECTION_NUMBERS=true
+
 # Function to check if a command exists
 check_command() {
     if ! command -v "$1" &> /dev/null; then
@@ -43,6 +46,7 @@ create_template_file() {
     local doc_title="$3"
     local doc_author="$4"
     local date_footer="$5"
+    local section_numbers="${6:-true}"
     
     # Use default values if not provided
     doc_title=${doc_title:-"Title"}
@@ -52,6 +56,12 @@ create_template_file() {
     local use_unicode_math=false
     if [ "$PDF_ENGINE" = "xelatex" ] || [ "$PDF_ENGINE" = "lualatex" ]; then
         use_unicode_math=true
+    fi
+    
+    # Determine if we should number sections
+    local numbering_commands=""
+    if [ "$section_numbers" = "false" ]; then
+        numbering_commands="\\setcounter{secnumdepth}{0}"
     fi
     
     cat > "$template_path" << EOF
@@ -294,6 +304,9 @@ $([ -n "$date_footer" ] && echo "\\fancyfoot[L]{$date_footer}")
 
 % Adjust the text size for display math to fit more content
 \\everymath{\\displaystyle\\small}
+
+% Control section numbering
+$numbering_commands
 
 % Define a custom environment for long text-heavy equations
 \\newenvironment{longmath}{%
@@ -586,6 +599,7 @@ convert() {
     ARG_NO_DATE=false
     ARG_TOC_DEPTH=$DEFAULT_TOC_DEPTH
     ARG_TOC=$DEFAULT_TOC
+    ARG_SECTION_NUMBERS=$DEFAULT_SECTION_NUMBERS
     
     # Parse command-line arguments
     while [[ $# -gt 0 ]]; do
@@ -600,6 +614,10 @@ convert() {
                 ;;
             --toc)
                 ARG_TOC=true
+                shift
+                ;;
+            --no-numbers|--no-section-numbers)
+                ARG_SECTION_NUMBERS=false
                 shift
                 ;;
             -a|--author)
@@ -683,6 +701,7 @@ convert() {
                     echo -e "  -a, --author AUTHOR   Set document author"
                     echo -e "  --toc                 Include table of contents"
                     echo -e "  --toc-depth DEPTH     Set table of contents depth (1-5, default: $DEFAULT_TOC_DEPTH)"
+                    echo -e "  --no-numbers          Disable section numbering (1.1, 1.2, etc.)"
                     echo -e "  -d, --date [VALUE]    Set document date. Special values:"
                     echo -e "                          - no argument: current date in default format"
                     echo -e "                          - \"no\": disable date"
@@ -711,6 +730,7 @@ convert() {
         echo -e "  -a, --author AUTHOR   Set document author"
         echo -e "  --toc                 Include table of contents"
         echo -e "  --toc-depth DEPTH     Set table of contents depth (1-5, default: $DEFAULT_TOC_DEPTH)"
+        echo -e "  --no-numbers          Disable section numbering (1.1, 1.2, etc.)"
         echo -e "  -d, --date [VALUE]    Set document date. Special values:"
         echo -e "                          - no argument: current date in default format"
         echo -e "                          - \"no\": disable date"
@@ -917,7 +937,7 @@ convert() {
             # Create a template file in the current directory
             TEMPLATE_PATH="$(pwd)/template.tex"
             echo -e "${YELLOW}Creating template file: $TEMPLATE_PATH${NC}"
-            create_template_file "$TEMPLATE_PATH" "$FOOTER_TEXT" "$TITLE" "$AUTHOR" "$DATE_FOOTER_TEXT"
+            create_template_file "$TEMPLATE_PATH" "$FOOTER_TEXT" "$TITLE" "$AUTHOR" "$DATE_FOOTER_TEXT" "$ARG_SECTION_NUMBERS"
             
             if [ ! -f "$TEMPLATE_PATH" ]; then
                 echo -e "${RED}Error: Failed to create template.tex.${NC}"
@@ -1030,6 +1050,12 @@ EOF
         TOC_OPTION="--toc"
     fi
     
+    # Generate section numbering variable for pandoc if needed
+    SECTION_NUMBERING_OPTION=""
+    if [ "$ARG_SECTION_NUMBERS" = false ]; then
+        SECTION_NUMBERING_OPTION="--variable=numbersections=false"
+    fi
+
     pandoc "$INPUT_FILE" \
         --from markdown \
         --to pdf \
@@ -1042,6 +1068,7 @@ EOF
         --highlight-style=tango \
         --listings \
         $TOC_OPTION \
+        $SECTION_NUMBERING_OPTION \
         --standalone
 
     # Check if conversion was successful
@@ -1326,6 +1353,7 @@ help() {
     echo -e "                    ${BLUE}-a, --author AUTHOR   Set document author${NC}"
     echo -e "                    ${BLUE}--toc                 Include table of contents${NC}"
     echo -e "                    ${BLUE}--toc-depth DEPTH     Set table of contents depth (1-5, default: $DEFAULT_TOC_DEPTH)${NC}"
+    echo -e "                    ${BLUE}--no-numbers          Disable section numbering (1.1, 1.2, etc.)${NC}"
     echo -e "                    ${BLUE}-d, --date [VALUE]    Set document date. Special values:${NC}"
     echo -e "                    ${BLUE}                        - no argument: current date in default format${NC}"
     echo -e "                    ${BLUE}                        - \"no\": disable date${NC}"
