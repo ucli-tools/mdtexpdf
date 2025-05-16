@@ -20,5 +20,7 @@ test:
 	$(INSTALL_NAME) convert example4.md -t "Test 4 Title" -a "Test Author" -d "YYYY-MM-DD" -f "© Example Name. All rights reserved. | example.com" --toc && \
 	$(INSTALL_NAME) convert example5.md -t "Test 5 Title" -a "Test Author" -d "YYYY-MM-DD" -f "© Example Name. All rights reserved. | example.com" --toc --toc-depth 2 && \
 	$(INSTALL_NAME) convert example6.md -t "Test 6 Title" -a "Test Author" -d "YYYY-MM-DD" -f "© Example Name. All rights reserved. | example.com" --toc --toc-depth 3 && \
+	cd .. && \
+	$(INSTALL_NAME) convert test_numbering.md -t "Section Numbering Test" -a "Test Author" -d "YYYY-MM-DD" -f "© Example Name. All rights reserved." --no-numbers && \
 	rm -f template.tex && \
 	rm -f *.bak

@@ -47,9 +47,10 @@ mdtexpdf is a command-line tool designed to simplify the process of creating pro
 - **Custom Footer**: Include copyright or other information in the document footer
 - **Code Highlighting**: Syntax highlighting for code blocks
 - **Tables and Figures**: Support for tables, images, and other Markdown elements
-- **Theorem Environments**: Use LaTeX theorem environments in your Markdown
+**Theorem Environments**: Use LaTeX theorem environments in your Markdown
 - **Chemical Equations**: Support for chemical formulas and equations
 - **Automatic Equation Line Breaking**: Long mathematical equations automatically wrap to fit the page width
+- **Section Numbering Control**: Option to disable section numbering for cleaner documents
 - **Easy Installation**: Simple install and uninstall process
 - **User-Friendly**: Colorized output and helpful error messages
 
@@ -128,11 +129,18 @@ Available options:
 - `-d, --date DATE`: Set the document date
 - `-f, --footer TEXT`: Set custom footer text
 - `--no-footer`: Disable the footer completely
+- `--no-numbers`: Disable section numbering (1.1, 1.2, etc.)
 
 Example for automated testing or CI/CD pipelines:
 
 ```bash
 mdtexpdf convert examples/example1.md -a "Test Author" -t "Test Document" -d "Today" --no-footer
+```
+
+To create a document without numbered sections:
+
+```bash
+mdtexpdf convert document.md -t "Clean Document" -a "Author Name" --no-numbers
 ```
 
 When these arguments are provided, the tool will not prompt for any information and will use the specified values instead.
