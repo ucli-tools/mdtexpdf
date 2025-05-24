@@ -947,7 +947,7 @@ convert() {
             echo -e "${GREEN}Created new template file: $TEMPLATE_PATH${NC}"
             
             # Check if the Markdown file has proper YAML frontmatter
-            if ! grep -q "^---" "$INPUT_FILE"; then
+            if ! head -n 1 "$INPUT_FILE" | grep -q "^---"; then
                 echo -e "${YELLOW}Updating $INPUT_FILE with proper YAML frontmatter...${NC}"
                 
                 # Check if the file has a first-level heading (# Title)
