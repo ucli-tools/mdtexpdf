@@ -254,43 +254,41 @@ fi)
 % Set page geometry
 \\geometry{a4paper, margin=1in}
 
-% Setup fancy headers and footers
-\\pagestyle{fancy}
-\\fancyhf{} % Clear all header and footer fields
+% Header and Footer Setup
+    \pagestyle{fancy}
+    \fancyhf{} % Clear all header and footer fields first
 
-% Header with document author and title (only on pages after the first)
-\\fancyhead[L]{\\small\\textit{$doc_author}}
-\\fancyhead[R]{\\small\\textit{$doc_title}}
-\\renewcommand{\\headrulewidth}{0.4pt}
+    % Setup Header
+    \fancyhead[L]{\small\textit{$doc_author}}
+    \fancyhead[R]{\small\textit{$doc_title}}
+    \renewcommand{\headrulewidth}{0.4pt}
 
-% Footer
-\fancyhf{} % Clear existing header/footer fields before setting new ones
-
-\$if(no_footer)\$
-    % All footers (L, C, R) remain empty
-\$else\$
-    % Left Footer (Date)
-    \$if(date_footer_content)\$
-        \fancyfoot[L]{\$date_footer_content\$}
-    \$endif\$
-
-    % Center Footer (Custom text / Copyright)
-    \$if(center_footer_content)\$
-        \fancyfoot[C]{\$center_footer_content\$}
+    % Setup Footer (conditionally)
+    \$if(no_footer)\$
+        % All footers (L, C, R) remain empty
+        \renewcommand{\footrulewidth}{0pt} % No footrule if no_footer is true
     \$else\$
-        % Default center footer if -f is not used and not --no-footer
-        \fancyfoot[C]{© All rights reserved \the\year} % Default copyright
-    \$endif\$
+        % Left Footer (Date)
+        \$if(date_footer_content)\$
+            \fancyfoot[L]{\$date_footer_content\$}
+        \$endif\$
 
-    % Right Footer (Page number)
-    \$if(page_of_format)\$
-        \fancyfoot[R]{\thepage/\pageref{LastPage}}
-    \$else\$
-        \fancyfoot[R]{\thepage}
-    \$endif\$
-\$endif\$
+        % Center Footer (Custom text / Copyright)
+        \$if(center_footer_content)\$
+            \fancyfoot[C]{\$center_footer_content\$}
+        \$else\$
+            % Default center footer if -f is not used and not --no-footer
+            \fancyfoot[C]{© All rights reserved \the\year} % Default copyright
+        \$endif\$
 
-\renewcommand{\footrulewidth}{0.4pt} % Apply rule if footers are active
+        % Right Footer (Page number)
+        \$if(page_of_format)\$
+            \fancyfoot[R]{\thepage/\pageref{LastPage}}
+        \$else\$
+            \fancyfoot[R]{\thepage}
+        \$endif\$
+        \renewcommand{\footrulewidth}{0.4pt} % Footrule active if footers are shown
+    \$endif\$
 
 % First page style (plain) - should mirror the above logic
 \fancypagestyle{plain}{
@@ -967,23 +965,9 @@ convert() {
             
             # Format the date footer if specified
             DATE_FOOTER_TEXT=""
-            if [ -n "$ARG_DATE_FOOTER" ]; then
-                case "$ARG_DATE_FOOTER" in
-                    "DD/MM/YY")
-                        DATE_FOOTER_TEXT="$(date +"%d/%m/%y")"
-                        ;;
-                    "YYYY-MM-DD")
-                        DATE_FOOTER_TEXT="$(date +"%Y-%m-%d")"
-                        ;;
-                    "Month Day, Year"|"month day, year")
-                        DATE_FOOTER_TEXT="$(date +"%B %d, %Y")"
-                        ;;
-                    *)
-                        # Use the provided format as a custom date format
-                        DATE_FOOTER_TEXT="$ARG_DATE_FOOTER"
-                        ;;
-                esac
-                echo -e "${GREEN}Adding date to footer: $DATE_FOOTER_TEXT${NC}"
+            if [ -n "$ARG_DATE_FOOTER" ]; then # Check if --date-footer was used at all
+                DATE_FOOTER_TEXT="$(date +"%y/%m/%d")"
+                echo -e "${GREEN}Adding date to footer (YY/MM/DD): $DATE_FOOTER_TEXT${NC}"
             fi
             
             # Create a template file in the current directory
