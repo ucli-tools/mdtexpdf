@@ -433,7 +433,7 @@ $numbering_commands
 % Hyperref setup
 \\hypersetup{
   colorlinks=true,
-  linkcolor=blue,
+  linkcolor=black,
   filecolor=magenta,
   urlcolor=cyan,
   pdftitle={\$if(title)\$\$title\$\$endif\$},
