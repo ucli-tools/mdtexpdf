@@ -82,7 +82,7 @@ make
 Alternatively, you can install manually:
 
 ```bash
-git clone https://github.com/yourusername/mdtexpdf.git
+git clone https://github.com/ucli-tools/mdtexpdf.git
 cd mdtexpdf
 chmod +x mdtexpdf.sh
 ./mdtexpdf.sh install

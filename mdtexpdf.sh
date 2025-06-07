@@ -87,6 +87,7 @@ create_template_file() {
     \\fi
     \\usepackage{geometry}
     \\usepackage{fancyhdr}
+    \\usepackage{lastpage} % For page X of Y numbering
     \\usepackage{graphicx}
     \\usepackage{amsmath}
     \\usepackage{amssymb}
@@ -253,34 +254,76 @@ fi)
 % Set page geometry
 \\geometry{a4paper, margin=1in}
 
-% Setup fancy headers and footers
-\\pagestyle{fancy}
-\\fancyhf{} % Clear all header and footer fields
+% Header and Footer Setup
+    \pagestyle{fancy}
+    \fancyhf{} % Clear all header and footer fields first
 
-% Header with document author and title (only on pages after the first)
-\\fancyhead[L]{\\small\\textit{$doc_author}}
-\\fancyhead[R]{\\small\\textit{$doc_title}}
-\\renewcommand{\\headrulewidth}{0.4pt}
+    % Setup Header
+    \fancyhead[L]{\small\textit{$doc_author}}
+    \fancyhead[R]{\small\textit{$doc_title}}
+    \renewcommand{\headrulewidth}{0.4pt}
 
-% Footer with custom text and page number
-\\fancyfoot[C]{$footer_text}
-\\fancyfoot[R]{\\thepage}
-$([ -n "$date_footer" ] && echo "\\fancyfoot[L]{$date_footer}")
-\\renewcommand{\\footrulewidth}{0.4pt}
+    % Setup Footer (conditionally)
+    \$if(no_footer)\$
+        % All footers (L, C, R) remain empty
+        \renewcommand{\footrulewidth}{0pt} % No footrule if no_footer is true
+    \$else\$
+        % Left Footer (Date)
+        \$if(date_footer_content)\$
+            \fancyfoot[L]{\$date_footer_content\$}
+        \$endif\$
 
-% First page style (no header)
-\\fancypagestyle{plain}{
-  \\fancyhf{}
-  \\fancyfoot[C]{$footer_text}
-  \\fancyfoot[R]{\\thepage}
-  $([ -n "$date_footer" ] && echo "\\fancyfoot[L]{$date_footer}")
-  \\renewcommand{\\footrulewidth}{0.4pt}
-  \renewcommand{\headrulewidth}{0pt}
+        % Center Footer (Custom text / Copyright)
+        \$if(center_footer_content)\$
+            \fancyfoot[C]{\$center_footer_content\$}
+        \$else\$
+            % Default center footer if -f is not used and not --no-footer
+            \fancyfoot[C]{© All rights reserved \the\year} % Default copyright
+        \$endif\$
+
+        % Right Footer (Page number)
+        \$if(page_of_format)\$
+            \fancyfoot[R]{\thepage/\pageref{LastPage}}
+        \$else\$
+            \fancyfoot[R]{\thepage}
+        \$endif\$
+        \renewcommand{\footrulewidth}{0.4pt} % Footrule active if footers are shown
+    \$endif\$
+
+% First page style (plain) - should mirror the above logic
+\fancypagestyle{plain}{
+    \fancyhf{} % Clear header/footer for plain style
+    \renewcommand{\headrulewidth}{0pt} % No header rule on plain pages
+
+    \$if(no_footer)\$
+        % All footers remain empty
+    \$else\$
+        % Left Footer (Date)
+        \$if(date_footer_content)\$
+            \fancyfoot[L]{\$date_footer_content\$}
+        \$endif\$
+
+        % Center Footer (Custom text / Copyright)
+        \$if(center_footer_content)\$
+            \fancyfoot[C]{\$center_footer_content\$}
+        \$else\$
+            \fancyfoot[C]{© All rights reserved \the\year} % Default copyright
+        \$endif\$
+
+        % Right Footer (Page number)
+        \$if(page_of_format)\$
+            \fancyfoot[R]{\thepage/\pageref{LastPage}}
+        \$else\$
+            \fancyfoot[R]{\thepage}
+        \$endif\$
+    \$endif\$
+    \renewcommand{\footrulewidth}{0.4pt} % Apply rule if footers are active
 }
 
 % Adjust paragraph spacing: add a full line skip between paragraphs
-\setlength{\parskip}{\baselineskip}
+\\setlength{\\parskip}{\\baselineskip}
 % Remove paragraph indentation
+\\setlength{\\parindent}{0pt}
 \setlength{\parindent}{0pt}
 
 % Configure list appearance using enumitem
@@ -600,6 +643,7 @@ convert() {
     ARG_TOC_DEPTH=$DEFAULT_TOC_DEPTH
     ARG_TOC=$DEFAULT_TOC
     ARG_SECTION_NUMBERS=$DEFAULT_SECTION_NUMBERS
+    ARG_PAGE_OF=false # New variable for page X of Y format
     
     # Parse command-line arguments
     while [[ $# -gt 0 ]]; do
@@ -686,6 +730,10 @@ convert() {
                     shift 2
                 fi
                 ;;
+            --pageof)
+                ARG_PAGE_OF=true
+                shift
+                ;;
             *)
                 # First non-option argument is the input file
                 if [ -z "$INPUT_FILE" ]; then
@@ -713,6 +761,7 @@ convert() {
                     echo -e "  --no-date             Disable date (same as -d \"no\")"
                     echo -e "  -f, --footer TEXT     Set footer text"
                     echo -e "  --no-footer           Disable footer"
+                    echo -e "  --pageof              Use 'Page X of Y' format in footer"
                     echo -e "  --date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\""
                     return 1
                 fi
@@ -742,6 +791,7 @@ convert() {
         echo -e "  --no-date             Disable date (same as -d \"no\")"
         echo -e "  -f, --footer TEXT     Set footer text"
         echo -e "  --no-footer           Disable footer"
+        echo -e "  --pageof              Use 'Page X of Y' format in footer"
         echo -e "  --date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\""
         return 1
     fi
@@ -915,23 +965,9 @@ convert() {
             
             # Format the date footer if specified
             DATE_FOOTER_TEXT=""
-            if [ -n "$ARG_DATE_FOOTER" ]; then
-                case "$ARG_DATE_FOOTER" in
-                    "DD/MM/YY")
-                        DATE_FOOTER_TEXT="$(date +"%d/%m/%y")"
-                        ;;
-                    "YYYY-MM-DD")
-                        DATE_FOOTER_TEXT="$(date +"%Y-%m-%d")"
-                        ;;
-                    "Month Day, Year"|"month day, year")
-                        DATE_FOOTER_TEXT="$(date +"%B %d, %Y")"
-                        ;;
-                    *)
-                        # Use the provided format as a custom date format
-                        DATE_FOOTER_TEXT="$ARG_DATE_FOOTER"
-                        ;;
-                esac
-                echo -e "${GREEN}Adding date to footer: $DATE_FOOTER_TEXT${NC}"
+            if [ -n "$ARG_DATE_FOOTER" ]; then # Check if --date-footer was used at all
+                DATE_FOOTER_TEXT="$(date +"%y/%m/%d")"
+                echo -e "${GREEN}Adding date to footer (YY/MM/DD): $DATE_FOOTER_TEXT${NC}"
             fi
             
             # Create a template file in the current directory
@@ -1056,6 +1092,27 @@ EOF
         SECTION_NUMBERING_OPTION="--variable=numbersections=false"
     fi
 
+    FOOTER_VARS=()
+    if [ "$ARG_NO_FOOTER" = true ]; then
+        FOOTER_VARS+=("--variable=no_footer=true")
+    else
+        # Center footer content from -f option
+        if [ -n "$ARG_FOOTER" ]; then # ARG_FOOTER is the value from -f option
+             FOOTER_VARS+=("--variable=center_footer_content=$ARG_FOOTER")
+        fi
+
+        # Page X of Y format for right footer
+        if [ "$ARG_PAGE_OF" = true ]; then
+            FOOTER_VARS+=("--variable=page_of_format=true")
+        fi
+
+        # Left footer content (date)
+        # DATE_FOOTER_TEXT is determined around lines 916-934 based on ARG_DATE_FOOTER
+        if [ -n "$DATE_FOOTER_TEXT" ]; then # DATE_FOOTER_TEXT is a shell variable in convert()
+            FOOTER_VARS+=("--variable=date_footer_content=$DATE_FOOTER_TEXT")
+        fi
+    fi
+
     pandoc "$INPUT_FILE" \
         --from markdown \
         --to pdf \
@@ -1069,6 +1126,7 @@ EOF
         --listings \
         $TOC_OPTION \
         $SECTION_NUMBERING_OPTION \
+        "${FOOTER_VARS[@]}" \
         --standalone
 
     # Check if conversion was successful
@@ -1365,6 +1423,7 @@ help() {
     echo -e "                    ${BLUE}--no-date             Disable date (same as -d \"no\")${NC}"
     echo -e "                    ${BLUE}-f, --footer TEXT     Set footer text${NC}"
     echo -e "                    ${BLUE}--no-footer           Disable footer${NC}"
+    echo -e "                    ${BLUE}--pageof              Use 'Page X of Y' format in footer${NC}"
     echo -e "                    ${BLUE}--date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\"${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert -a \"John Doe\" -t \"My Document\" --toc --toc-depth 3 document.md output.pdf\n"
