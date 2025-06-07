@@ -966,8 +966,22 @@ convert() {
             # Format the date footer if specified
             DATE_FOOTER_TEXT=""
             if [ -n "$ARG_DATE_FOOTER" ]; then # Check if --date-footer was used at all
-                DATE_FOOTER_TEXT="$(date +"%y/%m/%d")"
-                echo -e "${GREEN}Adding date to footer (YY/MM/DD): $DATE_FOOTER_TEXT${NC}"
+                if [ -n "$ARG_DATE" ] && [ "$ARG_DATE" != "no" ]; then
+                    # Attempt to parse ARG_DATE and format as YY/MM/DD
+                    PARSED_DATE_FOOTER=$(date -d "$ARG_DATE" +"%y/%m/%d" 2>/dev/null)
+                    if [ -n "$PARSED_DATE_FOOTER" ]; then
+                        DATE_FOOTER_TEXT="$PARSED_DATE_FOOTER"
+                        echo -e "${GREEN}Using document date for footer (YY/MM/DD): $DATE_FOOTER_TEXT${NC}"
+                    else
+                        # Fallback to current date if ARG_DATE is not parsable
+                        DATE_FOOTER_TEXT="$(date +"%y/%m/%d")"
+                        echo -e "${YELLOW}Warning: Could not parse date '$ARG_DATE'. Using current date for footer (YY/MM/DD): $DATE_FOOTER_TEXT${NC}"
+                    fi
+                else
+                    # If -d was not used or was 'no', use current date formatted as YY/MM/DD
+                    DATE_FOOTER_TEXT="$(date +"%y/%m/%d")"
+                    echo -e "${GREEN}Adding current date to footer (YY/MM/DD): $DATE_FOOTER_TEXT${NC}"
+                fi
             fi
             
             # Create a template file in the current directory
