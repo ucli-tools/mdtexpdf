@@ -630,6 +630,199 @@ preprocess_markdown() {
     echo -e "${GREEN}Preprocessing complete${NC}"
 }
 
+# Function to parse HTML metadata from markdown file
+parse_html_metadata() {
+    local input_file="$1"
+    
+    # Initialize metadata variables
+    META_TITLE=""
+    META_AUTHOR=""
+    META_DATE=""
+    META_DESCRIPTION=""
+    META_SECTION=""
+    META_SLUG=""
+    META_FOOTER=""
+    META_TOC=""
+    META_TOC_DEPTH=""
+    META_NO_NUMBERS=""
+    META_NO_FOOTER=""
+    META_PAGEOF=""
+    META_DATE_FOOTER=""
+    META_NO_DATE=""
+    
+    echo -e "${BLUE}Parsing metadata from HTML comments...${NC}"
+    
+    # Extract metadata from multi-line HTML comment block
+    local in_comment=false
+    while IFS= read -r line; do
+        # Check if we're entering a comment block
+        if echo "$line" | grep -q "^[[:space:]]*<!--[[:space:]]*$"; then
+            in_comment=true
+            continue
+        fi
+        
+        # Check if we're exiting a comment block
+        if echo "$line" | grep -q "^[[:space:]]*-->[[:space:]]*$"; then
+            in_comment=false
+            continue
+        fi
+        
+        # If we're inside a comment block, parse key: value pairs
+        if [ "$in_comment" = true ]; then
+            # Check if line contains key: value format
+            if echo "$line" | grep -q ":"; then
+                local key=$(echo "$line" | sed -n 's/^[[:space:]]*\([^:]*\):[[:space:]]*.*$/\1/p')
+                local value=$(echo "$line" | sed -n 's/^[[:space:]]*[^:]*:[[:space:]]*"\?\([^"]*\)"\?[[:space:]]*$/\1/p')
+                
+                # If value extraction with quotes failed, try without quotes
+                if [ -z "$value" ]; then
+                    value=$(echo "$line" | sed -n 's/^[[:space:]]*[^:]*:[[:space:]]*\(.*\)[[:space:]]*$/\1/p')
+                fi
+                
+                # Trim whitespace from key and value
+                key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            else
+                continue
+            fi
+        else
+            continue
+        fi
+        
+        case "$key" in
+            "description")
+                META_DESCRIPTION="$value"
+                echo -e "${GREEN}Found metadata - description: $value${NC}"
+                ;;
+            "section")
+                META_SECTION="$value"
+                echo -e "${GREEN}Found metadata - section: $value${NC}"
+                ;;
+            "date")
+                META_DATE="$value"
+                echo -e "${GREEN}Found metadata - date: $value${NC}"
+                ;;
+            "slug")
+                META_SLUG="$value"
+                echo -e "${GREEN}Found metadata - slug: $value${NC}"
+                ;;
+            "author")
+                META_AUTHOR="$value"
+                echo -e "${GREEN}Found metadata - author: $value${NC}"
+                ;;
+            "footer")
+                META_FOOTER="$value"
+                echo -e "${GREEN}Found metadata - footer: $value${NC}"
+                ;;
+            "toc")
+                META_TOC="$value"
+                echo -e "${GREEN}Found metadata - toc: $value${NC}"
+                ;;
+            "toc_depth")
+                META_TOC_DEPTH="$value"
+                echo -e "${GREEN}Found metadata - toc_depth: $value${NC}"
+                ;;
+            "no_numbers")
+                META_NO_NUMBERS="$value"
+                echo -e "${GREEN}Found metadata - no_numbers: $value${NC}"
+                ;;
+            "no_footer")
+                META_NO_FOOTER="$value"
+                echo -e "${GREEN}Found metadata - no_footer: $value${NC}"
+                ;;
+            "pageof")
+                META_PAGEOF="$value"
+                echo -e "${GREEN}Found metadata - pageof: $value${NC}"
+                ;;
+            "date_footer")
+                META_DATE_FOOTER="$value"
+                echo -e "${GREEN}Found metadata - date_footer: $value${NC}"
+                ;;
+            "no_date")
+                META_NO_DATE="$value"
+                echo -e "${GREEN}Found metadata - no_date: $value${NC}"
+                ;;
+        esac
+    done < "$input_file"
+    
+    # Extract title from first H1 heading if not provided in metadata
+    if [ -z "$META_TITLE" ]; then
+        META_TITLE=$(grep -m 1 "^# " "$input_file" | sed 's/^# //')
+        if [ -n "$META_TITLE" ]; then
+            echo -e "${GREEN}Found title from H1 heading: $META_TITLE${NC}"
+        fi
+    fi
+}
+
+# Function to apply metadata to command-line arguments
+apply_metadata_args() {
+    local read_metadata="$1"
+    
+    if [ "$read_metadata" = true ]; then
+        echo -e "${BLUE}Applying metadata to arguments (CLI args take precedence)...${NC}"
+        
+        # Apply metadata values only if command-line arguments weren't provided
+        [ -z "$ARG_TITLE" ] && [ -n "$META_TITLE" ] && ARG_TITLE="$META_TITLE"
+        [ -z "$ARG_AUTHOR" ] && [ -n "$META_AUTHOR" ] && ARG_AUTHOR="$META_AUTHOR"
+        [ -z "$ARG_DATE" ] && [ -n "$META_DATE" ] && ARG_DATE="$META_DATE"
+        [ -z "$ARG_FOOTER" ] && [ -n "$META_FOOTER" ] && ARG_FOOTER="$META_FOOTER"
+        [ -z "$ARG_DATE_FOOTER" ] && [ -n "$META_DATE_FOOTER" ] && ARG_DATE_FOOTER="$META_DATE_FOOTER"
+        
+        # Handle boolean flags - only apply if not explicitly set via CLI
+        if [ "$ARG_TOC" = "$DEFAULT_TOC" ] && [ -n "$META_TOC" ]; then
+            case "$META_TOC" in
+                "true"|"True"|"TRUE"|"yes"|"Yes"|"YES"|"1")
+                    ARG_TOC=true
+                    ;;
+                "false"|"False"|"FALSE"|"no"|"No"|"NO"|"0")
+                    ARG_TOC=false
+                    ;;
+            esac
+        fi
+        
+        if [ "$ARG_TOC_DEPTH" = "$DEFAULT_TOC_DEPTH" ] && [ -n "$META_TOC_DEPTH" ]; then
+            ARG_TOC_DEPTH="$META_TOC_DEPTH"
+        fi
+        
+        if [ "$ARG_SECTION_NUMBERS" = "$DEFAULT_SECTION_NUMBERS" ] && [ -n "$META_NO_NUMBERS" ]; then
+            case "$META_NO_NUMBERS" in
+                "true"|"True"|"TRUE"|"yes"|"Yes"|"YES"|"1")
+                    ARG_SECTION_NUMBERS=false
+                    ;;
+                "false"|"False"|"FALSE"|"no"|"No"|"NO"|"0")
+                    ARG_SECTION_NUMBERS=true
+                    ;;
+            esac
+        fi
+        
+        if [ "$ARG_NO_FOOTER" = false ] && [ -n "$META_NO_FOOTER" ]; then
+            case "$META_NO_FOOTER" in
+                "true"|"True"|"TRUE"|"yes"|"Yes"|"YES"|"1")
+                    ARG_NO_FOOTER=true
+                    ;;
+            esac
+        fi
+        
+        if [ "$ARG_PAGE_OF" = false ] && [ -n "$META_PAGEOF" ]; then
+            case "$META_PAGEOF" in
+                "true"|"True"|"TRUE"|"yes"|"Yes"|"YES"|"1")
+                    ARG_PAGE_OF=true
+                    ;;
+            esac
+        fi
+        
+        if [ "$ARG_NO_DATE" = false ] && [ -n "$META_NO_DATE" ]; then
+            case "$META_NO_DATE" in
+                "true"|"True"|"TRUE"|"yes"|"Yes"|"YES"|"1")
+                    ARG_NO_DATE=true
+                    ;;
+            esac
+        fi
+        
+        echo -e "${GREEN}Metadata applied successfully${NC}"
+    fi
+}
+
 # Function to convert markdown to PDF
 convert() {
     # Initialize variables for command-line arguments
@@ -644,6 +837,7 @@ convert() {
     ARG_TOC=$DEFAULT_TOC
     ARG_SECTION_NUMBERS=$DEFAULT_SECTION_NUMBERS
     ARG_PAGE_OF=false # New variable for page X of Y format
+    ARG_READ_METADATA=false # New variable for metadata reading
     
     # Parse command-line arguments
     while [[ $# -gt 0 ]]; do
@@ -734,6 +928,10 @@ convert() {
                 ARG_PAGE_OF=true
                 shift
                 ;;
+            --read-metadata)
+                ARG_READ_METADATA=true
+                shift
+                ;;
             *)
                 # First non-option argument is the input file
                 if [ -z "$INPUT_FILE" ]; then
@@ -763,6 +961,7 @@ convert() {
                     echo -e "  --no-footer           Disable footer"
                     echo -e "  --pageof              Use 'Page X of Y' format in footer"
                     echo -e "  --date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\""
+                    echo -e "  --read-metadata       Read metadata from HTML comments in markdown file"
                     return 1
                 fi
                 shift
@@ -793,6 +992,7 @@ convert() {
         echo -e "  --no-footer           Disable footer"
         echo -e "  --pageof              Use 'Page X of Y' format in footer"
         echo -e "  --date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\""
+        echo -e "  --read-metadata       Read metadata from HTML comments in markdown file"
         return 1
     fi
 
@@ -805,6 +1005,12 @@ convert() {
     if [ ! -f "$INPUT_FILE" ]; then
         echo -e "${RED}Error: Input file '$INPUT_FILE' not found.${NC}"
         return 1
+    fi
+
+    # Parse metadata from HTML comments if --read-metadata flag is set
+    if [ "$ARG_READ_METADATA" = true ]; then
+        parse_html_metadata "$INPUT_FILE"
+        apply_metadata_args "$ARG_READ_METADATA"
     fi
 
     # Create a backup of the original markdown file
@@ -1439,6 +1645,7 @@ help() {
     echo -e "                    ${BLUE}--no-footer           Disable footer${NC}"
     echo -e "                    ${BLUE}--pageof              Use 'Page X of Y' format in footer${NC}"
     echo -e "                    ${BLUE}--date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\"${NC}"
+    echo -e "                    ${BLUE}--read-metadata       Read metadata from HTML comments in markdown file${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert -a \"John Doe\" -t \"My Document\" --toc --toc-depth 3 document.md output.pdf\n"
     
