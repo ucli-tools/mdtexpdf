@@ -26,10 +26,10 @@ function Header(elem)
     
     if elem.level == 4 then
       -- Level 4 headings: italic and normal size for better hierarchy
-      latex_cmd = "\\vspace{1.5ex}\\noindent{\\normalsize\\textit{" .. heading_text .. "}}\\\\[0.5ex]\\noindent"
+      latex_cmd = "\\par\\vspace{1.5ex}\\noindent{\\normalsize\\textit{" .. heading_text .. "}}\\\\[0.5ex]\\noindent"
     else -- level 5
       -- Level 5 headings: smaller italic for even deeper hierarchy
-      latex_cmd = "\\vspace{1ex}\\noindent{\\small\\textit{" .. heading_text .. "}}\\\\[0.3ex]\\noindent"
+      latex_cmd = "\\par\\vspace{1ex}\\noindent{\\small\\textit{" .. heading_text .. "}}\\\\[0.3ex]\\noindent"
     end
     
     return pandoc.RawBlock("latex", latex_cmd)
