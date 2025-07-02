@@ -102,6 +102,9 @@ create_template_file() {
 \postdate{\par\end{center}}
 BOOK_CMDS_EOF
 )
+    else
+        # For article format, add custom heading formatting to ensure proper line breaks
+        book_specific_commands=""
     fi
 
     cat > "$template_path" << EOF
@@ -1532,6 +1535,20 @@ EOF
     SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
     LUA_FILTERS=()
     
+    # Check for heading fix filter (add this first to process headings before other filters)
+    if [ -f "$(pwd)/heading_fix_filter.lua" ]; then
+        LUA_FILTERS+=("$(pwd)/heading_fix_filter.lua")
+        echo -e "${BLUE}Using Lua filter for heading line break fix: $(pwd)/heading_fix_filter.lua${NC}"
+    elif [ -f "$SCRIPT_DIR/heading_fix_filter.lua" ]; then
+        LUA_FILTERS+=("$SCRIPT_DIR/heading_fix_filter.lua")
+        echo -e "${BLUE}Using Lua filter for heading line break fix: $SCRIPT_DIR/heading_fix_filter.lua${NC}"
+    elif [ -f "/usr/local/share/mdtexpdf/heading_fix_filter.lua" ]; then
+        LUA_FILTERS+=("/usr/local/share/mdtexpdf/heading_fix_filter.lua")
+        echo -e "${BLUE}Using Lua filter for heading line break fix: /usr/local/share/mdtexpdf/heading_fix_filter.lua${NC}"
+    else
+        echo -e "${YELLOW}Warning: heading_fix_filter.lua not found. Level 4 and 5 headings may run inline.${NC}"
+    fi
+    
     # Check for long equation filter
     if [ -f "$(pwd)/long_equation_filter.lua" ]; then
         LUA_FILTERS+=("$(pwd)/long_equation_filter.lua")
@@ -1829,6 +1846,19 @@ install() {
         
         # Copy the Lua filters if they exist
         SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+        
+        # Copy heading fix filter
+        if [ -f "$SCRIPT_DIR/heading_fix_filter.lua" ]; then
+            sudo cp "$SCRIPT_DIR/heading_fix_filter.lua" /usr/local/share/mdtexpdf/
+            sudo chmod 644 /usr/local/share/mdtexpdf/heading_fix_filter.lua
+            echo -e "${GREEN}✓ Installed heading_fix_filter.lua for fixing heading line breaks${NC}"
+        elif [ -f "$(pwd)/heading_fix_filter.lua" ]; then
+            sudo cp "$(pwd)/heading_fix_filter.lua" /usr/local/share/mdtexpdf/
+            sudo chmod 644 /usr/local/share/mdtexpdf/heading_fix_filter.lua
+            echo -e "${GREEN}✓ Installed heading_fix_filter.lua for fixing heading line breaks${NC}"
+        else
+            echo -e "${YELLOW}Warning: heading_fix_filter.lua not found. Level 4 and 5 headings may run inline.${NC}"
+        fi
         
         # Copy long equation filter
         if [ -f "$SCRIPT_DIR/long_equation_filter.lua" ]; then
