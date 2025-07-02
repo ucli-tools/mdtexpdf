@@ -47,6 +47,7 @@ create_template_file() {
     local doc_author="$4"
     local date_footer="$5"
     local section_numbers="${6:-true}"
+    local format="${7:-article}"
     
     # Use default values if not provided
     doc_title=${doc_title:-"Title"}
@@ -64,8 +65,46 @@ create_template_file() {
         numbering_commands="\\setcounter{secnumdepth}{0}"
     fi
     
+    # Set document class and book-specific commands based on format
+    local docclass_opts="12pt"
+    local docclass="article"
+    local book_specific_commands=""
+    if [ "$format" = "book" ]; then
+        docclass="book"
+        docclass_opts="12pt, openany"
+        book_specific_commands=$(cat << 'BOOK_CMDS_EOF'
+% Custom styling for book format
+\usepackage{titlesec}
+\usepackage{titling}
+
+% Style for Part and Chapter headings
+\titleformat{\part}[display]
+  {\normalfont\huge\bfseries\filcenter}
+  {\partname~\thepart}
+  {20pt}
+  {\Huge}
+\titlespacing*{\part}{0pt}{50pt}{40pt}
+
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries}
+  {\chaptertitlename~\thechapter}
+  {20pt}
+  {\Huge}
+\titlespacing*{\chapter}{0pt}{50pt}{40pt}
+
+% Style for the main title page (title, author, and date)
+\pretitle{\begin{center}\normalfont\huge\bfseries}
+\posttitle{\par\end{center}\vskip 2em}
+\preauthor{\begin{center}\normalfont\Large\bfseries}
+\postauthor{\par\end{center}\vskip 1em}
+\predate{\begin{center}\normalfont\large}
+\postdate{\par\end{center}}
+BOOK_CMDS_EOF
+)
+    fi
+
     cat > "$template_path" << EOF
-    \\documentclass[12pt]{article}
+    \documentclass[$docclass_opts]{$docclass}
     
     % Conditional packages based on LaTeX engine
     \\usepackage{iftex}
@@ -109,6 +148,7 @@ create_template_file() {
     \\usepackage{enumitem}
     \\usepackage[version=4]{mhchem}
     \\usepackage{framed}   % For snugshade environment
+    $book_specific_commands
     
     % Define \real command if it doesn't exist (alternative to realnum package)
     \\providecommand{\\real}[1]{#1}
@@ -119,9 +159,6 @@ create_template_file() {
     % Define \pandocbounded command used by Pandoc for complex math expressions
     \\providecommand{\\pandocbounded}[1]{\\ensuremath{#1}}
     
-    % Define \pandocbounded command used by Pandoc for complex math expressions
-    \providecommand{\pandocbounded}[1]{\ensuremath{#1}}
-
     % Define \passthrough command, sometimes used by Pandoc with --listings
     \providecommand{\passthrough}[1]{#1}
     
@@ -278,7 +315,7 @@ fi)
             \fancyfoot[C]{\$center_footer_content\$}
         \$else\$
             % Default center footer if -f is not used and not --no-footer
-            \fancyfoot[C]{© All rights reserved \the\year} % Default copyright
+            \fancyfoot[C]{\copyright All rights reserved \the\year} % Default copyright
         \$endif\$
 
         % Right Footer (Page number)
@@ -307,7 +344,7 @@ fi)
         \$if(center_footer_content)\$
             \fancyfoot[C]{\$center_footer_content\$}
         \$else\$
-            \fancyfoot[C]{© All rights reserved \the\year} % Default copyright
+            \fancyfoot[C]{\copyright All rights reserved \the\year} % Default copyright
         \$endif\$
 
         % Right Footer (Page number)
@@ -649,6 +686,7 @@ parse_html_metadata() {
     META_PAGEOF=""
     META_DATE_FOOTER=""
     META_NO_DATE=""
+    META_FORMAT="article" # Default format
     
     echo -e "${BLUE}Parsing metadata from HTML comments...${NC}"
     
@@ -742,6 +780,10 @@ parse_html_metadata() {
                 META_NO_DATE="$value"
                 echo -e "${GREEN}Found metadata - no_date: $value${NC}"
                 ;;
+            "format")
+                META_FORMAT="$value"
+                echo -e "${GREEN}Found metadata - format: $value${NC}"
+                ;;
         esac
     done < "$input_file"
     
@@ -767,6 +809,7 @@ apply_metadata_args() {
         [ -z "$ARG_DATE" ] && [ -n "$META_DATE" ] && ARG_DATE="$META_DATE"
         [ -z "$ARG_FOOTER" ] && [ -n "$META_FOOTER" ] && ARG_FOOTER="$META_FOOTER"
         [ -z "$ARG_DATE_FOOTER" ] && [ -n "$META_DATE_FOOTER" ] && ARG_DATE_FOOTER="$META_DATE_FOOTER"
+        [ -z "$ARG_FORMAT" ] && [ -n "$META_FORMAT" ] && ARG_FORMAT="$META_FORMAT"
         
         # Handle boolean flags - only apply if not explicitly set via CLI
         if [ "$ARG_TOC" = "$DEFAULT_TOC" ] && [ -n "$META_TOC" ]; then
@@ -838,6 +881,7 @@ convert() {
     ARG_SECTION_NUMBERS=$DEFAULT_SECTION_NUMBERS
     ARG_PAGE_OF=false # New variable for page X of Y format
     ARG_READ_METADATA=false # New variable for metadata reading
+    ARG_FORMAT="" # New variable for document format
     
     # Parse command-line arguments
     while [[ $# -gt 0 ]]; do
@@ -932,6 +976,10 @@ convert() {
                 ARG_READ_METADATA=true
                 shift
                 ;;
+            --format)
+                ARG_FORMAT="$2"
+                shift 2
+                ;;
             *)
                 # First non-option argument is the input file
                 if [ -z "$INPUT_FILE" ]; then
@@ -962,6 +1010,7 @@ convert() {
                     echo -e "  --pageof              Use 'Page X of Y' format in footer"
                     echo -e "  --date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\""
                     echo -e "  --read-metadata       Read metadata from HTML comments in markdown file"
+                    echo -e "  --format FORMAT       Set document format (article or book)"
                     return 1
                 fi
                 shift
@@ -993,6 +1042,7 @@ convert() {
         echo -e "  --pageof              Use 'Page X of Y' format in footer"
         echo -e "  --date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\""
         echo -e "  --read-metadata       Read metadata from HTML comments in markdown file"
+        echo -e "  --format FORMAT       Set document format (article or book)"
         return 1
     fi
 
@@ -1023,6 +1073,8 @@ convert() {
         OUTPUT_FILE="${INPUT_FILE%.md}.pdf"
     fi
     
+
+
     # Preprocess the markdown file for better LaTeX compatibility
     preprocess_markdown "$INPUT_FILE"
     
@@ -1069,7 +1121,7 @@ convert() {
     else
         # Template not found in current directory
         if [ -n "$TEMPLATE_PATH" ]; then
-            # Template found in another location
+            # Use the template from another location
             echo -e "${YELLOW}No template.tex found in current directory.${NC}"
             echo -e "${GREEN}Do you want to create a template.tex now and update your file with the proper header? (y/n) [y]:${NC}"
         else
@@ -1161,9 +1213,9 @@ convert() {
                 ADD_FOOTER=${ADD_FOOTER:-"y"}
                 
                 if [[ $ADD_FOOTER =~ ^[Yy]$ ]]; then
-                    echo -e "${GREEN}Enter footer text (press Enter for default '© All rights reserved $(date +"%Y")'):${NC}"
+                    echo -e "${GREEN}Enter footer text (press Enter for default ' All rights reserved $(date +"%Y")'):${NC}"
                     read FOOTER_TEXT
-                    FOOTER_TEXT=${FOOTER_TEXT:-"© All rights reserved $(date +"%Y")"}
+                    FOOTER_TEXT=${FOOTER_TEXT:-" All rights reserved $(date +"%Y")"}
                 else
                     FOOTER_TEXT=""
                 fi
@@ -1186,14 +1238,13 @@ convert() {
                 else
                     # If -d was not used or was 'no', use current date formatted as YY/MM/DD
                     DATE_FOOTER_TEXT="$(date +"%y/%m/%d")"
-                    echo -e "${GREEN}Adding current date to footer (YY/MM/DD): $DATE_FOOTER_TEXT${NC}"
                 fi
             fi
             
             # Create a template file in the current directory
             TEMPLATE_PATH="$(pwd)/template.tex"
             echo -e "${YELLOW}Creating template file: $TEMPLATE_PATH${NC}"
-            create_template_file "$TEMPLATE_PATH" "$FOOTER_TEXT" "$TITLE" "$AUTHOR" "$DATE_FOOTER_TEXT" "$ARG_SECTION_NUMBERS"
+            create_template_file "$TEMPLATE_PATH" "$FOOTER_TEXT" "$TITLE" "$AUTHOR" "$DATE_FOOTER_TEXT" "$ARG_SECTION_NUMBERS" "$ARG_FORMAT"
             
             if [ ! -f "$TEMPLATE_PATH" ]; then
                 echo -e "${RED}Error: Failed to create template.tex.${NC}"
@@ -1289,6 +1340,25 @@ EOF
         echo -e "${BLUE}Using Lua filter for automatic image sizing: /usr/local/share/mdtexpdf/image_size_filter.lua${NC}"
     else
         echo -e "${YELLOW}Warning: image_size_filter.lua not found. Images may not be properly sized.${NC}"
+    fi
+
+    # Add book structure filter if format is book
+    if [ "$ARG_FORMAT" = "book" ]; then
+        local book_filter_path=""
+        if [ -f "$(pwd)/filters/book_structure.lua" ]; then
+            book_filter_path="$(pwd)/filters/book_structure.lua"
+        elif [ -f "$SCRIPT_DIR/filters/book_structure.lua" ]; then
+            book_filter_path="$SCRIPT_DIR/filters/book_structure.lua"
+        elif [ -f "/usr/local/share/mdtexpdf/book_structure.lua" ]; then
+            book_filter_path="/usr/local/share/mdtexpdf/book_structure.lua"
+        fi
+
+        if [ -n "$book_filter_path" ]; then
+            LUA_FILTERS+=("$book_filter_path")
+            echo -e "${BLUE}Using Lua filter for book structure: $book_filter_path${NC}"
+        else
+            echo -e "${YELLOW}Warning: book_structure.lua not found. Book format may not work correctly.${NC}"
+        fi
     fi
     
     # Build filter options
@@ -1554,6 +1624,22 @@ install() {
             echo -e "${GREEN}✓ Installed image_size_filter.lua for automatic image sizing${NC}"
         else
             echo -e "${YELLOW}Warning: image_size_filter.lua not found. Images may not be properly sized.${NC}"
+        fi
+
+        # Install book_structure.lua filter
+        local book_filter_src=""
+        if [ -f "$SCRIPT_DIR/filters/book_structure.lua" ]; then
+            book_filter_src="$SCRIPT_DIR/filters/book_structure.lua"
+        elif [ -f "$(pwd)/filters/book_structure.lua" ]; then
+            book_filter_src="$(pwd)/filters/book_structure.lua"
+        fi
+
+        if [ -n "$book_filter_src" ]; then
+            sudo cp "$book_filter_src" /usr/local/share/mdtexpdf/
+            sudo chmod 644 /usr/local/share/mdtexpdf/book_structure.lua
+            echo -e "${GREEN}✓ Installed book_structure.lua for book format${NC}"
+        else
+            echo -e "${YELLOW}Warning: book_structure.lua not found. Book format may not work correctly.${NC}"
         fi
         
         # Copy templates to the shared directory
