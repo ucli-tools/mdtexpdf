@@ -171,52 +171,127 @@ BOOK_CMDS_EOF
         % U+20D1 COMBINING RIGHT HARPOON ABOVE
         \\newunicodechar{⃑}{\\vec}
         
-        % Other common mathematical symbols
+        % Greek letters - lowercase (text mode compatible)
+        \\newunicodechar{α}{\\ensuremath{\\alpha}}
+        \\newunicodechar{β}{\\ensuremath{\\beta}}
+        \\newunicodechar{γ}{\\ensuremath{\\gamma}}
+        \\newunicodechar{δ}{\\ensuremath{\\delta}}
+        \\newunicodechar{ε}{\\ensuremath{\\varepsilon}}
+        \\newunicodechar{ζ}{\\ensuremath{\\zeta}}
+        \\newunicodechar{η}{\\ensuremath{\\eta}}
+        \\newunicodechar{θ}{\\ensuremath{\\theta}}
+        \\newunicodechar{ι}{\\ensuremath{\\iota}}
+        \\newunicodechar{κ}{\\ensuremath{\\kappa}}
+        \\newunicodechar{λ}{\\ensuremath{\\lambda}}
+        \\newunicodechar{μ}{\\ensuremath{\\mu}}
+        \\newunicodechar{ν}{\\ensuremath{\\nu}}
+        \\newunicodechar{ξ}{\\ensuremath{\\xi}}
+        \\newunicodechar{ο}{o}
+        \\newunicodechar{π}{\\ensuremath{\\pi}}
+        \\newunicodechar{ρ}{\\ensuremath{\\rho}}
+        \\newunicodechar{σ}{\\ensuremath{\\sigma}}
+        \\newunicodechar{τ}{\\ensuremath{\\tau}}
+        \\newunicodechar{υ}{\\ensuremath{\\upsilon}}
+        \\newunicodechar{φ}{\\ensuremath{\\phi}}
+        \\newunicodechar{χ}{\\ensuremath{\\chi}}
+        \\newunicodechar{ψ}{\\ensuremath{\\psi}}
+        \\newunicodechar{ω}{\\ensuremath{\\omega}}
+        
+        % Greek letters - uppercase (text mode compatible)
+        \\newunicodechar{Α}{A}
+        \\newunicodechar{Β}{B}
+        \\newunicodechar{Γ}{\\ensuremath{\\Gamma}}
+        \\newunicodechar{Δ}{\\ensuremath{\\Delta}}
+        \\newunicodechar{Ε}{E}
+        \\newunicodechar{Ζ}{Z}
+        \\newunicodechar{Η}{H}
+        \\newunicodechar{Θ}{\\ensuremath{\\Theta}}
+        \\newunicodechar{Ι}{I}
+        \\newunicodechar{Κ}{K}
+        \\newunicodechar{Λ}{\\ensuremath{\\Lambda}}
+        \\newunicodechar{Μ}{M}
+        \\newunicodechar{Ν}{N}
+        \\newunicodechar{Ξ}{\\ensuremath{\\Xi}}
+        \\newunicodechar{Ο}{O}
+        \\newunicodechar{Π}{\\ensuremath{\\Pi}}
+        \\newunicodechar{Ρ}{P}
+        \\newunicodechar{Σ}{\\ensuremath{\\Sigma}}
+        \\newunicodechar{Τ}{T}
+        \\newunicodechar{Υ}{\\ensuremath{\\Upsilon}}
+        \\newunicodechar{Φ}{\\ensuremath{\\Phi}}
+        \\newunicodechar{Χ}{X}
+        \\newunicodechar{Ψ}{\\ensuremath{\\Psi}}
+        \\newunicodechar{Ω}{\\ensuremath{\\Omega}}
+        
+        % Additional Greek letter variants (text mode compatible)
+        \\newunicodechar{ϑ}{\\ensuremath{\\vartheta}}
+        \\newunicodechar{ϕ}{\\ensuremath{\\varphi}}
+        \\newunicodechar{ϖ}{\\ensuremath{\\varpi}}
+        \\newunicodechar{ϱ}{\\ensuremath{\\varrho}}
+        \\newunicodechar{ς}{\\ensuremath{\\varsigma}}
+        \\newunicodechar{ϵ}{\\ensuremath{\\epsilon}}
+        \\newunicodechar{ϰ}{\\ensuremath{\\varkappa}}
+
+        % Greek letters with accents (tonos)
+        \\newunicodechar{ά}{\\ensuremath{\\acute{\\alpha}}}
+        \\newunicodechar{έ}{\\ensuremath{\\acute{\\varepsilon}}}
+        \\newunicodechar{ή}{\\ensuremath{\\acute{\\eta}}}
+        \\newunicodechar{ί}{\\ensuremath{\\acute{\\iota}}}
+        \\newunicodechar{ό}{\\ensuremath{\\acute{o}}}
+        \\newunicodechar{ύ}{\\ensuremath{\\acute{\\upsilon}}}
+        \\newunicodechar{ώ}{\\ensuremath{\\acute{\\omega}}}
+        \\newunicodechar{Ά}{\\ensuremath{\\acute{A}}}
+        \\newunicodechar{Έ}{\\ensuremath{\\acute{E}}}
+        \\newunicodechar{Ή}{\\ensuremath{\\acute{H}}}
+        \\newunicodechar{Ί}{\\ensuremath{\\acute{I}}}
+        \\newunicodechar{Ό}{\\ensuremath{\\acute{O}}}
+        \\newunicodechar{Ύ}{\\ensuremath{\\acute{\\Upsilon}}}
+        \\newunicodechar{Ώ}{\\ensuremath{\\acute{\\Omega}}}
 
         % Define Unicode box-drawing characters for pdfLaTeX
         \newunicodechar{├}{\texttt{|--}}
         \newunicodechar{│}{\texttt{|}}
         \newunicodechar{└}{\texttt{$(printf %s '\`')--}}
         \newunicodechar{─}{\texttt{-}}
-        % For non-listings context, rely on inputenc and font capabilities for pdflatex
-        \newunicodechar{ℝ}{\mathbb{R}}
-        \\newunicodechar{ℤ}{\\mathbb{Z}}
-        \\newunicodechar{ℕ}{\\mathbb{N}}
-        \\newunicodechar{ℚ}{\\mathbb{Q}}
-        \\newunicodechar{ℂ}{\\mathbb{C}}
-        \\newunicodechar{∞}{\\infty}
-        \\newunicodechar{∫}{\\int}
-        \\newunicodechar{∑}{\\sum}
-        \\newunicodechar{∏}{\\prod}
-        \\newunicodechar{√}{\\sqrt}
-        \\newunicodechar{∂}{\\partial}
-        \\newunicodechar{∇}{\\nabla}
-        \\newunicodechar{∆}{\\Delta}
-        \\newunicodechar{∈}{\\in}
-        \\newunicodechar{∉}{\\notin}
-        \\newunicodechar{∋}{\\ni}
-        \\newunicodechar{⊂}{\\subset}
-        \\newunicodechar{⊃}{\\supset}
-        \\newunicodechar{⊆}{\\subseteq}
-        \\newunicodechar{⊇}{\\supseteq}
-        \\newunicodechar{∪}{\\cup}
-        \\newunicodechar{∩}{\\cap}
-        \\newunicodechar{≠}{\\neq}
-        \\newunicodechar{≤}{\\leq}
-        \\newunicodechar{≥}{\\geq}
-        \\newunicodechar{≈}{\\approx}
-        \\newunicodechar{≡}{\\equiv}
-        \\newunicodechar{∼}{\\sim}
-        \\newunicodechar{∝}{\\propto}
-        \\newunicodechar{′}{\\prime}
-        \\newunicodechar{″}{\\prime\\prime}
-        \\newunicodechar{‴}{\\prime\\prime\\prime}
-        \\newunicodechar{→}{\\rightarrow}
-        \\newunicodechar{←}{\\leftarrow}
-        \\newunicodechar{↔}{\\leftrightarrow}
-        \\newunicodechar{⇒}{\\Rightarrow}
-        \\newunicodechar{⇐}{\\Leftarrow}
-        \\newunicodechar{⇔}{\\Leftrightarrow}
+        % Mathematical symbols (text mode compatible)
+        \newunicodechar{ℝ}{\ensuremath{\mathbb{R}}}
+        \\newunicodechar{ℤ}{\\ensuremath{\\mathbb{Z}}}
+        \\newunicodechar{ℕ}{\\ensuremath{\\mathbb{N}}}
+        \\newunicodechar{ℚ}{\\ensuremath{\\mathbb{Q}}}
+        \\newunicodechar{ℂ}{\\ensuremath{\\mathbb{C}}}
+        \\newunicodechar{∞}{\\ensuremath{\\infty}}
+        \\newunicodechar{∫}{\\ensuremath{\\int}}
+        \\newunicodechar{∑}{\\ensuremath{\\sum}}
+        \\newunicodechar{∏}{\\ensuremath{\\prod}}
+        \\newunicodechar{√}{\\ensuremath{\\sqrt}}
+        \\newunicodechar{∂}{\\ensuremath{\\partial}}
+        \\newunicodechar{∇}{\\ensuremath{\\nabla}}
+        \\newunicodechar{∆}{\\ensuremath{\\Delta}}
+        \\newunicodechar{∈}{\\ensuremath{\\in}}
+        \\newunicodechar{∉}{\\ensuremath{\\notin}}
+        \\newunicodechar{∋}{\\ensuremath{\\ni}}
+        \\newunicodechar{⊂}{\\ensuremath{\\subset}}
+        \\newunicodechar{⊃}{\\ensuremath{\\supset}}
+        \\newunicodechar{⊆}{\\ensuremath{\\subseteq}}
+        \\newunicodechar{⊇}{\\ensuremath{\\supseteq}}
+        \\newunicodechar{∪}{\\ensuremath{\\cup}}
+        \\newunicodechar{∩}{\\ensuremath{\\cap}}
+        \\newunicodechar{≠}{\\ensuremath{\\neq}}
+        \\newunicodechar{≤}{\\ensuremath{\\leq}}
+        \\newunicodechar{≥}{\\ensuremath{\\geq}}
+        \\newunicodechar{≈}{\\ensuremath{\\approx}}
+        \\newunicodechar{≡}{\\ensuremath{\\equiv}}
+        \\newunicodechar{∼}{\\ensuremath{\\sim}}
+        \\newunicodechar{∝}{\\ensuremath{\\propto}}
+        \\newunicodechar{′}{\\ensuremath{\\prime}}
+        \\newunicodechar{″}{\\ensuremath{\\prime\\prime}}
+        \\newunicodechar{‴}{\\ensuremath{\\prime\\prime\\prime}}
+        \\newunicodechar{→}{\\ensuremath{\\rightarrow}}
+        \\newunicodechar{←}{\\ensuremath{\\leftarrow}}
+        \\newunicodechar{↔}{\\ensuremath{\\leftrightarrow}}
+        \\newunicodechar{⇒}{\\ensuremath{\\Rightarrow}}
+        \\newunicodechar{⇐}{\\ensuremath{\\Leftarrow}}
+        \\newunicodechar{⇔}{\\ensuremath{\\Leftrightarrow}}
     \\fi\\fi
     
     % Configure listings for code blocks
@@ -619,6 +694,9 @@ preprocess_markdown() {
         # Replace combining right harpoon (U+20D1) with \vec command
         # This is tricky because it's a combining character, so we need to capture the character it combines with
         sed -i 's/\\overset{⃑}/\\vec/g' "$temp_file"
+        
+        # Note: Greek letters are handled by \newunicodechar in the template
+        # No preprocessing needed for Greek letters as they work directly with Unicode
         
         # Replace other common mathematical Unicode characters
         sed -i 's/ℝ/\\mathbb{R}/g' "$temp_file"
