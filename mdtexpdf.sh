@@ -48,6 +48,7 @@ create_template_file() {
     local date_footer="$5"
     local section_numbers="${6:-true}"
     local format="${7:-article}"
+    local header_footer_policy="${8:-content-only}"
     
     # Use default values if not provided
     doc_title=${doc_title:-"Title"}
@@ -79,14 +80,14 @@ create_template_file() {
 
 % Style for Part and Chapter headings
 \titleformat{\part}[display]
-  {\normalfont\huge\bfseries\filcenter}
+  {\normalfont\huge\bfseries\filcenter\thispagestyle{plain}}
   {\partname~\thepart}
   {20pt}
   {\Huge}
 \titlespacing*{\part}{0pt}{50pt}{40pt}
 
 \titleformat{\chapter}[display]
-  {\normalfont\huge\bfseries}
+  {\normalfont\huge\bfseries\thispagestyle{plain}}
   {\chaptertitlename~\thechapter}
   {20pt}
   {\Huge}
@@ -405,31 +406,120 @@ fi)
 % First page style (plain) - should mirror the above logic
 \fancypagestyle{plain}{
     \fancyhf{} % Clear header/footer for plain style
-    \renewcommand{\headrulewidth}{0pt} % No header rule on plain pages
-
-    \$if(no_footer)\$
-        % All footers remain empty
+    
+    % Conditionally add headers based on header_footer_policy
+    \$if(header_footer_policy_all)\$
+        % Include headers on all plain pages (title, part, chapter pages) when policy is all
+        \fancyhead[L]{\small\textit{$doc_author}}
+        \fancyhead[R]{\small\textit{$doc_title}}
+        \renewcommand{\headrulewidth}{0.4pt}
+    \$elseif(header_footer_policy_partial)\$
+        % Include headers on part and chapter pages, but not title page when policy is partial
+        \fancyhead[L]{\small\textit{$doc_author}}
+        \fancyhead[R]{\small\textit{$doc_title}}
+        \renewcommand{\headrulewidth}{0.4pt}
     \$else\$
-        % Left Footer (Date)
-        \$if(date_footer_content)\$
-            \fancyfoot[L]{\$date_footer_content\$}
-        \$endif\$
-
-        % Center Footer (Custom text / Copyright)
-        \$if(center_footer_content)\$
-            \fancyfoot[C]{\$center_footer_content\$}
-        \$else\$
-            \fancyfoot[C]{\copyright All rights reserved \the\year} % Default copyright
-        \$endif\$
-
-        % Right Footer (Page number)
-        \$if(page_of_format)\$
-            \fancyfoot[R]{\thepage/\pageref{LastPage}}
-        \$else\$
-            \fancyfoot[R]{\thepage}
-        \$endif\$
+        % No headers on plain pages (default behavior)
+        \renewcommand{\headrulewidth}{0pt}
     \$endif\$
-    \renewcommand{\footrulewidth}{0.4pt} % Apply rule if footers are active
+
+    % Footer logic based on header_footer_policy
+    \$if(header_footer_policy_all)\$
+        % Include footers on all plain pages when policy is all
+        \$if(no_footer)\$
+            % All footers remain empty
+            \renewcommand{\footrulewidth}{0pt}
+        \$else\$
+            % Left Footer (Date)
+            \$if(date_footer_content)\$
+                \fancyfoot[L]{\$date_footer_content\$}
+            \$endif\$
+
+            % Center Footer (Custom text / Copyright)
+            \$if(center_footer_content)\$
+                \fancyfoot[C]{\$center_footer_content\$}
+            \$else\$
+                \fancyfoot[C]{\copyright All rights reserved \the\year} % Default copyright
+            \$endif\$
+
+            % Right Footer (Page number)
+            \$if(page_of_format)\$
+                \fancyfoot[R]{\thepage/\pageref{LastPage}}
+            \$else\$
+                \fancyfoot[R]{\thepage}
+            \$endif\$
+            \renewcommand{\footrulewidth}{0.4pt}
+        \$endif\$
+    \$elseif(header_footer_policy_partial)\$
+        % Include footers on part and chapter pages, but not title page when policy is partial
+        \$if(no_footer)\$
+            % All footers remain empty
+            \renewcommand{\footrulewidth}{0pt}
+        \$else\$
+            % Left Footer (Date)
+            \$if(date_footer_content)\$
+                \fancyfoot[L]{\$date_footer_content\$}
+            \$endif\$
+
+            % Center Footer (Custom text / Copyright)
+            \$if(center_footer_content)\$
+                \fancyfoot[C]{\$center_footer_content\$}
+            \$else\$
+                \fancyfoot[C]{\copyright All rights reserved \the\year} % Default copyright
+            \$endif\$
+
+            % Right Footer (Page number)
+            \$if(page_of_format)\$
+                \fancyfoot[R]{\thepage/\pageref{LastPage}}
+            \$else\$
+                \fancyfoot[R]{\thepage}
+            \$endif\$
+            \renewcommand{\footrulewidth}{0.4pt}
+        \$endif\$
+    \$else\$
+        % No footers on plain pages (default behavior)
+        \renewcommand{\footrulewidth}{0pt}
+    \$endif\$
+}
+
+% Title page style - specific handling for title page
+\fancypagestyle{titlepage}{
+    \fancyhf{} % Clear header/footer for title page
+    
+    % Only add headers/footers on title page if policy is 'all'
+    \$if(header_footer_policy_all)\$
+        \fancyhead[L]{\small\textit{$doc_author}}
+        \fancyhead[R]{\small\textit{$doc_title}}
+        \renewcommand{\headrulewidth}{0.4pt}
+        
+        \$if(no_footer)\$
+            % All footers remain empty
+        \$else\$
+            % Left Footer (Date)
+            \$if(date_footer_content)\$
+                \fancyfoot[L]{\$date_footer_content\$}
+            \$endif\$
+
+            % Center Footer (Custom text / Copyright)
+            \$if(center_footer_content)\$
+                \fancyfoot[C]{\$center_footer_content\$}
+            \$else\$
+                \fancyfoot[C]{\copyright All rights reserved \the\year} % Default copyright
+            \$endif\$
+
+            % Right Footer (Page number)
+            \$if(page_of_format)\$
+                \fancyfoot[R]{\thepage/\pageref{LastPage}}
+            \$else\$
+                \fancyfoot[R]{\thepage}
+            \$endif\$
+            \renewcommand{\footrulewidth}{0.4pt}
+        \$endif\$
+    \$else\$
+        % No headers/footers on title page for default and partial policies
+        \renewcommand{\headrulewidth}{0pt}
+        \renewcommand{\footrulewidth}{0pt}
+    \$endif\$
 }
 
 % Adjust paragraph spacing: add a full line skip between paragraphs
@@ -556,7 +646,25 @@ $numbering_commands
 \\begin{document}
 
 \$if(title)\$
+\$if(header_footer_policy_all)\$
+% For 'all' policy, create custom title page that respects headers/footers
+\\thispagestyle{titlepage}
+\\begin{center}
+\\vspace*{2cm}
+{\\Huge \\textbf{\$title\$}}\\\\[1.5cm]
+\$if(author)\$
+{\\Large \\textit{\$author\$}}\\\\[1cm]
+\$endif\$
+\$if(date)\$
+{\\large \$date\$}
+\$endif\$
+\\vfill
+\\end{center}
+\\newpage
+\$else\$
+% For default and partial policies, use standard maketitle
 \\maketitle
+\$endif\$
 \$endif\$
 
 % Set TOC depth and generate TOC if needed
@@ -765,6 +873,7 @@ parse_html_metadata() {
     META_DATE_FOOTER=""
     META_NO_DATE=""
     META_FORMAT="article" # Default format
+    META_HEADER_FOOTER_POLICY="" # New metadata for header/footer policy
     
     echo -e "${BLUE}Parsing metadata from HTML comments...${NC}"
     
@@ -862,6 +971,17 @@ parse_html_metadata() {
                 META_FORMAT="$value"
                 echo -e "${GREEN}Found metadata - format: $value${NC}"
                 ;;
+            "header_footer_policy")
+                case "$value" in
+                    "default"|"partial"|"all")
+                        META_HEADER_FOOTER_POLICY="$value"
+                        echo -e "${GREEN}Found metadata - header_footer_policy: $value${NC}"
+                        ;;
+                    *)
+                        echo -e "${YELLOW}Warning: Invalid header_footer_policy '$value' in metadata. Valid options: default, partial, all${NC}"
+                        ;;
+                esac
+                ;;
         esac
     done < "$input_file"
     
@@ -888,6 +1008,11 @@ apply_metadata_args() {
         [ -z "$ARG_FOOTER" ] && [ -n "$META_FOOTER" ] && ARG_FOOTER="$META_FOOTER"
         [ -z "$ARG_DATE_FOOTER" ] && [ -n "$META_DATE_FOOTER" ] && ARG_DATE_FOOTER="$META_DATE_FOOTER"
         [ -z "$ARG_FORMAT" ] && [ -n "$META_FORMAT" ] && ARG_FORMAT="$META_FORMAT"
+        
+        # Apply header/footer policy only if not explicitly set via CLI and metadata is valid
+        if [ "$ARG_HEADER_FOOTER_POLICY" = "default" ] && [ -n "$META_HEADER_FOOTER_POLICY" ]; then
+            ARG_HEADER_FOOTER_POLICY="$META_HEADER_FOOTER_POLICY"
+        fi
         
         # Handle boolean flags - only apply if not explicitly set via CLI
         if [ "$ARG_TOC" = "$DEFAULT_TOC" ] && [ -n "$META_TOC" ]; then
@@ -960,6 +1085,7 @@ convert() {
     ARG_PAGE_OF=false # New variable for page X of Y format
     ARG_READ_METADATA=false # New variable for metadata reading
     ARG_FORMAT="" # New variable for document format
+    ARG_HEADER_FOOTER_POLICY="default" # New variable for header/footer policy (default, partial, all)
     
     # Parse command-line arguments
     while [[ $# -gt 0 ]]; do
@@ -1058,6 +1184,18 @@ convert() {
                 ARG_FORMAT="$2"
                 shift 2
                 ;;
+            --header-footer-policy)
+                case "$2" in
+                    "default"|"partial"|"all")
+                        ARG_HEADER_FOOTER_POLICY="$2"
+                        ;;
+                    *)
+                        echo -e "${RED}Error: Invalid header-footer-policy '$2'. Valid options: default, partial, all${NC}"
+                        return 1
+                        ;;
+                esac
+                shift 2
+                ;;
             *)
                 # First non-option argument is the input file
                 if [ -z "$INPUT_FILE" ]; then
@@ -1089,6 +1227,7 @@ convert() {
                     echo -e "  --date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\""
                     echo -e "  --read-metadata       Read metadata from HTML comments in markdown file"
                     echo -e "  --format FORMAT       Set document format (article or book)"
+                    echo -e "  --header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default"
                     return 1
                 fi
                 shift
@@ -1121,6 +1260,7 @@ convert() {
         echo -e "  --date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\""
         echo -e "  --read-metadata       Read metadata from HTML comments in markdown file"
         echo -e "  --format FORMAT       Set document format (article or book)"
+        echo -e "  --header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default"
         return 1
     fi
 
@@ -1322,7 +1462,7 @@ convert() {
             # Create a template file in the current directory
             TEMPLATE_PATH="$(pwd)/template.tex"
             echo -e "${YELLOW}Creating template file: $TEMPLATE_PATH${NC}"
-            create_template_file "$TEMPLATE_PATH" "$FOOTER_TEXT" "$TITLE" "$AUTHOR" "$DATE_FOOTER_TEXT" "$ARG_SECTION_NUMBERS" "$ARG_FORMAT"
+            create_template_file "$TEMPLATE_PATH" "$FOOTER_TEXT" "$TITLE" "$AUTHOR" "$DATE_FOOTER_TEXT" "$ARG_SECTION_NUMBERS" "$ARG_FORMAT" "$ARG_HEADER_FOOTER_POLICY"
             
             if [ ! -f "$TEMPLATE_PATH" ]; then
                 echo -e "${RED}Error: Failed to create template.tex.${NC}"
@@ -1481,6 +1621,17 @@ EOF
         fi
     fi
 
+    # Add header/footer policy variables
+    HEADER_FOOTER_VARS=()
+    if [ "$ARG_HEADER_FOOTER_POLICY" = "all" ]; then
+        HEADER_FOOTER_VARS+=("--variable=header_footer_policy_all=true")
+    elif [ "$ARG_HEADER_FOOTER_POLICY" = "partial" ]; then
+        HEADER_FOOTER_VARS+=("--variable=header_footer_policy_partial=true")
+    else
+        # default policy - no special variables needed (plain pages will have no headers/footers)
+        HEADER_FOOTER_VARS+=("--variable=header_footer_policy_default=true")
+    fi
+
     pandoc "$INPUT_FILE" \
         --from markdown \
         --to pdf \
@@ -1495,6 +1646,7 @@ EOF
         $TOC_OPTION \
         $SECTION_NUMBERING_OPTION \
         "${FOOTER_VARS[@]}" \
+        "${HEADER_FOOTER_VARS[@]}" \
         --standalone
 
     # Check if conversion was successful
@@ -1585,7 +1737,7 @@ create() {
     echo -e "${YELLOW}Creating template file: $TEMPLATE_PATH${NC}"
     
     # Create the template file
-    create_template_file "$TEMPLATE_PATH" "$FOOTER_TEXT" "$TITLE" "$AUTHOR" ""
+    create_template_file "$TEMPLATE_PATH" "$FOOTER_TEXT" "$TITLE" "$AUTHOR" "" "true" "article" "content-only"
     
     if [ ! -f "$TEMPLATE_PATH" ]; then
         echo -e "${RED}Error: Failed to create template.tex.${NC}"
@@ -1810,7 +1962,8 @@ help() {
     echo -e "                    ${BLUE}--pageof              Use 'Page X of Y' format in footer${NC}"
     echo -e "                    ${BLUE}--date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\"${NC}"
     echo -e "                    ${BLUE}--read-metadata       Read metadata from HTML comments in markdown file${NC}"
-    echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
+    echo -e "                    ${BLUE}--header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default${NC}"
+  echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert -a \"John Doe\" -t \"My Document\" --toc --toc-depth 3 document.md output.pdf\n"
     
     echo -e "  ${GREEN}create <output.md> [title] [author]${NC}"
