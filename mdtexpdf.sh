@@ -93,13 +93,13 @@ create_template_file() {
   {\Huge}
 \titlespacing*{\chapter}{0pt}{50pt}{40pt}
 
-% Style for the main title page (title, author, and date)
-\pretitle{\begin{center}\normalfont\huge\bfseries}
+% Style for the main title page (title, author, and date) - centered vertically
+\pretitle{\begin{center}\vspace*{\fill}\normalfont\huge\bfseries}
 \posttitle{\par\end{center}\vskip 2em}
 \preauthor{\begin{center}\normalfont\Large\bfseries}
 \postauthor{\par\end{center}\vskip 1em}
 \predate{\begin{center}\normalfont\large}
-\postdate{\par\end{center}}
+\postdate{\par\end{center}\vspace*{\fill}}
 BOOK_CMDS_EOF
 )
     else
@@ -653,7 +653,7 @@ $numbering_commands
 % For 'all' policy, create custom title page that respects headers/footers
 \\thispagestyle{titlepage}
 \\begin{center}
-\\vspace*{2cm}
+\\vspace*{\\fill}
 {\\Huge \\textbf{\$title\$}}\\\\[1.5cm]
 \$if(author)\$
 {\\Large \\textit{\$author\$}}\\\\[1cm]
@@ -661,7 +661,7 @@ $numbering_commands
 \$if(date)\$
 {\\large \$date\$}
 \$endif\$
-\\vfill
+\\vspace*{\\fill}
 \\end{center}
 \\newpage
 \$else\$
