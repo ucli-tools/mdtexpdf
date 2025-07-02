@@ -1937,7 +1937,7 @@ help() {
     echo -e "${PURPLE}             It supports LaTeX math equations, custom templates, and more.${NC}"
     echo -e "${PURPLE}Usage:${NC}       mdtexpdf <command> [arguments]"
     echo -e "${PURPLE}License:${NC}     Apache 2.0"
-    echo -e "${PURPLE}Code:${NC}        https://github.com/mik-tf/mdtexpdf\n"
+    echo -e "${PURPLE}Code:${NC}        https://github.com/ucli-tools/mdtexpdf\n"
     
     echo -e "${PURPLE}Commands:${NC}"
     echo -e "  ${GREEN}convert [options] <input.md> [output.pdf]${NC}"

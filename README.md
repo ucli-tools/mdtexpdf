@@ -12,6 +12,7 @@
 - [Usage](#usage)
   - [Converting Markdown to PDF](#converting-markdown-to-pdf)
     - [Non-Interactive Mode with Command-Line Arguments](#non-interactive-mode-with-command-line-arguments)
+    - [Header/Footer Policy Control](#headerfooter-policy-control)
   - [Creating New Markdown Documents](#creating-new-markdown-documents)
   - [LaTeX Math Support](#latex-math-support)
   - [Customizing Templates](#customizing-templates)
@@ -45,9 +46,10 @@ mdtexpdf is a command-line tool designed to simplify the process of creating pro
 - **YAML Frontmatter**: Set document metadata like title, author, and date
 - **Automatic Prerequisites Check**: Verify all required software and packages are installed
 - **Custom Footer**: Include copyright or other information in the document footer
+- **Header/Footer Policy Control**: Three-tier policy system for controlling headers and footers on different page types
 - **Code Highlighting**: Syntax highlighting for code blocks
 - **Tables and Figures**: Support for tables, images, and other Markdown elements
-**Theorem Environments**: Use LaTeX theorem environments in your Markdown
+- **Theorem Environments**: Use LaTeX theorem environments in your Markdown
 - **Chemical Equations**: Support for chemical formulas and equations
 - **Automatic Equation Line Breaking**: Long mathematical equations automatically wrap to fit the page width
 - **Section Numbering Control**: Option to disable section numbering for cleaner documents
@@ -130,6 +132,7 @@ Available options:
 - `-f, --footer TEXT`: Set custom footer text
 - `--no-footer`: Disable the footer completely
 - `--no-numbers`: Disable section numbering (1.1, 1.2, etc.)
+- `--header-footer-policy POLICY`: Set header/footer policy (`default`, `partial`, `all`)
 
 Example for automated testing or CI/CD pipelines:
 
@@ -143,7 +146,42 @@ To create a document without numbered sections:
 mdtexpdf convert document.md -t "Clean Document" -a "Author Name" --no-numbers
 ```
 
+Example with header/footer policy for a book-style document:
+
+```bash
+mdtexpdf convert book.md -t "My Book" -a "Author Name" --header-footer-policy all
+```
+
 When these arguments are provided, the tool will not prompt for any information and will use the specified values instead.
+
+#### Header/Footer Policy Control
+
+mdtexpdf provides a three-tier policy system for controlling when headers and footers appear on different page types:
+
+- **`default`** (default): No headers/footers on title, part, or chapter pages (original behavior)
+- **`partial`**: Headers/footers on part and chapter pages, but NOT on title page
+- **`all`**: Headers/footers on ALL pages including title, part, and chapter pages
+
+You can set the policy using the command-line option:
+
+```bash
+mdtexpdf convert --header-footer-policy all document.md
+```
+
+Or by adding it to your document's metadata:
+
+```markdown
+<!--
+title: "My Document"
+author: "Author Name"
+header_footer_policy: "all"
+-->
+```
+
+This is particularly useful for:
+- **Academic papers**: Use `default` for clean title pages
+- **Technical documentation**: Use `partial` for professional appearance
+- **Books and reports**: Use `all` for consistent branding throughout
 
 ### Creating New Markdown Documents
 
