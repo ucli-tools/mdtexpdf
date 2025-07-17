@@ -798,6 +798,36 @@ preprocess_markdown() {
     # Create a copy of the file
     cp "$input_file" "$temp_file"
     
+    # Remove duplicate title H1 heading if it matches YAML frontmatter title
+    if [ -n "$META_TITLE" ]; then
+        # Get the first H1 heading from the content (after YAML frontmatter)
+        local first_h1=$(awk '/^---$/{if(!yaml) yaml=1; else {yaml=0; next}} yaml{next} /^# /{print substr($0,3); exit}' "$temp_file")
+        
+        # Compare with metadata title (remove quotes for comparison)
+        local meta_title_clean=$(echo "$META_TITLE" | sed 's/^["\x27]*//; s/["\x27]*$//')
+        
+        if [ "$first_h1" = "$meta_title_clean" ]; then
+            echo -e "${YELLOW}Removing duplicate title H1 heading: '$first_h1'${NC}"
+            # Use awk to remove the first H1 heading and following empty lines
+            awk '
+                BEGIN { yaml=0; removed=0 }
+                /^---$/ && !yaml { yaml=1; print; next }
+                /^---$/ && yaml { yaml=0; print; next }
+                yaml { print; next }
+                !removed && /^# / && substr($0,3) == "'"$first_h1"'" {
+                    removed=1
+                    # Skip this line and any following empty lines
+                    while ((getline next_line) > 0 && next_line ~ /^\s*$/) {
+                        # Skip empty lines
+                    }
+                    if (next_line != "") print next_line
+                    next
+                }
+                { print }
+            ' "$temp_file" > "${temp_file}.tmp" && mv "${temp_file}.tmp" "$temp_file"
+        fi
+    fi
+    
     # Replace problematic Unicode characters with LaTeX commands
     if [ "$PDF_ENGINE" = "pdflatex" ]; then
         echo -e "${YELLOW}Using pdfLaTeX engine - replacing problematic Unicode characters with LaTeX commands${NC}"
@@ -987,6 +1017,134 @@ parse_html_metadata() {
                 ;;
         esac
     done < "$input_file"
+    
+    # Extract title from first H1 heading if not provided in metadata
+    if [ -z "$META_TITLE" ]; then
+        META_TITLE=$(grep -m 1 "^# " "$input_file" | sed 's/^# //')
+        if [ -n "$META_TITLE" ]; then
+            echo -e "${GREEN}Found title from H1 heading: $META_TITLE${NC}"
+        fi
+    fi
+}
+
+# Function to parse YAML frontmatter from markdown file
+parse_yaml_metadata() {
+    local input_file="$1"
+    
+    # Initialize metadata variables
+    META_TITLE=""
+    META_AUTHOR=""
+    META_DATE=""
+    META_DESCRIPTION=""
+    META_SECTION=""
+    META_SLUG=""
+    META_FOOTER=""
+    META_TOC=""
+    META_TOC_DEPTH=""
+    META_NO_NUMBERS=""
+    META_NO_FOOTER=""
+    META_PAGEOF=""
+    META_DATE_FOOTER=""
+    META_NO_DATE=""
+    META_FORMAT="article" # Default format
+    META_HEADER_FOOTER_POLICY="" # New metadata for header/footer policy
+    META_LANGUAGE=""
+    META_GENRE=""
+    META_NARRATOR_VOICE=""
+    META_READING_SPEED=""
+    
+    echo -e "${BLUE}Parsing metadata from YAML frontmatter...${NC}"
+    
+    # Check if file has YAML frontmatter (starts with ---)
+    if ! head -n 1 "$input_file" | grep -q "^---\s*$"; then
+        echo -e "${YELLOW}No YAML frontmatter found, trying H1 title extraction...${NC}"
+        # Extract title from first H1 heading if no frontmatter
+        META_TITLE=$(grep -m 1 "^# " "$input_file" | sed 's/^# //')
+        if [ -n "$META_TITLE" ]; then
+            echo -e "${GREEN}Found title from H1 heading: $META_TITLE${NC}"
+        fi
+        return
+    fi
+    
+    # Extract YAML frontmatter block (between first --- and second ---)
+    local yaml_content
+    yaml_content=$(sed -n '/^---$/,/^---$/p' "$input_file" | sed '1d;$d')
+    
+    if [ -z "$yaml_content" ]; then
+        echo -e "${YELLOW}Empty YAML frontmatter block${NC}"
+        return
+    fi
+    
+    # Create temporary YAML file for parsing
+    local temp_yaml=$(mktemp)
+    echo "$yaml_content" > "$temp_yaml"
+    
+    # Parse YAML using yq and extract metadata fields
+    # Core metadata (Dublin Core standard)
+    META_TITLE=$(yq eval '.title // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_AUTHOR=$(yq eval '.author // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_DATE=$(yq eval '.date // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_DESCRIPTION=$(yq eval '.description // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_LANGUAGE=$(yq eval '.language // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    
+    # Document structure metadata
+    META_SECTION=$(yq eval '.section // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_SLUG=$(yq eval '.slug // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_FORMAT=$(yq eval '.format // "article"' "$temp_yaml" 2>/dev/null | sed 's/^null$/article/')
+    
+    # PDF-specific metadata
+    META_TOC=$(yq eval '.toc // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_TOC_DEPTH=$(yq eval '.toc_depth // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_FOOTER=$(yq eval '.footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_HEADER_FOOTER_POLICY=$(yq eval '.header_footer_policy // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    
+    # Boolean flags (convert true/false to appropriate values)
+    local section_numbers_val=$(yq eval '.section_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    local no_numbers_val=$(yq eval '.no_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    [ "$section_numbers_val" = "false" ] && META_NO_NUMBERS="true"
+    [ "$no_numbers_val" = "true" ] && META_NO_NUMBERS="true"
+    
+    local no_footer_val=$(yq eval '.no_footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    [ "$no_footer_val" = "true" ] && META_NO_FOOTER="true"
+    
+    local pageof_val=$(yq eval '.pageof // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    [ "$pageof_val" = "true" ] && META_PAGEOF="true"
+    
+    local date_footer_val=$(yq eval '.date_footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    [ "$date_footer_val" = "true" ] && META_DATE_FOOTER="true"
+    
+    local no_date_val=$(yq eval '.no_date // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    [ "$no_date_val" = "true" ] && META_NO_DATE="true"
+    
+    # Audio-specific metadata (for future compatibility)
+    META_GENRE=$(yq eval '.genre // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_NARRATOR_VOICE=$(yq eval '.narrator_voice // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_READING_SPEED=$(yq eval '.reading_speed // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    
+    # Clean up temporary file
+    rm -f "$temp_yaml"
+    
+    # Display found metadata
+    [ -n "$META_TITLE" ] && echo -e "${GREEN}Found metadata - title: $META_TITLE${NC}"
+    [ -n "$META_AUTHOR" ] && echo -e "${GREEN}Found metadata - author: $META_AUTHOR${NC}"
+    [ -n "$META_DATE" ] && echo -e "${GREEN}Found metadata - date: $META_DATE${NC}"
+    [ -n "$META_DESCRIPTION" ] && echo -e "${GREEN}Found metadata - description: $META_DESCRIPTION${NC}"
+    [ -n "$META_LANGUAGE" ] && echo -e "${GREEN}Found metadata - language: $META_LANGUAGE${NC}"
+    [ -n "$META_SECTION" ] && echo -e "${GREEN}Found metadata - section: $META_SECTION${NC}"
+    [ -n "$META_SLUG" ] && echo -e "${GREEN}Found metadata - slug: $META_SLUG${NC}"
+    [ -n "$META_FORMAT" ] && echo -e "${GREEN}Found metadata - format: $META_FORMAT${NC}"
+    [ -n "$META_TOC" ] && echo -e "${GREEN}Found metadata - toc: $META_TOC${NC}"
+    [ -n "$META_TOC_DEPTH" ] && echo -e "${GREEN}Found metadata - toc_depth: $META_TOC_DEPTH${NC}"
+    [ -n "$META_FOOTER" ] && echo -e "${GREEN}Found metadata - footer: $META_FOOTER${NC}"
+    [ -n "$META_HEADER_FOOTER_POLICY" ] && echo -e "${GREEN}Found metadata - header_footer_policy: $META_HEADER_FOOTER_POLICY${NC}"
+    [ -n "$META_NO_NUMBERS" ] && echo -e "${GREEN}Found metadata - section_numbers: false${NC}"
+    [ -n "$META_NO_FOOTER" ] && echo -e "${GREEN}Found metadata - no_footer: true${NC}"
+    [ -n "$META_PAGEOF" ] && echo -e "${GREEN}Found metadata - pageof: true${NC}"
+    [ -n "$META_DATE_FOOTER" ] && echo -e "${GREEN}Found metadata - date_footer: true${NC}"
+    [ -n "$META_NO_DATE" ] && echo -e "${GREEN}Found metadata - no_date: true${NC}"
+    [ -n "$META_GENRE" ] && echo -e "${GREEN}Found metadata - genre: $META_GENRE${NC}"
+    [ -n "$META_NARRATOR_VOICE" ] && echo -e "${GREEN}Found metadata - narrator_voice: $META_NARRATOR_VOICE${NC}"
+    [ -n "$META_READING_SPEED" ] && echo -e "${GREEN}Found metadata - reading_speed: $META_READING_SPEED${NC}"
     
     # Extract title from first H1 heading if not provided in metadata
     if [ -z "$META_TITLE" ]; then
@@ -1278,9 +1436,9 @@ convert() {
         return 1
     fi
 
-    # Parse metadata from HTML comments if --read-metadata flag is set
+    # Parse metadata from YAML frontmatter if --read-metadata flag is set
     if [ "$ARG_READ_METADATA" = true ]; then
-        parse_html_metadata "$INPUT_FILE"
+        parse_yaml_metadata "$INPUT_FILE"
         apply_metadata_args "$ARG_READ_METADATA"
     fi
 
