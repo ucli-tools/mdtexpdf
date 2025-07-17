@@ -1,0 +1,41 @@
+---
+# =============================================================================
+# COMMON METADATA (used by both mdtexpdf and mdaudiobook)
+# =============================================================================
+title: "Document Title"
+author: "Author Name"
+date: "2025-01-01"
+description: "Brief description of the document content"
+language: "en"
+
+# =============================================================================
+# PDF-SPECIFIC METADATA (mdtexpdf only)
+# =============================================================================
+# Document structure
+format: "article"                    # article, book, report
+section: "chapter_name"              # Section identifier
+slug: "document-slug"                # URL-friendly identifier
+
+# Table of contents
+toc: true                           # Enable table of contents
+toc_depth: 2                        # TOC depth (1-6)
+
+# Section numbering
+no_numbers: false                   # Disable section numbering (or use section_numbers: true)
+
+# Headers and footers
+header_footer_policy: "default"     # default, partial, all
+footer: "© 2025 Author Name"        # Custom footer text
+no_footer: false                    # Disable footer completely
+pageof: true                        # Show "Page X of Y"
+date_footer: "DD/MM/YY"            # Date format in footer
+no_date: false                      # Disable date in footer
+
+# =============================================================================
+# AUDIO-SPECIFIC METADATA (mdaudiobook only)
+# =============================================================================
+genre: "Educational"                # Audiobook genre
+narrator_voice: "en-us-standard-c"  # TTS voice identifier
+reading_speed: "medium"             # slow, medium, fast
+narrator: "AI Narrator"             # Narrator name for metadata
+---
