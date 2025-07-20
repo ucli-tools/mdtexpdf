@@ -13,6 +13,15 @@
   - [Converting Markdown to PDF](#converting-markdown-to-pdf)
     - [Non-Interactive Mode with Command-Line Arguments](#non-interactive-mode-with-command-line-arguments)
     - [Header/Footer Policy Control](#headerfooter-policy-control)
+      - [Format Compatibility](#format-compatibility)
+    - [Complete Metadata Reference](#complete-metadata-reference)
+      - [Document Information](#document-information)
+      - [Document Structure](#document-structure)
+      - [Table of Contents](#table-of-contents)
+      - [Section Numbering](#section-numbering)
+      - [Headers and Footers](#headers-and-footers)
+      - [HTML Comment Format](#html-comment-format)
+      - [Complete Example](#complete-example)
   - [Creating New Markdown Documents](#creating-new-markdown-documents)
   - [LaTeX Math Support](#latex-math-support)
   - [Customizing Templates](#customizing-templates)
@@ -20,6 +29,7 @@
 - [Troubleshooting](#troubleshooting)
 - [Using Makefile](#using-makefile)
 - [License](#license)
+  - [🌐 Free and Open Source Software (FOSS)](#-free-and-open-source-software-foss)
 
 ## Introduction
 
@@ -210,6 +220,116 @@ date_footer: true                    # Date in footer
 ```
 
 This combination provides the best of both worlds: clean academic formatting with professional document presentation.
+
+#### Complete Metadata Reference
+
+mdtexpdf supports extensive metadata configuration through YAML frontmatter or HTML comments. Here's a comprehensive reference:
+
+##### Document Information
+```yaml
+---
+# Basic document information
+title: "Document Title"              # Document title (overrides H1)
+author: "Author Name"                # Document author
+date: "2025-01-20"                   # Document date
+description: "Brief description"     # Document description (for metadata)
+language: "en"                       # Document language
+---
+```
+
+##### Document Structure
+```yaml
+---
+# Document format and organization
+format: "article"                   # "article" (default) or "book"
+section: "category"                 # Section/category for organization
+slug: "document-slug"               # URL-friendly identifier
+---
+```
+
+##### Table of Contents
+```yaml
+---
+# Table of contents control
+toc: true                           # Enable/disable TOC (true/false)
+toc_depth: 3                        # TOC depth (1-5, default: 2)
+                                    # 1=sections, 2=subsections, 3=subsubsections
+---
+```
+
+##### Section Numbering
+```yaml
+---
+# Section numbering control (choose one)
+section_numbers: false              # Disable section numbering
+no_numbers: true                    # Alternative way to disable numbering
+---
+```
+
+##### Headers and Footers
+```yaml
+---
+# Header/footer policy and content
+header_footer_policy: "all"         # "default", "partial", or "all"
+footer: "© 2025 Company. All rights reserved."  # Custom footer text
+no_footer: true                     # Disable all footers
+pageof: true                        # Enable "Page X of Y" format
+date_footer: true                   # Include date in footer
+---
+```
+
+##### HTML Comment Format
+
+You can also use HTML comments instead of YAML frontmatter:
+
+```markdown
+<!--
+title: "My Document"
+author: "Author Name"
+format: "article"
+header_footer_policy: "all"
+toc: true
+toc_depth: 2
+pageof: true
+date_footer: true
+footer: "© 2025 Organization. All rights reserved."
+-->
+
+# Document Content Starts Here
+```
+
+##### Complete Example
+
+```yaml
+---
+# Complete metadata example
+title: "Advanced Research Paper"
+author: "Dr. Jane Smith"
+date: "2025-01-20"
+description: "Comprehensive analysis of quantum computing applications"
+language: "en"
+
+# Document structure
+format: "article"                   # Clean article formatting
+section: "research"
+slug: "quantum-computing-analysis"
+
+# Table of contents
+toc: true                           # Include TOC
+toc_depth: 3                        # Show up to subsubsections
+
+# Section numbering
+section_numbers: true               # Enable numbered sections
+
+# Headers and footers
+header_footer_policy: "all"         # Professional headers/footers on all pages
+footer: "© 2025 Research Institute | institute.org"
+pageof: true                        # "Page 1 of 15" format
+date_footer: true                   # Include date in footer
+---
+```
+
+**Note**: Command-line arguments take precedence over metadata. Use `--read-metadata` to apply document metadata automatically.
 
 ### Creating New Markdown Documents
 
