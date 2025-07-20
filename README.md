@@ -183,6 +183,34 @@ This is particularly useful for:
 - **Technical documentation**: Use `partial` for professional appearance
 - **Books and reports**: Use `all` for consistent branding throughout
 
+##### Format Compatibility
+
+The header/footer policy system now works seamlessly with both document formats:
+
+- **Article Format** (`format: "article"`): 
+  - Uses standard LaTeX `\maketitle` for clean, academic-style title formatting
+  - With `header_footer_policy: "all"`, provides professional headers/footers while maintaining article aesthetics
+  - Perfect for papers, articles, and technical documentation
+
+- **Book Format** (`format: "book"`):
+  - Uses custom full-page title layout with enhanced typography
+  - With `header_footer_policy: "all"`, creates book-style title pages with consistent branding
+  - Ideal for books, reports, and multi-chapter documents
+
+**Example: Professional Article with Headers/Footers**
+```yaml
+---
+title: "Research Paper Title"
+author: "Author Name"
+format: "article"                    # Clean article formatting
+header_footer_policy: "all"         # Professional headers/footers
+pageof: true                         # Page X of Y numbering
+date_footer: true                    # Date in footer
+---
+```
+
+This combination provides the best of both worlds: clean academic formatting with professional document presentation.
+
 ### Creating New Markdown Documents
 
 Create a new Markdown document with LaTeX template (interactive mode):
