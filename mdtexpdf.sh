@@ -650,7 +650,8 @@ $numbering_commands
 
 \$if(title)\$
 \$if(header_footer_policy_all)\$
-% For 'all' policy, create custom title page that respects headers/footers
+\$if(format_book)\$
+% For book format with 'all' policy, create custom title page that respects headers/footers
 \\thispagestyle{titlepage}
 \\begin{center}
 \\vspace*{\\fill}
@@ -664,6 +665,10 @@ $numbering_commands
 \\vspace*{\\fill}
 \\end{center}
 \\newpage
+\$else\$
+% For article format with 'all' policy, use standard maketitle but ensure headers/footers work
+\\maketitle
+\$endif\$
 \$else\$
 % For default and partial policies, use standard maketitle
 \\maketitle
@@ -1805,6 +1810,13 @@ EOF
     else
         # default policy - no special variables needed (plain pages will have no headers/footers)
         HEADER_FOOTER_VARS+=("--variable=header_footer_policy_default=true")
+    fi
+    
+    # Add format variable for template logic
+    if [ "$ARG_FORMAT" = "book" ]; then
+        HEADER_FOOTER_VARS+=("--variable=format_book=true")
+    else
+        HEADER_FOOTER_VARS+=("--variable=format_article=true")
     fi
 
     pandoc "$INPUT_FILE" \
