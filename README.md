@@ -54,6 +54,7 @@ mdtexpdf is a command-line tool designed to simplify the process of creating pro
 - **LaTeX Math Support**: Include inline and display math equations using LaTeX syntax
 - **Custom Templates**: Use and customize LaTeX templates for consistent document styling
 - **YAML Frontmatter**: Set document metadata like title, author, and date
+- **Book front page metadata**: Optional subtitle under the title and author email next to the author (book format only)
 - **Automatic Prerequisites Check**: Verify all required software and packages are installed
 - **Custom Footer**: Include copyright or other information in the document footer
 - **Header/Footer Policy Control**: Three-tier policy system for controlling headers and footers on different page types
@@ -204,6 +205,7 @@ The header/footer policy system now works seamlessly with both document formats:
 
 - **Book Format** (`format: "book"`):
   - Uses custom full-page title layout with enhanced typography
+  - Supports optional subtitle (beneath title) and author email (next to author) on the front page; headers remain unchanged
   - With `header_footer_policy: "all"`, creates book-style title pages with consistent branding
   - Ideal for books, reports, and multi-chapter documents
 
@@ -231,6 +233,8 @@ mdtexpdf supports extensive metadata configuration through YAML frontmatter or H
 # Basic document information
 title: "Document Title"              # Document title (overrides H1)
 author: "Author Name"                # Document author
+subtitle: "Optional subtitle"        # Book front page only; shown under title
+email: "author@example.com"          # Book front page only; shown next to author
 date: "2025-01-20"                   # Document date
 description: "Brief description"     # Document description (for metadata)
 language: "en"                       # Document language
