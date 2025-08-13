@@ -95,8 +95,13 @@ create_template_file() {
 
 % Style for the main title page (title, author, and date) - centered vertically
 \pretitle{\begin{center}\vspace*{\fill}\normalfont\huge\bfseries}
-\posttitle{\par\end{center}\vskip 2em}
-\preauthor{\begin{center}\normalfont\Large\bfseries}
+\posttitle{%
+  \par
+$if(subtitle)$
+  \vspace{0.25em}{\LARGE\itshape $subtitle$}\par
+$endif$
+  \end{center}\vskip 3em}
+\preauthor{\begin{center}\normalfont\large}
 \postauthor{\par\end{center}\vskip 1em}
 \predate{\begin{center}\normalfont\large}
 \postdate{\par\end{center}\vspace*{\fill}}
@@ -627,7 +632,15 @@ $numbering_commands
 \\title{\$title\$}
 \$endif\$
 \$if(author)\$
+\$if(format_book)\$
+\$if(email)\$
+\\author{\$author\$ --- \$email\$}
+\$else\$
 \\author{\$author\$}
+\$endif\$
+\$else\$
+\\author{\$author\$}
+\$endif\$
 \$endif\$
 \$if(date)\$
 \\date{\$date\$}
@@ -655,9 +668,12 @@ $numbering_commands
 \\thispagestyle{titlepage}
 \\begin{center}
 \\vspace*{\\fill}
-{\\Huge \\textbf{\$title\$}}\\\\[1.5cm]
+{\\Huge \\textbf{\$title\$}}\\\\[0.5cm]
+\$if(subtitle)\$
+{\\LARGE \\textit{\$subtitle\$}}\\\\[1.5cm]
+\$endif\$
 \$if(author)\$
-{\\Large \\textit{\$author\$}}\\\\[1cm]
+{\\large \$author\$ \$if(email)\$ --- \$email\$ \$endif\$}\\\\[1cm]
 \$endif\$
 \$if(date)\$
 {\\large \$date\$}
