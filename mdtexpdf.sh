@@ -179,6 +179,19 @@ BOOK_CMDS_EOF
         
         % U+20D1 COMBINING RIGHT HARPOON ABOVE
         \\newunicodechar{⃑}{\\vec}
+        % U+2113 SCRIPT SMALL L
+        \\newunicodechar{ℓ}{\\ensuremath{\\ell}}
+        % Subscript digits U+2080..U+2089
+        \\newunicodechar{₀}{\\ensuremath{_0}}
+        \\newunicodechar{₁}{\\ensuremath{_1}}
+        \\newunicodechar{₂}{\\ensuremath{_2}}
+        \\newunicodechar{₃}{\\ensuremath{_3}}
+        \\newunicodechar{₄}{\\ensuremath{_4}}
+        \\newunicodechar{₅}{\\ensuremath{_5}}
+        \\newunicodechar{₆}{\\ensuremath{_6}}
+        \\newunicodechar{₇}{\\ensuremath{_7}}
+        \\newunicodechar{₈}{\\ensuremath{_8}}
+        \\newunicodechar{₉}{\\ensuremath{_9}}
         
         % Greek letters - lowercase (text mode compatible)
         \\newunicodechar{α}{\\ensuremath{\\alpha}}
@@ -740,16 +753,39 @@ check_prerequisites() {
         PDFLATEX_AVAILABLE=true
     fi
     
-    # Prioritize pdfLaTeX for better compatibility
-    if [ "$PDFLATEX_AVAILABLE" = true ]; then
-        LATEX_INSTALLED=true
-        PDF_ENGINE="pdflatex"
-    elif [ "$XELATEX_AVAILABLE" = true ]; then
-        LATEX_INSTALLED=true
-        PDF_ENGINE="xelatex"
-    elif [ "$LUALATEX_AVAILABLE" = true ]; then
-        LATEX_INSTALLED=true
-        PDF_ENGINE="lualatex"
+    # Honor preselected PDF engine if provided and available; otherwise pick default
+    if [ -n "$PDF_ENGINE" ]; then
+        if [ "$PDF_ENGINE" = "pdflatex" ] && [ "$PDFLATEX_AVAILABLE" = true ]; then
+            LATEX_INSTALLED=true
+        elif [ "$PDF_ENGINE" = "xelatex" ] && [ "$XELATEX_AVAILABLE" = true ]; then
+            LATEX_INSTALLED=true
+        elif [ "$PDF_ENGINE" = "lualatex" ] && [ "$LUALATEX_AVAILABLE" = true ]; then
+            LATEX_INSTALLED=true
+        else
+            # Fallback selection when requested engine is unavailable
+            if [ "$PDFLATEX_AVAILABLE" = true ]; then
+                LATEX_INSTALLED=true
+                PDF_ENGINE="pdflatex"
+            elif [ "$XELATEX_AVAILABLE" = true ]; then
+                LATEX_INSTALLED=true
+                PDF_ENGINE="xelatex"
+            elif [ "$LUALATEX_AVAILABLE" = true ]; then
+                LATEX_INSTALLED=true
+                PDF_ENGINE="lualatex"
+            fi
+        fi
+    else
+        # No engine preselected; prioritize pdfLaTeX by default
+        if [ "$PDFLATEX_AVAILABLE" = true ]; then
+            LATEX_INSTALLED=true
+            PDF_ENGINE="pdflatex"
+        elif [ "$XELATEX_AVAILABLE" = true ]; then
+            LATEX_INSTALLED=true
+            PDF_ENGINE="xelatex"
+        elif [ "$LUALATEX_AVAILABLE" = true ]; then
+            LATEX_INSTALLED=true
+            PDF_ENGINE="lualatex"
+        fi
     fi
 
     if [ "$LATEX_INSTALLED" = true ]; then
@@ -1268,6 +1304,7 @@ convert() {
     ARG_READ_METADATA=false # New variable for metadata reading
     ARG_FORMAT="" # New variable for document format
     ARG_HEADER_FOOTER_POLICY="default" # New variable for header/footer policy (default, partial, all)
+    ARG_METADATA_FILE="" # YAML metadata file to pass to Pandoc (for DOCX or overrides)
     
     # Parse command-line arguments
     while [[ $# -gt 0 ]]; do
@@ -1362,8 +1399,24 @@ convert() {
                 ARG_READ_METADATA=true
                 shift
                 ;;
+            -m|--metadata-file)
+                ARG_METADATA_FILE="$2"
+                shift 2
+                ;;
             --format)
                 ARG_FORMAT="$2"
+                shift 2
+                ;;
+            --pdf-engine|--engine)
+                case "$2" in
+                    pdflatex|xelatex|lualatex)
+                        PDF_ENGINE="$2"
+                        ;;
+                    *)
+                        echo -e "${RED}Error: Invalid PDF engine '$2'. Valid options: pdflatex, xelatex, lualatex${NC}"
+                        return 1
+                        ;;
+                esac
                 shift 2
                 ;;
             --header-footer-policy)
@@ -1387,7 +1440,7 @@ convert() {
                     OUTPUT_FILE="$1"
                 else
                     echo -e "${RED}Error: Unexpected argument '$1'.${NC}"
-                    echo -e "Usage: mdtexpdf convert [options] <input.md> [output.pdf]"
+                    echo -e "Usage: mdtexpdf convert [options] <input.(md|docx)> [output.pdf]"
                     echo -e "Options:"
                     echo -e "  -t, --title TITLE     Set document title"
                     echo -e "  -a, --author AUTHOR   Set document author"
@@ -1408,7 +1461,9 @@ convert() {
                     echo -e "  --pageof              Use 'Page X of Y' format in footer"
                     echo -e "  --date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\""
                     echo -e "  --read-metadata       Read metadata from HTML comments in markdown file"
+                    echo -e "  --metadata-file FILE  Read metadata from YAML file (for DOCX or to override defaults)"
                     echo -e "  --format FORMAT       Set document format (article or book)"
+                    echo -e "  --pdf-engine ENGINE   Set LaTeX engine (pdflatex, xelatex, lualatex)"
                     echo -e "  --header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default"
                     return 1
                 fi
@@ -1420,7 +1475,7 @@ convert() {
     # Check if input file is specified
     if [ -z "$INPUT_FILE" ]; then
         echo -e "${RED}Error: No input file specified.${NC}"
-        echo -e "Usage: mdtexpdf convert [options] <input.md> [output.pdf]"
+        echo -e "Usage: mdtexpdf convert [options] <input.(md|docx)> [output.pdf]"
         echo -e "Options:"
         echo -e "  -t, --title TITLE     Set document title"
         echo -e "  -a, --author AUTHOR   Set document author"
@@ -1441,7 +1496,9 @@ convert() {
         echo -e "  --pageof              Use 'Page X of Y' format in footer"
         echo -e "  --date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\""
         echo -e "  --read-metadata       Read metadata from HTML comments in markdown file"
+        echo -e "  --metadata-file FILE  Read metadata from YAML file (for DOCX or to override defaults)"
         echo -e "  --format FORMAT       Set document format (article or book)"
+        echo -e "  --pdf-engine ENGINE   Set LaTeX engine (pdflatex, xelatex, lualatex)"
         echo -e "  --header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default"
         return 1
     fi
@@ -1457,26 +1514,72 @@ convert() {
         return 1
     fi
 
+    # Determine input format and optionally autodetect metadata sidecar for DOCX
+    PANDOC_FROM="markdown"
+    INPUT_EXT="${INPUT_FILE##*.}"
+    if [ "$INPUT_EXT" = "docx" ]; then
+        PANDOC_FROM="docx"
+        if [ -z "$ARG_METADATA_FILE" ]; then
+            INPUT_DIR="$(dirname "$INPUT_FILE")"
+            INPUT_BASE="$(basename "$INPUT_FILE" .docx)"
+            if [ -f "$INPUT_DIR/$INPUT_BASE.yaml" ]; then
+                ARG_METADATA_FILE="$INPUT_DIR/$INPUT_BASE.yaml"
+                echo -e "${BLUE}Using sidecar metadata file: $ARG_METADATA_FILE${NC}"
+            elif [ -f "$INPUT_DIR/metadata.yaml" ]; then
+                ARG_METADATA_FILE="$INPUT_DIR/metadata.yaml"
+                echo -e "${BLUE}Using metadata file: $ARG_METADATA_FILE${NC}"
+            fi
+        fi
+        # Prepare to use a potentially cleaned copy of the DOCX to avoid ZIP extra-bytes issues
+        EFFECTIVE_INPUT="$INPUT_FILE"
+        if command -v unzip >/dev/null 2>&1 && command -v zip >/dev/null 2>&1; then
+            TEMP_DOCX_DIR="$(mktemp -d -t mdtexpdf_docx_XXXXXX)"
+            mkdir -p "$TEMP_DOCX_DIR/unz"
+            unzip -qq "$INPUT_FILE" -d "$TEMP_DOCX_DIR/unz" >/dev/null 2>&1
+            UNZIP_STATUS=$?
+            # Consider success if [Content_Types].xml exists (DOCX marker) or status is 0 or 1 (warnings)
+            if [ -f "$TEMP_DOCX_DIR/unz/[Content_Types].xml" ] || [ $UNZIP_STATUS -eq 0 ] || [ $UNZIP_STATUS -eq 1 ]; then
+                ( cd "$TEMP_DOCX_DIR/unz" && zip -qr "$TEMP_DOCX_DIR/clean.docx" . ) >/dev/null 2>&1
+                if [ -f "$TEMP_DOCX_DIR/clean.docx" ]; then
+                    EFFECTIVE_INPUT="$TEMP_DOCX_DIR/clean.docx"
+                    echo -e "${BLUE}Cleaned DOCX container for reliable Pandoc unpacking${NC}"
+                fi
+            fi
+        fi
+    fi
+
+    # If a metadata YAML file is provided, parse it and apply values before any prompts
+    if [ -n "$ARG_METADATA_FILE" ] && [ -f "$ARG_METADATA_FILE" ]; then
+        parse_yaml_metadata "$ARG_METADATA_FILE"
+        apply_metadata_args true
+    fi
+
     # Parse metadata from YAML frontmatter if --read-metadata flag is set
     if [ "$ARG_READ_METADATA" = true ]; then
         parse_yaml_metadata "$INPUT_FILE"
         apply_metadata_args "$ARG_READ_METADATA"
     fi
 
-    # Create a backup of the original markdown file
-    BACKUP_FILE="${INPUT_FILE}.bak"
-    echo -e "${BLUE}Creating backup of original markdown file: $BACKUP_FILE${NC}"
-    cp "$INPUT_FILE" "$BACKUP_FILE"
+    # Create a backup only for Markdown input (preprocessing may mutate)
+    if [ "$PANDOC_FROM" = "markdown" ]; then
+        BACKUP_FILE="${INPUT_FILE}.bak"
+        echo -e "${BLUE}Creating backup of original markdown file: $BACKUP_FILE${NC}"
+        cp "$INPUT_FILE" "$BACKUP_FILE"
+    fi
 
     # If output file is not specified, derive from input file
     if [ -z "$OUTPUT_FILE" ]; then
-        OUTPUT_FILE="${INPUT_FILE%.md}.pdf"
+        # Strip the extension (.md, .docx, etc.) and append .pdf
+        OUTPUT_FILE="${INPUT_FILE%.*}.pdf"
     fi
     
 
 
-    # Preprocess the markdown file for better LaTeX compatibility
-    preprocess_markdown "$INPUT_FILE"
+    # Preprocess only for Markdown input
+    if [ "$PANDOC_FROM" = "markdown" ]; then
+        # Preprocess the markdown file for better LaTeX compatibility
+        preprocess_markdown "$INPUT_FILE"
+    fi
     
     # Image captions are now handled by the image_size_filter.lua Lua filter
 
@@ -1530,8 +1633,8 @@ convert() {
             echo -e "${GREEN}A template.tex file is required. Create one now? (y/n) [y]:${NC}"
         fi
         
-        # Skip prompt if arguments were provided
-        if [ -n "$ARG_TITLE" ] || [ -n "$ARG_AUTHOR" ] || [ -n "$ARG_DATE" ] || [ -n "$ARG_FOOTER" ] || [ "$ARG_NO_FOOTER" = true ]; then
+        # Skip prompt if arguments or metadata file were provided
+        if [ -n "$ARG_TITLE" ] || [ -n "$ARG_AUTHOR" ] || [ -n "$ARG_DATE" ] || [ -n "$ARG_FOOTER" ] || [ "$ARG_NO_FOOTER" = true ] || [ -n "$ARG_METADATA_FILE" ]; then
             CREATE_TEMPLATE="y"
             echo -e "${BLUE}Using command-line arguments, automatically creating template...${NC}"
         else
@@ -1547,8 +1650,12 @@ convert() {
             # Get document details for both template and YAML frontmatter
             echo -e "${YELLOW}Setting up document preferences...${NC}"
             
-            # Check if the file has a first-level heading (# Title) before asking for title
-            FIRST_HEADING=$(grep -m 1 "^# " "$INPUT_FILE" | sed 's/^# //')
+            # For Markdown input, try to derive title from first-level heading
+            if [ "$PANDOC_FROM" = "markdown" ]; then
+                FIRST_HEADING=$(grep -m 1 "^# " "$INPUT_FILE" | sed 's/^# //')
+            else
+                FIRST_HEADING=""
+            fi
             
             # Set title based on command-line argument or prompt user
             if [ -n "$ARG_TITLE" ]; then
@@ -1570,8 +1677,8 @@ convert() {
                     echo -e "${GREEN}Using custom title: '$USER_TITLE'${NC}"
                 fi
             else
-                # Otherwise use filename as default
-                DEFAULT_TITLE=$(basename "$INPUT_FILE" .md | sed 's/_/ /g' | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')
+                # Otherwise use filename (without extension) as default
+                DEFAULT_TITLE=$(basename "${INPUT_FILE%.*}" | sed 's/_/ /g' | sed 's/-/ /g' | sed 's/\./ /g' | sed 's/\b\(.\)/\u\1/g')
                 echo -e "${GREEN}Enter document title [${DEFAULT_TITLE}]:${NC}"
                 read TITLE
                 TITLE=${TITLE:-"$DEFAULT_TITLE"}
@@ -1653,18 +1760,19 @@ convert() {
             
             echo -e "${GREEN}Created new template file: $TEMPLATE_PATH${NC}"
             
-            # Check if the Markdown file has proper YAML frontmatter
-            if ! head -n 1 "$INPUT_FILE" | grep -q "^---"; then
-                echo -e "${YELLOW}Updating $INPUT_FILE with proper YAML frontmatter...${NC}"
-                
-                # Check if the file has a first-level heading (# Title)
-                FIRST_HEADING=$(grep -m 1 "^# " "$INPUT_FILE" | sed 's/^# //')
-                
-                # Create a temporary file with the YAML frontmatter
-                TMP_FILE=$(mktemp)
-                
-                # Add YAML frontmatter with the user-specified title
-                cat > "$TMP_FILE" << EOF
+            # For Markdown inputs only: ensure the file has YAML frontmatter
+            if [ "$PANDOC_FROM" = "markdown" ]; then
+                if ! head -n 1 "$INPUT_FILE" | grep -q "^---"; then
+                    echo -e "${YELLOW}Updating $INPUT_FILE with proper YAML frontmatter...${NC}"
+                    
+                    # Check if the file has a first-level heading (# Title)
+                    FIRST_HEADING=$(grep -m 1 "^# " "$INPUT_FILE" | sed 's/^# //')
+                    
+                    # Create a temporary file with the YAML frontmatter
+                    TMP_FILE=$(mktemp)
+                    
+                    # Add YAML frontmatter with the user-specified title
+                    cat > "$TMP_FILE" << EOF
 ---
 title: "$TITLE"
 author: "$AUTHOR"
@@ -1675,28 +1783,29 @@ output:
 ---
 
 EOF
-                
-                # If a first-level heading was found and it matches the title we're using,
-                # comment it out to avoid duplication
-                if [ -n "$FIRST_HEADING" ]; then
-                    if [ "$FIRST_HEADING" = "$TITLE" ]; then
-                        # Title is the same as the first heading, comment it out
-                        echo -e "${GREEN}Commenting out the first heading to avoid duplication.${NC}"
-                        sed "0,/^# $FIRST_HEADING/s/^# $FIRST_HEADING/<!-- # $FIRST_HEADING -->/" "$INPUT_FILE" >> "$TMP_FILE"
+                    
+                    # If a first-level heading was found and it matches the title we're using,
+                    # comment it out to avoid duplication
+                    if [ -n "$FIRST_HEADING" ]; then
+                        if [ "$FIRST_HEADING" = "$TITLE" ]; then
+                            # Title is the same as the first heading, comment it out
+                            echo -e "${GREEN}Commenting out the first heading to avoid duplication.${NC}"
+                            sed "0,/^# $FIRST_HEADING/s/^# $FIRST_HEADING/<!-- # $FIRST_HEADING -->/" "$INPUT_FILE" >> "$TMP_FILE"
+                        else
+                            # Title is different from the first heading, keep both
+                            echo -e "${GREEN}Keeping the first heading as it differs from the title.${NC}"
+                            cat "$INPUT_FILE" >> "$TMP_FILE"
+                        fi
                     else
-                        # Title is different from the first heading, keep both
-                        echo -e "${GREEN}Keeping the first heading as it differs from the title.${NC}"
+                        # No first heading, just append the content
                         cat "$INPUT_FILE" >> "$TMP_FILE"
                     fi
-                else
-                    # No first heading, just append the content
-                    cat "$INPUT_FILE" >> "$TMP_FILE"
+                    
+                    # Replace the original file
+                    mv "$TMP_FILE" "$INPUT_FILE"
+                    
+                    echo -e "${GREEN}Updated $INPUT_FILE with proper YAML frontmatter.${NC}"
                 fi
-                
-                # Replace the original file
-                mv "$TMP_FILE" "$INPUT_FILE"
-                
-                echo -e "${GREEN}Updated $INPUT_FILE with proper YAML frontmatter.${NC}"
             fi
         else
             # User chose not to create a template
@@ -1835,8 +1944,14 @@ EOF
         HEADER_FOOTER_VARS+=("--variable=format_article=true")
     fi
 
-    pandoc "$INPUT_FILE" \
-        --from markdown \
+    # Metadata file argument (if any)
+    METADATA_ARGS=()
+    if [ -n "$ARG_METADATA_FILE" ]; then
+        METADATA_ARGS+=("--metadata-file" "$ARG_METADATA_FILE")
+    fi
+
+    pandoc "${EFFECTIVE_INPUT:-$INPUT_FILE}" \
+        --from "$PANDOC_FROM" \
         --to pdf \
         --output "$OUTPUT_FILE" \
         --template="$TEMPLATE_PATH" \
@@ -1850,6 +1965,7 @@ EOF
         $SECTION_NUMBERING_OPTION \
         "${FOOTER_VARS[@]}" \
         "${HEADER_FOOTER_VARS[@]}" \
+        "${METADATA_ARGS[@]}" \
         --standalone
 
     # Check if conversion was successful
@@ -1869,6 +1985,10 @@ EOF
         fi
         
         echo -e "${GREEN}Cleanup complete. Only the PDF and original markdown file remain.${NC}"
+        # Remove temporary DOCX directory if created
+        if [ -n "$TEMP_DOCX_DIR" ] && [ -d "$TEMP_DOCX_DIR" ]; then
+            rm -rf "$TEMP_DOCX_DIR"
+        fi
         return 0
     else
         echo -e "${RED}Error: PDF conversion failed.${NC}"
@@ -1879,6 +1999,10 @@ EOF
             mv "$BACKUP_FILE" "$INPUT_FILE"
         fi
         
+        # Remove temporary DOCX directory if created
+        if [ -n "$TEMP_DOCX_DIR" ] && [ -d "$TEMP_DOCX_DIR" ]; then
+            rm -rf "$TEMP_DOCX_DIR"
+        fi
         return 1
     fi
 }
@@ -2146,18 +2270,18 @@ uninstall() {
 # Function to display help information
 help() {
     echo -e "\n${YELLOW}═══════════════════════════════════════════${NC}"
-    echo -e "${YELLOW}         mdtexpdf - Markdown to PDF         ${NC}"
+    echo -e "${YELLOW}     mdtexpdf - Markdown/DOCX to PDF       ${NC}"
     echo -e "${YELLOW}═══════════════════════════════════════════${NC}\n"
     
-    echo -e "${PURPLE}Description:${NC} mdtexpdf is a tool for converting Markdown documents to PDF using LaTeX templates."
+    echo -e "${PURPLE}Description:${NC} mdtexpdf is a tool for converting Markdown or DOCX documents to PDF using LaTeX templates."
     echo -e "${PURPLE}             It supports LaTeX math equations, custom templates, and more.${NC}"
     echo -e "${PURPLE}Usage:${NC}       mdtexpdf <command> [arguments]"
     echo -e "${PURPLE}License:${NC}     Apache 2.0"
     echo -e "${PURPLE}Code:${NC}        https://github.com/ucli-tools/mdtexpdf\n"
     
     echo -e "${PURPLE}Commands:${NC}"
-    echo -e "  ${GREEN}convert [options] <input.md> [output.pdf]${NC}"
-    echo -e "                  ${BLUE}Convert a Markdown file to PDF using LaTeX${NC}"
+    echo -e "  ${GREEN}convert [options] <input.(md|docx)> [output.pdf]${NC}"
+    echo -e "                  ${BLUE}Convert a Markdown or DOCX file to PDF using LaTeX${NC}"
     echo -e "                  ${BLUE}Options:${NC}"
     echo -e "                    ${BLUE}-t, --title TITLE     Set document title${NC}"
     echo -e "                    ${BLUE}-a, --author AUTHOR   Set document author${NC}"
@@ -2178,6 +2302,8 @@ help() {
     echo -e "                    ${BLUE}--pageof              Use 'Page X of Y' format in footer${NC}"
     echo -e "                    ${BLUE}--date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\"${NC}"
     echo -e "                    ${BLUE}--read-metadata       Read metadata from HTML comments in markdown file${NC}"
+    echo -e "                    ${BLUE}--metadata-file FILE  Read metadata from YAML file (useful for DOCX)${NC}"
+    echo -e "                    ${BLUE}--pdf-engine ENGINE   Set LaTeX engine (pdflatex, xelatex, lualatex)${NC}"
     echo -e "                    ${BLUE}--header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default${NC}"
   echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert -a \"John Doe\" -t \"My Document\" --toc --toc-depth 3 document.md output.pdf\n"
