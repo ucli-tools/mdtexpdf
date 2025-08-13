@@ -21,6 +21,8 @@ The metadata is organized into three distinct sections:
 # =============================================================================
 title: "Document Title"
 author: "Author Name"
+subtitle: "Optional subtitle shown under the title (book format front page)"
+email: "author@example.com"
 date: "2025-01-01"
 description: "Brief description of the document content"
 language: "en"
@@ -66,6 +68,8 @@ narrator: "AI Narrator"             # Narrator name for metadata
 |-------|------|-------------|---------|
 | `title` | string | Document title | "Bell's Theorem Analysis" |
 | `author` | string | Author name | "Example Press" |
+| `subtitle` | string | Optional subtitle shown under the title (book format front page) | "A Journey into Mathematical Psychology" |
+| `email` | string | Optional author email shown next to author on book front page only | "author@example.com" |
 | `date` | string | Publication date | "2025-01-01" |
 | `description` | string | Brief description | "Mathematical exploration of Bell's theorem" |
 | `language` | string | ISO language code | "en" |
