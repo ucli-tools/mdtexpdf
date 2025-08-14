@@ -327,8 +327,10 @@ BOOK_CMDS_EOF
       frame=single,
       framesep=5pt,
       framexleftmargin=5pt,
-      tabsize=4,
-      extendedchars=true,       % Allow extended characters (UTF-8)
+      tabsize=4
+$(if [ "$PDF_ENGINE" = "pdflatex" ]; then
+cat << 'INNER_LST_PD_EOF'
+      ,extendedchars=true,       % Allow extended characters (UTF-8)
       literate={ï»¿}{}{0}        % Remove UTF-8 BOM
                {é}{{\'{e}}}1
                {è}{{\`{e}}}1
@@ -375,13 +377,11 @@ BOOK_CMDS_EOF
                {ñ}{{\~{n}}}1
                {Ñ}{{\~{N}}}1
                {ß}{{\ss}}1
-$(if [ "$PDF_ENGINE" = "pdflatex" ]; then
-cat << 'INNER_LST_LITERALS_EOF'
                {├}{{\texttt{|--}}}3
                {│}{{\texttt{|}}}1
                {└}{{\texttt{`--}}}3
                {─}{{\texttt{-}}}1
-INNER_LST_LITERALS_EOF
+INNER_LST_PD_EOF
 fi)
     }
 
@@ -1305,6 +1305,9 @@ convert() {
     ARG_FORMAT="" # New variable for document format
     ARG_HEADER_FOOTER_POLICY="default" # New variable for header/footer policy (default, partial, all)
     ARG_METADATA_FILE="" # YAML metadata file to pass to Pandoc (for DOCX or overrides)
+    ARG_KEEP_TEMPLATE=false # Keep generated template.tex after build
+    CREATED_TEMPLATE=false   # Tracks if we generated template.tex in this run
+    ENGINE_EXPLICIT=false    # Tracks if user explicitly selected the engine
     
     # Parse command-line arguments
     while [[ $# -gt 0 ]]; do
@@ -1411,6 +1414,7 @@ convert() {
                 case "$2" in
                     pdflatex|xelatex|lualatex)
                         PDF_ENGINE="$2"
+                        ENGINE_EXPLICIT=true
                         ;;
                     *)
                         echo -e "${RED}Error: Invalid PDF engine '$2'. Valid options: pdflatex, xelatex, lualatex${NC}"
@@ -1418,6 +1422,10 @@ convert() {
                         ;;
                 esac
                 shift 2
+                ;;
+            --keep-template)
+                ARG_KEEP_TEMPLATE=true
+                shift
                 ;;
             --header-footer-policy)
                 case "$2" in
@@ -1546,6 +1554,11 @@ convert() {
                 fi
             fi
         fi
+        # Prefer XeLaTeX for DOCX if engine not explicitly selected
+        if [ "$ENGINE_EXPLICIT" = false ]; then
+            PDF_ENGINE="xelatex"
+            echo -e "${BLUE}Auto-selected PDF engine for DOCX: ${GREEN}$PDF_ENGINE${NC}"
+        fi
     fi
 
     # If a metadata YAML file is provided, parse it and apply values before any prompts
@@ -1621,17 +1634,13 @@ convert() {
     # Check if we found a template in the current directory
     if [ "$TEMPLATE_IN_CURRENT_DIR" = true ]; then
         echo -e "Using template: ${GREEN}$TEMPLATE_PATH${NC}"
+    elif [ -n "$TEMPLATE_PATH" ]; then
+        # Found a template elsewhere; use it without prompting
+        echo -e "Using template: ${GREEN}$TEMPLATE_PATH${NC}"
     else
-        # Template not found in current directory
-        if [ -n "$TEMPLATE_PATH" ]; then
-            # Use the template from another location
-            echo -e "${YELLOW}No template.tex found in current directory.${NC}"
-            echo -e "${GREEN}Do you want to create a template.tex now and update your file with the proper header? (y/n) [y]:${NC}"
-        else
-            # No template found anywhere
-            echo -e "${YELLOW}No template.tex found.${NC}"
-            echo -e "${GREEN}A template.tex file is required. Create one now? (y/n) [y]:${NC}"
-        fi
+        # No template found anywhere
+        echo -e "${YELLOW}No template.tex found.${NC}"
+        echo -e "${GREEN}A template.tex file is required. Create one now? (y/n) [y]:${NC}"
         
         # Skip prompt if arguments or metadata file were provided
         if [ -n "$ARG_TITLE" ] || [ -n "$ARG_AUTHOR" ] || [ -n "$ARG_DATE" ] || [ -n "$ARG_FOOTER" ] || [ "$ARG_NO_FOOTER" = true ] || [ -n "$ARG_METADATA_FILE" ]; then
@@ -1759,6 +1768,7 @@ convert() {
             fi
             
             echo -e "${GREEN}Created new template file: $TEMPLATE_PATH${NC}"
+            CREATED_TEMPLATE=true
             
             # For Markdown inputs only: ensure the file has YAML frontmatter
             if [ "$PANDOC_FROM" = "markdown" ]; then
@@ -1972,9 +1982,9 @@ EOF
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}Success! PDF created as $OUTPUT_FILE${NC}"
         
-        # Clean up: Remove template.tex file if it was created in the current directory
-        if [ -f "$(pwd)/template.tex" ]; then
-            echo -e "${BLUE}Cleaning up: Removing template.tex${NC}"
+        # Clean up: Remove template.tex only if we created it and user didn't ask to keep it
+        if [ "$CREATED_TEMPLATE" = true ] && [ "$ARG_KEEP_TEMPLATE" = false ] && [ -f "$(pwd)/template.tex" ]; then
+            echo -e "${BLUE}Cleaning up: Removing generated template.tex${NC}"
             rm -f "$(pwd)/template.tex"
         fi
         
@@ -2304,9 +2314,15 @@ help() {
     echo -e "                    ${BLUE}--read-metadata       Read metadata from HTML comments in markdown file${NC}"
     echo -e "                    ${BLUE}--metadata-file FILE  Read metadata from YAML file (useful for DOCX)${NC}"
     echo -e "                    ${BLUE}--pdf-engine ENGINE   Set LaTeX engine (pdflatex, xelatex, lualatex)${NC}"
+    echo -e "                    ${BLUE}--keep-template       Keep generated template.tex after conversion (no auto-cleanup)${NC}"
     echo -e "                    ${BLUE}--header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default${NC}"
   echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert -a \"John Doe\" -t \"My Document\" --toc --toc-depth 3 document.md output.pdf\n"
+
+    echo -e "${PURPLE}Notes:${NC}"
+    echo -e "  - For DOCX input, the default engine auto-selects ${GREEN}xelatex${NC} (override with --pdf-engine)."
+    echo -e "  - Template search order: ${BLUE}./template.tex${NC}, ${BLUE}./templates/template.tex${NC}, ${BLUE}<script_dir>/templates/template.tex${NC}, ${BLUE}/usr/local/share/mdtexpdf/templates/template.tex${NC}."
+    echo -e "  - The script will not delete user templates. It only removes a ${BLUE}./template.tex${NC} that it created itself, unless ${GREEN}--keep-template${NC} is used.\n"
     
     echo -e "  ${GREEN}create <output.md> [title] [author]${NC}"
     echo -e "                  ${BLUE}Create a new Markdown document with LaTeX template${NC}"
