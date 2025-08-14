@@ -1,0 +1,577 @@
+\documentclass[12pt, openany]{book}
+    
+% Conditional packages based on LaTeX engine
+\usepackage{iftex}
+\ifluatex
+    % LuaLaTeX-specific setup
+    \usepackage{fontspec}
+    % Let fontspec use its default fonts
+\else
+    \ifxetex
+        % XeLaTeX-specific setup
+        \usepackage{fontspec}
+        % Let fontspec use its default fonts
+    \else
+        % pdfLaTeX-specific setup
+        \usepackage[utf8]{inputenc}
+        \usepackage[T1]{fontenc}
+        \usepackage{lmodern}  % Load Latin Modern fonts (scalable)
+    \fi
+\fi
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{lastpage} % For page X of Y numbering
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{breqn}
+\usepackage{amssymb}
+\usepackage{amsthm}   % For theorem and proof environments
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{calc}
+\usepackage{etoolbox}
+\usepackage{upquote}
+\usepackage{newunicodechar}
+\usepackage{textcomp}
+\usepackage{fancyvrb}
+\usepackage{listings}
+\usepackage{float}
+\usepackage[protrusion=false,expansion=false]{microtype}  % Disable font expansion
+\usepackage{enumitem}
+\usepackage[version=4]{mhchem}
+\usepackage{framed}   % For snugshade environment
+% Custom styling for book format
+\usepackage{titlesec}
+\usepackage{titling}
+
+% Style for Part and Chapter headings
+\titleformat{\part}[display]
+{\normalfont\huge\bfseries\filcenter\thispagestyle{plain}}
+{\partname~\thepart}
+{20pt}
+{\Huge}
+\titlespacing*{\part}{0pt}{50pt}{40pt}
+
+\titleformat{\chapter}[display]
+{\normalfont\huge\bfseries\thispagestyle{plain}}
+{\chaptertitlename~\thechapter}
+{20pt}
+{\Huge}
+\titlespacing*{\chapter}{0pt}{50pt}{40pt}
+
+% Style for the main title page (title, author, and date) - centered vertically
+\pretitle{\begin{center}\vspace*{\fill}\normalfont\huge\bfseries}
+\posttitle{%
+\par
+$if(subtitle)$
+\vspace{0.25em}{\LARGE\itshape $subtitle$}\par
+$endif$
+\end{center}\vskip 3em}
+\preauthor{\begin{center}\normalfont\large}
+\postauthor{\par\end{center}\vskip 1em}
+\predate{\begin{center}\normalfont\large}
+\postdate{\par\end{center}\vspace*{\fill}}
+
+% Define \real command if it doesn't exist (alternative to realnum package)
+\providecommand{\real}[1]{#1}
+
+% Define \arraybackslash if it doesn't exist
+\providecommand{\arraybackslash}{\let\\\tabularnewline}
+
+% Define \pandocbounded command used by Pandoc for complex math expressions
+\providecommand{\pandocbounded}[1]{\ensuremath{#1}}
+
+% Define \passthrough command, sometimes used by Pandoc with --listings
+\providecommand{\passthrough}[1]{#1}
+
+% Define common mathematical Unicode characters
+\ifluatex\else\ifxetex\else
+    % These definitions are only needed for pdfLaTeX
+    % For XeLaTeX and LuaLaTeX, unicode-math handles these
+    \usepackage{accents}  % For vector arrows and other accents
+    
+    % U+20D1 COMBINING RIGHT HARPOON ABOVE
+    \newunicodechar{⃑}{\vec}
+    % U+2113 SCRIPT SMALL L
+    \newunicodechar{ℓ}{\ensuremath{\ell}}
+    % Subscript digits U+2080..U+2089
+    \newunicodechar{₀}{\ensuremath{_0}}
+    \newunicodechar{₁}{\ensuremath{_1}}
+    \newunicodechar{₂}{\ensuremath{_2}}
+    \newunicodechar{₃}{\ensuremath{_3}}
+    \newunicodechar{₄}{\ensuremath{_4}}
+    \newunicodechar{₅}{\ensuremath{_5}}
+    \newunicodechar{₆}{\ensuremath{_6}}
+    \newunicodechar{₇}{\ensuremath{_7}}
+    \newunicodechar{₈}{\ensuremath{_8}}
+    \newunicodechar{₉}{\ensuremath{_9}}
+    
+    % Greek letters - lowercase (text mode compatible)
+    \newunicodechar{α}{\ensuremath{\alpha}}
+    \newunicodechar{β}{\ensuremath{\beta}}
+    \newunicodechar{γ}{\ensuremath{\gamma}}
+    \newunicodechar{δ}{\ensuremath{\delta}}
+    \newunicodechar{ε}{\ensuremath{\varepsilon}}
+    \newunicodechar{ζ}{\ensuremath{\zeta}}
+    \newunicodechar{η}{\ensuremath{\eta}}
+    \newunicodechar{θ}{\ensuremath{\theta}}
+    \newunicodechar{ι}{\ensuremath{\iota}}
+    \newunicodechar{κ}{\ensuremath{\kappa}}
+    \newunicodechar{λ}{\ensuremath{\lambda}}
+    \newunicodechar{μ}{\ensuremath{\mu}}
+    \newunicodechar{ν}{\ensuremath{\nu}}
+    \newunicodechar{ξ}{\ensuremath{\xi}}
+    \newunicodechar{ο}{o}
+    \newunicodechar{π}{\ensuremath{\pi}}
+    \newunicodechar{ρ}{\ensuremath{\rho}}
+    \newunicodechar{σ}{\ensuremath{\sigma}}
+    \newunicodechar{τ}{\ensuremath{\tau}}
+    \newunicodechar{υ}{\ensuremath{\upsilon}}
+    \newunicodechar{φ}{\ensuremath{\phi}}
+    \newunicodechar{χ}{\ensuremath{\chi}}
+    \newunicodechar{ψ}{\ensuremath{\psi}}
+    \newunicodechar{ω}{\ensuremath{\omega}}
+    
+    % Greek letters - uppercase (text mode compatible)
+    \newunicodechar{Α}{A}
+    \newunicodechar{Β}{B}
+    \newunicodechar{Γ}{\ensuremath{\Gamma}}
+    \newunicodechar{Δ}{\ensuremath{\Delta}}
+    \newunicodechar{Ε}{E}
+    \newunicodechar{Ζ}{Z}
+    \newunicodechar{Η}{H}
+    \newunicodechar{Θ}{\ensuremath{\Theta}}
+    \newunicodechar{Ι}{I}
+    \newunicodechar{Κ}{K}
+    \newunicodechar{Λ}{\ensuremath{\Lambda}}
+    \newunicodechar{Μ}{M}
+    \newunicodechar{Ν}{N}
+    \newunicodechar{Ξ}{\ensuremath{\Xi}}
+    \newunicodechar{Ο}{O}
+    \newunicodechar{Π}{\ensuremath{\Pi}}
+    \newunicodechar{Ρ}{P}
+    \newunicodechar{Σ}{\ensuremath{\Sigma}}
+    \newunicodechar{Τ}{T}
+    \newunicodechar{Υ}{\ensuremath{\Upsilon}}
+    \newunicodechar{Φ}{\ensuremath{\Phi}}
+    \newunicodechar{Χ}{X}
+    \newunicodechar{Ψ}{\ensuremath{\Psi}}
+    \newunicodechar{Ω}{\ensuremath{\Omega}}
+    
+    % Additional Greek letter variants (text mode compatible)
+    \newunicodechar{ϑ}{\ensuremath{\vartheta}}
+    \newunicodechar{ϕ}{\ensuremath{\varphi}}
+    \newunicodechar{ϖ}{\ensuremath{\varpi}}
+    \newunicodechar{ϱ}{\ensuremath{\varrho}}
+    \newunicodechar{ς}{\ensuremath{\varsigma}}
+    \newunicodechar{ϵ}{\ensuremath{\epsilon}}
+    \newunicodechar{ϰ}{\ensuremath{\varkappa}}
+
+    % Greek letters with accents (tonos)
+    \newunicodechar{ά}{\ensuremath{\acute{\alpha}}}
+    \newunicodechar{έ}{\ensuremath{\acute{\varepsilon}}}
+    \newunicodechar{ή}{\ensuremath{\acute{\eta}}}
+    \newunicodechar{ί}{\ensuremath{\acute{\iota}}}
+    \newunicodechar{ό}{\ensuremath{\acute{o}}}
+    \newunicodechar{ύ}{\ensuremath{\acute{\upsilon}}}
+    \newunicodechar{ώ}{\ensuremath{\acute{\omega}}}
+    \newunicodechar{Ά}{\ensuremath{\acute{A}}}
+    \newunicodechar{Έ}{\ensuremath{\acute{E}}}
+    \newunicodechar{Ή}{\ensuremath{\acute{H}}}
+    \newunicodechar{Ί}{\ensuremath{\acute{I}}}
+    \newunicodechar{Ό}{\ensuremath{\acute{O}}}
+    \newunicodechar{Ύ}{\ensuremath{\acute{\Upsilon}}}
+    \newunicodechar{Ώ}{\ensuremath{\acute{\Omega}}}
+
+    % Define Unicode box-drawing characters for pdfLaTeX
+    \newunicodechar{├}{\texttt{|--}}
+    \newunicodechar{│}{\texttt{|}}
+    \newunicodechar{└}{\texttt{\`--}}
+    \newunicodechar{─}{\texttt{-}}
+    % Mathematical symbols (text mode compatible)
+    \newunicodechar{ℝ}{\ensuremath{\mathbb{R}}}
+    \newunicodechar{ℤ}{\ensuremath{\mathbb{Z}}}
+    \newunicodechar{ℕ}{\ensuremath{\mathbb{N}}}
+    \newunicodechar{ℚ}{\ensuremath{\mathbb{Q}}}
+    \newunicodechar{ℂ}{\ensuremath{\mathbb{C}}}
+    \newunicodechar{∞}{\ensuremath{\infty}}
+    \newunicodechar{∫}{\ensuremath{\int}}
+    \newunicodechar{∑}{\ensuremath{\sum}}
+    \newunicodechar{∏}{\ensuremath{\prod}}
+    \newunicodechar{√}{\ensuremath{\sqrt}}
+    \newunicodechar{∂}{\ensuremath{\partial}}
+    \newunicodechar{∇}{\ensuremath{\nabla}}
+    \newunicodechar{∆}{\ensuremath{\Delta}}
+    \newunicodechar{∈}{\ensuremath{\in}}
+    \newunicodechar{∉}{\ensuremath{\notin}}
+    \newunicodechar{∋}{\ensuremath{\ni}}
+    \newunicodechar{⊂}{\ensuremath{\subset}}
+    \newunicodechar{⊃}{\ensuremath{\supset}}
+    \newunicodechar{⊆}{\ensuremath{\subseteq}}
+    \newunicodechar{⊇}{\ensuremath{\supseteq}}
+    \newunicodechar{∪}{\ensuremath{\cup}}
+    \newunicodechar{∩}{\ensuremath{\cap}}
+    \newunicodechar{≠}{\ensuremath{\neq}}
+    \newunicodechar{≤}{\ensuremath{\leq}}
+    \newunicodechar{≥}{\ensuremath{\geq}}
+    \newunicodechar{≈}{\ensuremath{\approx}}
+    \newunicodechar{≡}{\ensuremath{\equiv}}
+    \newunicodechar{∼}{\ensuremath{\sim}}
+    \newunicodechar{∝}{\ensuremath{\propto}}
+    \newunicodechar{′}{\ensuremath{\prime}}
+    \newunicodechar{″}{\ensuremath{\prime\prime}}
+    \newunicodechar{‴}{\ensuremath{\prime\prime\prime}}
+    \newunicodechar{→}{\ensuremath{\rightarrow}}
+    \newunicodechar{←}{\ensuremath{\leftarrow}}
+    \newunicodechar{↔}{\ensuremath{\leftrightarrow}}
+    \newunicodechar{⇒}{\ensuremath{\Rightarrow}}
+    \newunicodechar{⇐}{\ensuremath{\Leftarrow}}
+    \newunicodechar{⇔}{\ensuremath{\Leftrightarrow}}
+\fi\fi
+
+% Configure listings for code blocks
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,          % Enable automatic line breaking
+  breakatwhitespace=true,   % Only break at whitespace
+  columns=fullflexible,     % More flexible column adjustment for better breaking
+  keepspaces=true,
+  showstringspaces=false,
+  frame=single,
+  framesep=5pt,
+  framexleftmargin=5pt,
+  tabsize=4}
+
+% Set page geometry
+\geometry{a4paper, margin=1in}
+
+% Header and Footer Setup
+\pagestyle{fancy}
+\fancyhf{} % Clear all header and footer fields first
+
+% Setup Header
+\fancyhead[L]{\small\textit{$author$}}
+\fancyhead[R]{\small\textit{$title$}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Setup Footer (conditionally)
+$if(no_footer)$
+    % All footers (L, C, R) remain empty
+    \renewcommand{\footrulewidth}{0pt} % No footrule if no_footer is true
+$else$
+    % Left Footer (Date)
+    $if(date_footer_content)$
+        \fancyfoot[L]{$date_footer_content$}
+    $endif$
+
+    % Center Footer (Custom text / Copyright)
+    $if(center_footer_content)$
+        \fancyfoot[C]{$center_footer_content$}
+    $else$
+        % Default center footer if -f is not used and not --no-footer
+        \fancyfoot[C]{\copyright All rights reserved \the\year} % Default copyright
+    $endif$
+
+    % Right Footer (Page number)
+    $if(page_of_format)$
+        \fancyfoot[R]{\thepage/\pageref{LastPage}}
+    $else$
+        \fancyfoot[R]{\thepage}
+    $endif$
+    \renewcommand{\footrulewidth}{0.4pt} % Footrule active if footers are shown
+$endif$
+
+% First page style (plain) - should mirror the above logic
+\fancypagestyle{plain}{
+\fancyhf{} % Clear header/footer for plain style
+
+% Conditionally add headers based on header_footer_policy
+$if(header_footer_policy_all)$
+    % Include headers on all plain pages (title, part, chapter pages) when policy is all
+    \fancyhead[L]{\small\textit{$author$}}
+    \fancyhead[R]{\small\textit{$title$}}
+    \renewcommand{\headrulewidth}{0.4pt}
+$elseif(header_footer_policy_partial)$
+    % Include headers on part and chapter pages, but not title page when policy is partial
+    \fancyhead[L]{\small\textit{$author$}}
+    \fancyhead[R]{\small\textit{$title$}}
+    \renewcommand{\headrulewidth}{0.4pt}
+$else$
+    % No headers on plain pages (default behavior)
+    \renewcommand{\headrulewidth}{0pt}
+$endif$
+
+% Footer logic based on header_footer_policy
+$if(header_footer_policy_all)$
+    % Include footers on all plain pages when policy is all
+    $if(no_footer)$
+        % All footers remain empty
+        \renewcommand{\footrulewidth}{0pt}
+    $else$
+        % Left Footer (Date)
+        $if(date_footer_content)$
+            \fancyfoot[L]{$date_footer_content$}
+        $endif$
+
+        % Center Footer (Custom text / Copyright)
+        $if(center_footer_content)$
+            \fancyfoot[C]{$center_footer_content$}
+        $else$
+            \fancyfoot[C]{\copyright All rights reserved \the\year} % Default copyright
+        $endif$
+
+        % Right Footer (Page number)
+        $if(page_of_format)$
+            \fancyfoot[R]{\thepage/\pageref{LastPage}}
+        $else$
+            \fancyfoot[R]{\thepage}
+        $endif$
+        \renewcommand{\footrulewidth}{0.4pt}
+    $endif$
+$elseif(header_footer_policy_partial)$
+    % Include footers on part and chapter pages, but not title page when policy is partial
+    $if(no_footer)$
+        % All footers remain empty
+        \renewcommand{\footrulewidth}{0pt}
+    $else$
+        % Left Footer (Date)
+        $if(date_footer_content)$
+            \fancyfoot[L]{$date_footer_content$}
+        $endif$
+
+        % Center Footer (Custom text / Copyright)
+        $if(center_footer_content)$
+            \fancyfoot[C]{$center_footer_content$}
+        $else$
+            \fancyfoot[C]{\copyright All rights reserved \the\year} % Default copyright
+        $endif$
+
+        % Right Footer (Page number)
+        $if(page_of_format)$
+            \fancyfoot[R]{\thepage/\pageref{LastPage}}
+        $else$
+            \fancyfoot[R]{\thepage}
+        $endif$
+        \renewcommand{\footrulewidth}{0.4pt}
+    $endif$
+$else$
+    % No footers on plain pages (default behavior)
+    \renewcommand{\footrulewidth}{0pt}
+$endif$
+}
+
+% Title page style - specific handling for title page
+\fancypagestyle{titlepage}{
+\fancyhf{} % Clear header/footer for title page
+
+% Only add headers/footers on title page if policy is 'all'
+$if(header_footer_policy_all)$
+    \fancyhead[L]{\small\textit{$author$}}
+    \fancyhead[R]{\small\textit{$title$}}
+    \renewcommand{\headrulewidth}{0.4pt}
+    
+    $if(no_footer)$
+        % All footers remain empty
+    $else$
+        % Left Footer (Date)
+        $if(date_footer_content)$
+            \fancyfoot[L]{$date_footer_content$}
+        $endif$
+
+        % Center Footer (Custom text / Copyright)
+        $if(center_footer_content)$
+            \fancyfoot[C]{$center_footer_content$}
+        $else$
+            \fancyfoot[C]{\copyright All rights reserved \the\year} % Default copyright
+        $endif$
+
+        % Right Footer (Page number)
+        $if(page_of_format)$
+            \fancyfoot[R]{\thepage/\pageref{LastPage}}
+        $else$
+            \fancyfoot[R]{\thepage}
+        $endif$
+        \renewcommand{\footrulewidth}{0.4pt}
+    $endif$
+$else$
+    % No headers/footers on title page for default and partial policies
+    \renewcommand{\headrulewidth}{0pt}
+    \renewcommand{\footrulewidth}{0pt}
+$endif$
+}
+
+% Adjust paragraph spacing: add a full line skip between paragraphs
+\setlength{\parskip}{\baselineskip}
+% Remove paragraph indentation
+\setlength{\parindent}{0pt}
+\setlength{\parindent}{0pt}
+
+% Configure list appearance using enumitem
+\renewlist{itemize}{itemize}{6}  % Explicitly redefine itemize to allow 6 levels
+\setlist[itemize]{label=\textbullet} % Use a standard bullet for all levels of itemize
+
+% Optionally, do the same for enumerate for consistency if it's ever used deeply
+\renewlist{enumerate}{enumerate}{6} % Explicitly redefine enumerate to allow 6 levels
+% Default numbering (1., a., i., etc.) should apply, or we can customize:
+% \setlist[enumerate,1]{label=\arabic*.}
+% \setlist[enumerate,2]{label=\alph*.}
+% etc. For now, just ensuring depth.
+
+% Define \tightlist as an empty command.
+% This prevents an "Undefined control sequence" error if pandoc emits \tightlist,
+% while avoiding the original \tightlist definition that might cause issues with deep nesting.
+\providecommand{\tightlist}{}
+
+% Configure equation handling for better line breaking
+% Using the amsmath package which is already loaded
+
+% Adjust the text size for display math to fit more content
+\everymath{\displaystyle\small}
+
+% Control section numbering
+\setcounter{secnumdepth}{0}
+
+% Define a custom environment for long text-heavy equations
+\newenvironment{longmath}{%
+\begin{multline*}\small
+}{%
+\end{multline*}
+}
+
+% Increase the line width for equations to allow more content per line
+\setlength{\multlinegap}{0pt}
+
+% Allow line breaks at certain operators in math mode
+\allowdisplaybreaks[4]
+\sloppy  % Allow more flexible line breaking
+
+% Define a command to handle long text in equations
+\newcommand{\longtext}[1]{\text{\small #1}}
+
+% Define theorem environments
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newtheorem{definition}{Definition}
+
+% Custom figure caption handling
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,textfont=it}
+\renewcommand{\figurename}{Figure}
+
+% Define Pandoc's code highlighting environments
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newenvironment{Highlighting}{}{}
+\newcommand{\HighlightingOn}{}
+\newcommand{\HighlightingOff}{}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+
+% Title information from YAML frontmatter
+$if(title)$
+\title{$title$}
+$endif$
+$if(author)$
+$if(format_book)$
+$if(email)$
+\author{$author$ --- $email$}
+$else$
+\author{$author$}
+$endif$
+$else$
+\author{$author$}
+$endif$
+$endif$
+$if(date)$
+\date{$date$}
+$else$
+\date{}
+$endif$
+
+% Hyperref setup
+\hypersetup{
+colorlinks=true,
+linkcolor=black,
+filecolor=magenta,
+urlcolor=cyan,
+pdftitle={$if(title)$$title$$endif$},
+pdfauthor={$if(author)$$author$$endif$},
+pdfborder={0 0 0}
+}
+
+\begin{document}
+
+$if(title)$
+$if(header_footer_policy_all)$
+$if(format_book)$
+% For book format with 'all' policy, create custom title page that respects headers/footers
+\thispagestyle{titlepage}
+\begin{center}
+\vspace*{\fill}
+{\Huge \textbf{$title$}}\\[0.5cm]
+$if(subtitle)$
+{\LARGE \textit{$subtitle$}}\\[1.5cm]
+$endif$
+$if(author)$
+{\large $author$ $if(email)$ --- $email$ $endif$}\\[1cm]
+$endif$
+$if(date)$
+{\large $date$}
+$endif$
+\vspace*{\fill}
+\end{center}
+\newpage
+$else$
+% For article format with 'all' policy, use standard maketitle but ensure headers/footers work
+\maketitle
+$endif$
+$else$
+% For default and partial policies, use standard maketitle
+\maketitle
+$endif$
+$endif$
+
+% Set TOC depth and generate TOC if needed
+\setcounter{tocdepth}{2}
+$if(toc)$
+\tableofcontents
+\newpage
+$endif$
+
+$body$
+
+\end{document}

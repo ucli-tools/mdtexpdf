@@ -121,11 +121,15 @@ BOOK_CMDS_EOF
         % LuaLaTeX-specific setup
         \\usepackage{fontspec}
         % Let fontspec use its default fonts
+        \\usepackage{unicode-math}
+        \\setmathfont{Latin Modern Math}
     \\else
         \\ifxetex
             % XeLaTeX-specific setup
             \\usepackage{fontspec}
             % Let fontspec use its default fonts
+            \\usepackage{unicode-math}
+            \\setmathfont{Latin Modern Math}
         \\else
             % pdfLaTeX-specific setup
             \\usepackage[utf8]{inputenc}
@@ -138,8 +142,14 @@ BOOK_CMDS_EOF
     \\usepackage{lastpage} % For page X of Y numbering
     \\usepackage{graphicx}
     \\usepackage{amsmath}
-    \\usepackage{amssymb}
+    \\usepackage{breqn}
+    % Load amssymb only for pdfLaTeX to avoid conflicts with unicode-math
+    \\ifluatex\\else\\ifxetex\\else
+        \\usepackage{amssymb}
+    \\fi\\fi
     \\usepackage{amsthm}   % For theorem and proof environments
+    % Load url before hyperref to ensure \nolinkurl is defined
+    \\usepackage{url}
     \\usepackage{hyperref}
     \\usepackage{xcolor}
     \\usepackage{longtable}
@@ -159,6 +169,9 @@ BOOK_CMDS_EOF
     \\usepackage{framed}   % For snugshade environment
     $book_specific_commands
     
+    % Allow page breaks within multi-line display math
+    \\allowdisplaybreaks[2]
+    
     % Define \real command if it doesn't exist (alternative to realnum package)
     \\providecommand{\\real}[1]{#1}
     
@@ -170,7 +183,40 @@ BOOK_CMDS_EOF
     
     % Define \passthrough command, sometimes used by Pandoc with --listings
     \providecommand{\passthrough}[1]{#1}
+    % Safe fallback if \nolinkurl isn't provided by url/hyperref for some reason
+    \providecommand{\nolinkurl}[1]{\texttt{#1}}
     
+    % Minimal Unicode fallbacks for XeLaTeX/LuaLaTeX (text symbols)
+    \\ifluatex
+        \\newunicodechar{ℓ}{\\ensuremath{\\ell}}
+        \\newunicodechar{₀}{\\ensuremath{_0}}
+        \\newunicodechar{₁}{\\ensuremath{_1}}
+        \\newunicodechar{₂}{\\ensuremath{_2}}
+        \\newunicodechar{₃}{\\ensuremath{_3}}
+        \\newunicodechar{₄}{\\ensuremath{_4}}
+        \\newunicodechar{₅}{\\ensuremath{_5}}
+        \\newunicodechar{₆}{\\ensuremath{_6}}
+        \\newunicodechar{₇}{\\ensuremath{_7}}
+        \\newunicodechar{₈}{\\ensuremath{_8}}
+        \\newunicodechar{₉}{\\ensuremath{_9}}
+        \\newunicodechar{≔}{:=}
+    \\else
+        \\ifxetex
+            \\newunicodechar{ℓ}{\\ensuremath{\\ell}}
+            \\newunicodechar{₀}{\\ensuremath{_0}}
+            \\newunicodechar{₁}{\\ensuremath{_1}}
+            \\newunicodechar{₂}{\\ensuremath{_2}}
+            \\newunicodechar{₃}{\\ensuremath{_3}}
+            \\newunicodechar{₄}{\\ensuremath{_4}}
+            \\newunicodechar{₅}{\\ensuremath{_5}}
+            \\newunicodechar{₆}{\\ensuremath{_6}}
+            \\newunicodechar{₇}{\\ensuremath{_7}}
+            \\newunicodechar{₈}{\\ensuremath{_8}}
+            \\newunicodechar{₉}{\\ensuremath{_9}}
+            \\newunicodechar{≔}{:=}
+        \\fi
+    \\fi
+
     % Define common mathematical Unicode characters
     \\ifluatex\\else\\ifxetex\\else
         % These definitions are only needed for pdfLaTeX
