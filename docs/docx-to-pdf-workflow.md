@@ -4,22 +4,31 @@ This note summarizes the fixes we made to reliably convert DOCX to PDF and propo
 
 ## What we changed right now
 
-- __Selected a Unicode-friendly engine__: Updated `docx_example/Makefile` to call:
-  ```sh
-  bash ../mdtexpdf/mdtexpdf.sh convert --pdf-engine xelatex example.docx -m metadata.yaml
-  ```
-  `xelatex` (or `lualatex`) handles Unicode and avoids many pdflatex issues.
+- __Default XeLaTeX for DOCX__: The script now auto-selects `xelatex` for DOCX (override with `--pdf-engine`).
 
 - __Cleaned problematic DOCX containers automatically__: `mdtexpdf.sh` now unzips and re-zips `.docx` files before Pandoc runs, working around the “Did not find end of central directory signature” unpack error. Warnings from `unzip` are tolerated when a valid DOCX marker is present.
 
-- __Made the LaTeX template safe by default for Unicode engines__: Simplified `\lstset{...}` in `docx_example/template.tex` to a minimal, Unicode-safe configuration and used `fontspec`/`unicode-math` for Xe/LuaTeX. This removed the `\lstset` parsing error and still formats code nicely.
+- __Unicode-safe listings__: Template generator simplifies `\lstset{...}` for Xe/LuaLaTeX (no `extendedchars`/`literate`). For `pdflatex`, legacy mappings remain.
 
-- __Help/documentation__: `help()` now documents `--pdf-engine`.
+- __Help/documentation__: `help()` documents `--pdf-engine` and `--keep-template`, plus template search order and cleanup policy.
+
+- __Template detection & persistence__: Search order:
+  1) `./template.tex`
+  2) `./templates/template.tex`
+  3) `<script_dir>/templates/template.tex`
+  4) `/usr/local/share/mdtexpdf/templates/template.tex`
+  The script deletes `./template.tex` only if it created it and `--keep-template` was not used.
 
 ## Why this fixes the failures
 
 - __Pandoc error fixed__: Repacking DOCX removes extra ZIP bytes; Pandoc can unpack it.
 - __LaTeX Unicode issues mitigated__: XeLaTeX/LuaLaTeX natively support Unicode; the simplified `listings` config avoids brittle "literate" mappings.
+
+## Current status & issues
+
+- __Working__: DOCX→PDF succeeds; repo template is used and preserved; XeLaTeX default engages for DOCX.
+- __Glyph warnings__: Some symbols (ℓ, subscript digits, ≔) still warn due to font coverage. Address via `unicode-math` + math font and a few `\newunicodechar` fallbacks.
+- __Long equations__: Some display math overflows; optional Lua filters (e.g., `long_equation_filter.lua`) aren’t yet present; `breqn` can help.
 
 ## Use mdtexpdf without editing template.tex (today)
 
@@ -44,10 +53,7 @@ To avoid per-project editing:
 
 ## Proposed improvements to mdtexpdf (no manual edits needed)
 
-- __Ship a Unicode-safe default template__: Update `create_template_file()` and the packaged template to:
-  - Use `fontspec + unicode-math` for Xe/LuaTeX.
-  - Keep pdfLaTeX compatibility mappings (e.g., ℓ and subscript digits, plus `≔` via `mathtools`’ `\coloneqq`).
-  - Keep the simplified, robust `\lstset`.
+- __Ship a Unicode-safe default template__: Update `create_template_file()` to use `fontspec + unicode-math` for Xe/LuaTeX, keep pdfLaTeX mappings (ℓ, subscripts, `≔` via `mathtools`), and keep simplified `\lstset`.
 
 - __Add template profiles__:
   - `--template-profile unicode-safe|minimal|custom` to select generation presets.
@@ -61,6 +67,12 @@ To avoid per-project editing:
 
 - __Unicode mappings for pdfLaTeX__:
   - Ensure ℓ (U+2113), subscript digits (U+2080…U+2089), and `≔` map cleanly when `pdflatex` is forced.
+
+## Next steps (planned work)
+
+- Add `unicode-math` and set a math font under Xe/LuaLaTeX; add minimal `\newunicodechar` fallbacks for text.
+- Add/ship Lua filters: `long_equation_filter.lua`, `heading_fix_filter.lua`, `image_size_filter.lua`; wire them into `convert`.
+- Load `breqn` and enable conservative breakable display math, plus `\allowdisplaybreaks`.
 
 ## Known caveats
 

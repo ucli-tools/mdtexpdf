@@ -1,6 +1,6 @@
 # Generated PDFs
 *.pdf
-template.tex
+!template.tex
 
 # Except example files with any number
 !example[0-9]*.pdf
