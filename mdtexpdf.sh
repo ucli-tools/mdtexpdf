@@ -1960,7 +1960,42 @@ EOF
     if [ "$ARG_SECTION_NUMBERS" = false ]; then
         SECTION_NUMBERING_OPTION="--variable=numbersections=false"
     fi
-
+    
+    # Ensure footer date text is computed even when using an existing template
+    # This allows metadata "date_footer: true" or CLI --date-footer to populate the left footer
+    if [ -n "$ARG_DATE_FOOTER" ] && [ -z "$DATE_FOOTER_TEXT" ]; then
+        # Decide date format based on ARG_DATE_FOOTER value
+        case "$ARG_DATE_FOOTER" in
+            "YYYY-MM-DD")
+                DATE_FMT="%Y-%m-%d"
+                ;;
+            "DD/MM/YY")
+                DATE_FMT="%d/%m/%y"
+                ;;
+            "Month Day, Year"|"month day, year")
+                DATE_FMT="%B %d, %Y"
+                ;;
+            "true")
+                # Metadata boolean 'true' -> default short format
+                DATE_FMT="%y/%m/%d"
+                ;;
+            *)
+                # Unknown/custom -> fall back to default short format
+                DATE_FMT="%y/%m/%d"
+                ;;
+        esac
+        # Prefer the document date if provided and not disabled; otherwise use current date
+        if [ -n "$ARG_DATE" ] && [ "$ARG_DATE" != "no" ]; then
+            DATE_FOOTER_TEXT="$(date -d "$ARG_DATE" +"$DATE_FMT" 2>/dev/null)"
+            if [ -z "$DATE_FOOTER_TEXT" ]; then
+                DATE_FOOTER_TEXT="$(date +"$DATE_FMT")"
+            fi
+        else
+            DATE_FOOTER_TEXT="$(date +"$DATE_FMT")"
+        fi
+        echo -e "${GREEN}Footer date: $DATE_FOOTER_TEXT${NC}"
+    fi
+    
     FOOTER_VARS=()
     if [ "$ARG_NO_FOOTER" = true ]; then
         FOOTER_VARS+=("--variable=no_footer=true")
