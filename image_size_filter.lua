@@ -31,6 +31,27 @@ local function is_confidence_only(text)
   return false
 end
 
+-- Enhanced figure caption detection function
+local function is_figure_caption(text)
+  if not text or text == '' then return false end
+  
+  -- Primary patterns for figure captions
+  if text:match('^%s*[Ff]igure%s+%d+') then return true end      -- "Figure 1", "figure 2"
+  if text:match('^%s*[Ff]ig%.?%s+%d+') then return true end      -- "Fig. 1", "fig 2"
+  if text:match('^%s*[Ff]igure%s+%d+%.') then return true end    -- "Figure 1."
+  if text:match('^%s*[Ff]ig%.?%s+%d+%.') then return true end    -- "Fig. 1."
+  
+  -- Handle cases with special characters like "Figure 4.-"
+  if text:match('^%s*[Ff]igure%s+%d+%.?%-') then return true end -- "Figure 4.-"
+  if text:match('^%s*[Ff]ig%.?%s+%d+%.?%-') then return true end -- "Fig. 4.-"
+  
+  -- Handle cases with em-dash or other separators
+  if text:match('^%s*[Ff]igure%s+%d+%.?%s*[–—%-]') then return true end -- "Figure 3. –"
+  if text:match('^%s*[Ff]ig%.?%s+%d+%.?%s*[–—%-]') then return true end -- "Fig. 3. –"
+  
+  return false
+end
+
 local function get_attr(img)
   -- Pandoc pre/post 2.17 compatibility
   if img.attributes then
@@ -173,29 +194,36 @@ function Para(el)
     end
   end
 
-  -- If the previous block was a figure without its own caption,
-  -- center the next caption-like paragraph, skipping auto-generated descriptions.
-  if last_was_figure and not last_figure_had_caption then
+  -- If the previous block was a figure, check for figure captions to center
+  -- (regardless of whether the figure had an embedded caption)
+  if last_was_figure then
     local text = pandoc.utils.stringify(el)
     local lower = (text or ''):lower()
+    
+    -- Skip auto-generated descriptions
     if is_auto_generated_desc(text) then
-      -- Drop auto-generated description and keep looking for the real caption; a follow-up line may contain only '... confidence'
+      -- Drop auto-generated description and keep looking for the real caption
       expect_followup_auto_desc = true
       return {}
     end
-    if expect_followup_auto_desc and lower:find('confidence', 1, true) and not lower:match('^%s*[Ff]ig') then
+    
+    -- Skip confidence-only lines following auto-generated descriptions
+    if expect_followup_auto_desc and lower:find('confidence', 1, true) and not is_figure_caption(text) then
       -- Drop trailing 'medium/high confidence' line
       expect_followup_auto_desc = false
       return {}
     end
     expect_followup_auto_desc = false
-    if text and text:match('^%s*[Ff]ig') then
+    
+    -- Center any figure caption regardless of embedded caption state
+    if is_figure_caption(text) then
       local latex = pandoc.write(pandoc.Pandoc({el}), 'latex')
       last_was_figure = false
       last_figure_had_caption = false
       return pandoc.RawBlock('latex', '\\begin{center}\n' .. latex .. '\n\\end{center}')
     end
-    -- Not a caption: stop looking
+    
+    -- Reset state if not a figure caption
     last_was_figure = false
     last_figure_had_caption = false
   end
@@ -235,24 +263,32 @@ function Plain(el)
     end
   end
 
-  if last_was_figure and not last_figure_had_caption then
+  if last_was_figure then
     local text = pandoc.utils.stringify(el)
     local lower = (text or ''):lower()
+    
+    -- Skip auto-generated descriptions
     if is_auto_generated_desc(text) then
       expect_followup_auto_desc = true
       return {}
     end
-    if expect_followup_auto_desc and lower:find('confidence', 1, true) and not lower:match('^%s*[Ff]ig') then
+    
+    -- Skip confidence-only lines following auto-generated descriptions
+    if expect_followup_auto_desc and lower:find('confidence', 1, true) and not is_figure_caption(text) then
       expect_followup_auto_desc = false
       return {}
     end
     expect_followup_auto_desc = false
-    if text and text:match('^%s*[Ff]ig') then
+    
+    -- Center any figure caption regardless of embedded caption state
+    if is_figure_caption(text) then
       local latex = pandoc.write(pandoc.Pandoc({el}), 'latex')
       last_was_figure = false
       last_figure_had_caption = false
       return pandoc.RawBlock('latex', '\\begin{center}\n' .. latex .. '\n\\end{center}')
     end
+    
+    -- Reset state if not a figure caption
     last_was_figure = false
     last_figure_had_caption = false
   end
