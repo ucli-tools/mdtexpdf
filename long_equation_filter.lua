@@ -10,8 +10,7 @@ local function needs_special_handling(math_text)
 
   local length = string.len(math_text)
 
-  -- Only target extremely long equations that definitely overflow
-  if length > 150 then return true end
+  -- Only target extremely long equations that definitely overflow (handled later after structure analysis)
 
   -- Multiple matrices with operators (the specific problematic case)
   if math_text:find('\\begin{pmatrix}.*\\circ.*\\begin{pmatrix}') then return true end
@@ -107,16 +106,28 @@ local function needs_special_handling(math_text)
     return parts
   end
 
+  local is_compact_matrix_assignments = false
   local parts = parts_from_top_level_commas(math_text)
   if #parts >= 2 then
     local with_eq = 0
+    local all_matrix = true
     for _, seg in ipairs(parts) do
       if seg:find('=') then with_eq = with_eq + 1 end
+      if not (seg:find('\\begin%s*%{[^}]*matrix%}') or seg:find('\\begin%s*%{array%}')) then
+        all_matrix = false
+      end
     end
-    -- Only trigger for multi-assignments when the expression is long or has many parts
-    if with_eq >= 2 and (#parts >= 3 or length > 120) then
+    -- Consider compact lists like sigma_x = pmatrix(...), sigma_y = ..., sigma_z = ...
+    is_compact_matrix_assignments = (with_eq >= 2 and all_matrix and #parts <= 4)
+    -- Trigger only for truly long multi-assignments; avoid splitting compact matrix lists
+    if with_eq >= 2 and length > 220 and not all_matrix then
       return true
     end
+  end
+
+  -- General long-equation trigger, but skip compact matrix assignment lists
+  if length > 220 and not is_compact_matrix_assignments then
+    return true
   end
 
   -- Additional trigger: at least two top-level '=' in the expression
@@ -170,7 +181,7 @@ local function needs_special_handling(math_text)
     return count
   end
 
-  if count_top_level_eqs(math_text) >= 2 and length > 120 then
+  if count_top_level_eqs(math_text) >= 2 and length > 220 and not is_compact_matrix_assignments then
     return true
   end
 
@@ -496,7 +507,8 @@ local function apply_safe_fixes(math_text)
       end
       table.insert(lines, '  ' .. lhs .. ' &= ' .. rhs)
     end
-    return "\\begin{align*}\n" .. table.concat(lines, " \\\\\\n") .. "\n\\end{align*}"
+    local rowsep = " " .. "\\\\" .. "\n"
+    return "\\begin{align*}\n" .. table.concat(lines, rowsep) .. "\n\\end{align*}"
   end
 
   -- Fallback: use dmath* for automatic breaking
