@@ -835,11 +835,11 @@ preprocess_markdown() {
     if [ -n "$META_TITLE" ]; then
         # Get the first H1 heading from the content (after YAML frontmatter)
         local first_h1=$(awk '/^---$/{if(!yaml) yaml=1; else {yaml=0; next}} yaml{next} /^# /{print substr($0,3); exit}' "$temp_file")
-        
+
         # Compare with metadata title (remove quotes for comparison)
         local meta_title_clean=$(echo "$META_TITLE" | sed 's/^["\x27]*//; s/["\x27]*$//')
-        
-        if [ "$first_h1" = "$meta_title_clean" ]; then
+
+        if [ "$first_h1" = "$meta_title_clean" ] || [[ "$first_h1" == "$meta_title_clean"* ]]; then
             echo -e "${YELLOW}Removing duplicate title H1 heading: '$first_h1'${NC}"
             # Use awk to remove the first H1 heading and following empty lines
             awk '
