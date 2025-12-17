@@ -851,54 +851,14 @@ preprocess_markdown() {
     
     # Replace problematic Unicode characters with LaTeX commands
     if [ "$PDF_ENGINE" = "pdflatex" ]; then
-        echo -e "${YELLOW}Using pdfLaTeX engine - replacing problematic Unicode characters with LaTeX commands${NC}"
-        
+        echo -e "${YELLOW}Using pdfLaTeX engine - Unicode characters handled by template${NC}"
+
         # Replace combining right harpoon (U+20D1) with \vec command
         # This is tricky because it's a combining character, so we need to capture the character it combines with
         sed -i 's/\\overset{⃑}/\\vec/g' "$temp_file"
-        
-        # Note: Greek letters are handled by \newunicodechar in the template
-        # No preprocessing needed for Greek letters as they work directly with Unicode
-        
-        # Replace other common mathematical Unicode characters
-        sed -i 's/ℝ/\\mathbb{R}/g' "$temp_file"
-        sed -i 's/ℤ/\\mathbb{Z}/g' "$temp_file"
-        sed -i 's/ℕ/\\mathbb{N}/g' "$temp_file"
-        sed -i 's/ℚ/\\mathbb{Q}/g' "$temp_file"
-        sed -i 's/ℂ/\\mathbb{C}/g' "$temp_file"
-        sed -i 's/∞/\\infty/g' "$temp_file"
-        sed -i 's/∫/\\int/g' "$temp_file"
-        sed -i 's/∑/\\sum/g' "$temp_file"
-        sed -i 's/∏/\\prod/g' "$temp_file"
-        sed -i 's/√/\\sqrt/g' "$temp_file"
-        sed -i 's/∂/\\partial/g' "$temp_file"
-        sed -i 's/∇/\\nabla/g' "$temp_file"
-        sed -i 's/∆/\\Delta/g' "$temp_file"
-        sed -i 's/∈/\\in/g' "$temp_file"
-        sed -i 's/∉/\\notin/g' "$temp_file"
-        sed -i 's/∋/\\ni/g' "$temp_file"
-        sed -i 's/⊂/\\subset/g' "$temp_file"
-        sed -i 's/⊃/\\supset/g' "$temp_file"
-        sed -i 's/⊆/\\subseteq/g' "$temp_file"
-        sed -i 's/⊇/\\supseteq/g' "$temp_file"
-        sed -i 's/∪/\\cup/g' "$temp_file"
-        sed -i 's/∩/\\cap/g' "$temp_file"
-        sed -i 's/≠/\\neq/g' "$temp_file"
-        sed -i 's/≤/\\leq/g' "$temp_file"
-        sed -i 's/≥/\\geq/g' "$temp_file"
-        sed -i 's/≈/\\approx/g' "$temp_file"
-        sed -i 's/≡/\\equiv/g' "$temp_file"
-        sed -i 's/∼/\\sim/g' "$temp_file"
-        sed -i 's/∝/\\propto/g' "$temp_file"
-        sed -i 's/′/\\prime/g' "$temp_file"
-        sed -i 's/″/\\prime\\prime/g' "$temp_file"
-        sed -i 's/‴/\\prime\\prime\\prime/g' "$temp_file"
-        sed -i 's/→/\\rightarrow/g' "$temp_file"
-        sed -i 's/←/\\leftarrow/g' "$temp_file"
-        sed -i 's/↔/\\leftrightarrow/g' "$temp_file"
-        sed -i 's/⇒/\\Rightarrow/g' "$temp_file"
-        sed -i 's/⇐/\\Leftarrow/g' "$temp_file"
-        sed -i 's/⇔/\\Leftrightarrow/g' "$temp_file"
+
+        # All other Unicode characters are handled by \newunicodechar in the template
+        # No additional preprocessing needed
     fi
     
     # Move the temp file back to the original
@@ -1777,9 +1737,10 @@ EOF
     
     # Build filter options
     FILTER_OPTION=""
-    for filter in "${LUA_FILTERS[@]}"; do
-        FILTER_OPTION="$FILTER_OPTION --lua-filter=$filter"
-    done
+    # TEMPORARILY DISABLE ALL FILTERS FOR DEBUGGING
+    # for filter in "${LUA_FILTERS[@]}"; do
+    #     FILTER_OPTION="$FILTER_OPTION --lua-filter=$filter"
+    # done
 
     # Run pandoc with the selected PDF engine
     echo -e "${BLUE}Using enhanced equation line breaking for text-heavy equations${NC}"
