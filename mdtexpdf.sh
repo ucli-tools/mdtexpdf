@@ -856,12 +856,8 @@ preprocess_markdown() {
         # All other Unicode characters are handled by \newunicodechar in the template
         # No additional preprocessing needed
     else
-        # For LuaLaTeX and XeLaTeX, wrap CJK characters with font commands
-        echo -e "${YELLOW}Wrapping CJK characters with font commands for Unicode support${NC}"
-
-        # Wrap CJK characters with \cjkfont{} command
-        # This uses Perl regex to find CJK characters and wrap them
-        perl -i -pe 's/([\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{20000}-\x{2A6DF}\x{2A700}-\x{2B73F}\x{2B740}-\x{2B81F}\x{2B820}-\x{2CEAF}]+)/\\cjkfont{$1}/g' "$temp_file"
+        # For LuaLaTeX and XeLaTeX, CJK characters will be handled automatically by fontspec
+        echo -e "${YELLOW}Using Unicode engines - CJK characters will be handled automatically${NC}"
     fi
     
     # Move the temp file back to the original
