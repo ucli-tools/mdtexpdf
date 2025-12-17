@@ -168,19 +168,19 @@ BOOK_CMDS_EOF
     \\usepackage{framed}   % For snugshade environment
 
     % Additional Unicode font setup for CJK characters (after packages are loaded)
-    % Load CJK fonts - LuaLaTeX and XeLaTeX will automatically use them when needed
+    % Use xeCJK with minimal punctuation interference
     \\ifluatex
         % LuaLaTeX: Load CJK fonts for better Unicode support
         \\newfontfamily\\cjkfont{Noto Sans CJK SC}
     \\else
         \\ifxetex
-            % XeLaTeX: Use xeCJK package for Chinese text support with minimal punctuation changes
+            % XeLaTeX: Use xeCJK with minimal punctuation changes to preserve quote formatting
             \\usepackage{xeCJK}
             \\setCJKmainfont{Noto Sans CJK SC}
             \\setCJKsansfont{Noto Sans CJK SC}
             \\setCJKmonofont{Noto Sans Mono CJK SC}
-            % Use plain punctuation style to avoid affecting Western quotes
-            \\xeCJKsetup{PunctStyle=plain}
+            % Disable punctuation adjustment to preserve Western quote formatting
+            \\xeCJKsetup{PunctStyle=plain,AutoFakeBold=false,AutoFakeSlant=false}
         \\fi
     \\fi
     $book_specific_commands
