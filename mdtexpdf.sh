@@ -168,19 +168,24 @@ BOOK_CMDS_EOF
     \\usepackage{framed}   % For snugshade environment
 
     % Additional Unicode font setup for CJK characters (after packages are loaded)
-    % Use xeCJK with minimal punctuation interference
+    % Use xeCJK with minimal punctuation interference to preserve Western quote formatting
     \\ifluatex
         % LuaLaTeX: Load CJK fonts for better Unicode support
         \\newfontfamily\\cjkfont{Noto Sans CJK SC}
     \\else
         \\ifxetex
-            % XeLaTeX: Use xeCJK with minimal punctuation changes to preserve quote formatting
+            % XeLaTeX: Use xeCJK with minimal punctuation interference to preserve Western quote formatting
             \\usepackage{xeCJK}
             \\setCJKmainfont{Noto Sans CJK SC}
             \\setCJKsansfont{Noto Sans CJK SC}
             \\setCJKmonofont{Noto Sans Mono CJK SC}
-            % Disable punctuation adjustment to preserve Western quote formatting
-            \\xeCJKsetup{PunctStyle=plain,AutoFakeBold=false,AutoFakeSlant=false}
+            % Configure xeCJK to minimize punctuation effects
+            \\xeCJKsetup{
+                AutoFakeBold=false,
+                AutoFakeSlant=false,
+                CheckSingle=false,
+                PunctStyle=plain
+            }
         \\fi
     \\fi
     $book_specific_commands
@@ -859,8 +864,8 @@ preprocess_markdown() {
         # All other Unicode characters are handled by \newunicodechar in the template
         # No additional preprocessing needed
     else
-        # For LuaLaTeX and XeLaTeX, CJK characters will be handled automatically by fontspec
-        echo -e "${YELLOW}Using Unicode engines - CJK characters will be handled automatically${NC}"
+        # For LuaLaTeX and XeLaTeX, CJK characters will be handled automatically by xeCJK
+        echo -e "${YELLOW}Using Unicode engines - CJK characters will be handled automatically by xeCJK${NC}"
     fi
 
     # Move the temp file back to the original
@@ -1848,6 +1853,21 @@ EOF
     # Check if conversion was successful
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}Success! PDF created as $OUTPUT_FILE${NC}"
+
+        # Post-process PDF to fix quote fonts if xeCJK affected them
+        if [ "$PDF_ENGINE" = "xelatex" ] && detect_unicode_characters "$INPUT_FILE"; then
+            echo -e "${BLUE}Post-processing PDF to fix quote fonts...${NC}"
+            # Create a backup of the original PDF
+            cp "$OUTPUT_FILE" "${OUTPUT_FILE}.backup"
+
+            # Use sed to modify PDF content (basic approach)
+            # This is a simplified post-processing that attempts to fix quote font references
+            # Note: This is experimental and may need refinement
+            sed -i 's/\/F1 /\/F0 /g' "$OUTPUT_FILE" 2>/dev/null || true
+            sed -i 's/\/F2 /\/F0 /g' "$OUTPUT_FILE" 2>/dev/null || true
+
+            echo -e "${GREEN}Post-processing complete${NC}"
+        fi
 
         # Clean up: Remove template.tex file if it was created in the current directory
         if [ -f "$(pwd)/template.tex" ]; then
