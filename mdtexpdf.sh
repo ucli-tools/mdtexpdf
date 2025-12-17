@@ -123,12 +123,18 @@ BOOK_CMDS_EOF
     \\ifluatex
         % LuaLaTeX-specific setup
         \\usepackage{fontspec}
-        % Let fontspec use its default fonts
+        % Load fonts with Unicode support
+        \\setmainfont{Latin Modern Roman}[Ligatures=TeX]
+        \\setsansfont{Latin Modern Sans}[Ligatures=TeX]
+        \\setmonofont{Latin Modern Mono}[Ligatures=TeX]
     \\else
         \\ifxetex
             % XeLaTeX-specific setup
             \\usepackage{fontspec}
-            % Let fontspec use its default fonts
+            % Load fonts with Unicode support
+            \\setmainfont{Latin Modern Roman}[Ligatures=TeX]
+            \\setsansfont{Latin Modern Sans}[Ligatures=TeX]
+            \\setmonofont{Latin Modern Mono}[Ligatures=TeX]
         \\else
             % pdfLaTeX-specific setup
             \\usepackage[utf8]{inputenc}
@@ -160,6 +166,20 @@ BOOK_CMDS_EOF
     \\usepackage{enumitem}
     \\usepackage[version=4]{mhchem}
     \\usepackage{framed}   % For snugshade environment
+
+    % Additional Unicode font setup for CJK characters (after packages are loaded)
+    \\ifluatex
+        % LuaLaTeX: Load CJK fonts for better Unicode support
+        \\newfontfamily\\cjkfont{Noto Sans CJK SC}
+    \\else
+        \\ifxetex
+            % XeLaTeX: Use xeCJK package for Chinese text support
+            \\usepackage{xeCJK}
+            \\setCJKmainfont{Noto Sans CJK SC}
+            \\setCJKsansfont{Noto Sans CJK SC}
+            \\setCJKmonofont{Noto Sans Mono CJK SC}
+        \\fi
+    \\fi
     $book_specific_commands
     
     % Define \real command if it doesn't exist (alternative to realnum package)
@@ -318,61 +338,7 @@ BOOK_CMDS_EOF
       framesep=5pt,
       framexleftmargin=5pt,
       tabsize=4,
-      extendedchars=true,       % Allow extended characters (UTF-8)
-      literate={ï»¿}{}{0}        % Remove UTF-8 BOM
-               {é}{{\'{e}}}1
-               {è}{{\`{e}}}1
-               {ê}{{\^{e}}}1
-               {ë}{{\"{e}}}1
-               {É}{{\'{E}}}1
-               {È}{{\`{E}}}1
-               {Ê}{{\^{E}}}1
-               {Ë}{{\"{E}}}1
-               {á}{{\'{a}}}1
-               {à}{{\`{a}}}1
-               {â}{{\^{a}}}1
-               {ä}{{\"{a}}}1
-               {Á}{{\'{A}}}1
-               {À}{{\`{A}}}1
-               {Â}{{\^{A}}}1
-               {Ä}{{\"{A}}}1
-               {ó}{{\'{o}}}1
-               {ò}{{\`{o}}}1
-               {ô}{{\^{o}}}1
-               {ö}{{\"{o}}}1
-               {Ó}{{\'{O}}}1
-               {Ò}{{\`{O}}}1
-               {Ô}{{\^{O}}}1
-               {Ö}{{\"{O}}}1
-               {í}{{\'{i}}}1
-               {ì}{{\`{i}}}1
-               {î}{{\^{i}}}1
-               {ï}{{\"{i}}}1
-               {Í}{{\'{I}}}1
-               {Ì}{{\`{I}}}1
-               {Î}{{\^{I}}}1
-               {Ï}{{\"{I}}}1
-               {ú}{{\'{u}}}1
-               {ù}{{\`{u}}}1
-               {û}{{\^{u}}}1
-               {ü}{{\"{u}}}1
-               {Ú}{{\'{U}}}1
-               {Ù}{{\`{U}}}1
-               {Û}{{\^{U}}}1
-               {Ü}{{\"{U}}}1
-               {ç}{{\c{c}}}1
-               {Ç}{{\c{C}}}1
-               {ñ}{{\~{n}}}1
-               {Ñ}{{\~{N}}}1
-               {ß}{{\ss}}1
-$(if [ "$PDF_ENGINE" = "pdflatex" ]; then
-cat << 'INNER_LST_LITERALS_EOF'
-               {├}{{\texttt{|--}}}3
-               {│}{{\texttt{|}}}1
-               {└}{{\texttt{`--}}}3
-               {─}{{\texttt{-}}}1
-INNER_LST_LITERALS_EOF
-fi)
+      extendedchars=true        % Allow extended characters (UTF-8)
     }
 
 % Set page geometry
@@ -718,6 +684,33 @@ EOF
     return $?
 }
 
+# Function to detect Unicode characters that require Unicode engines
+detect_unicode_characters() {
+    local input_file="$1"
+
+    # Check for CJK characters (Chinese, Japanese, Korean)
+    # CJK Unified Ideographs: U+4E00-U+9FFF
+    # CJK Extension A: U+3400-U+4DBF
+    # CJK Extension B: U+20000-U+2A6DF
+    # CJK Extension C: U+2A700-U+2B73F
+    # CJK Extension D: U+2B740-U+2B81F
+    # CJK Extension E: U+2B820-U+2CEAF
+    if grep -qP '[\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{20000}-\x{2A6DF}\x{2A700}-\x{2B73F}\x{2B740}-\x{2B81F}\x{2B820}-\x{2CEAF}]' "$input_file"; then
+        return 0  # Found CJK characters
+    fi
+
+    # Check for other Unicode characters that might not be supported by pdfLaTeX
+    # Arabic: U+0600-U+06FF
+    # Hebrew: U+0590-U+05FF
+    # Devanagari: U+0900-U+097F
+    # And other scripts that pdfLaTeX typically doesn't support well
+    if grep -qP '[\x{0600}-\x{06FF}\x{0590}-\x{05FF}\x{0900}-\x{097F}\x{0980}-\x{09FF}\x{0A00}-\x{0A7F}\x{0A80}-\x{0AFF}\x{0B00}-\x{0B7F}\x{0B80}-\x{0BFF}\x{0C00}-\x{0C7F}\x{0C80}-\x{0CFF}\x{0D00}-\x{0D7F}\x{0D80}-\x{0DFF}]' "$input_file"; then
+        return 0  # Found other complex script characters
+    fi
+
+    return 1  # No Unicode characters requiring special handling found
+}
+
 # Function to check prerequisites
 check_prerequisites() {
     echo -e "${YELLOW}=== LaTeX-Markdown PDF Generator Prerequisites Check ===${NC}"
@@ -734,39 +727,30 @@ check_prerequisites() {
     # Check for LaTeX engines
     echo -e "${YELLOW}Checking for LaTeX engines...${NC}"
     LATEX_INSTALLED=false
-    
+
     # Check for LaTeX engines
     LUALATEX_AVAILABLE=false
     XELATEX_AVAILABLE=false
     PDFLATEX_AVAILABLE=false
-    
+
     if check_command lualatex; then
         LUALATEX_AVAILABLE=true
     fi
-    
+
     if check_command xelatex; then
         XELATEX_AVAILABLE=true
     fi
-    
+
     if check_command pdflatex; then
         PDFLATEX_AVAILABLE=true
     fi
-    
-    # Prioritize pdfLaTeX for better compatibility
-    if [ "$PDFLATEX_AVAILABLE" = true ]; then
+
+    # Engine selection will be done later based on content analysis
+    if [ "$PDFLATEX_AVAILABLE" = true ] || [ "$XELATEX_AVAILABLE" = true ] || [ "$LUALATEX_AVAILABLE" = true ]; then
         LATEX_INSTALLED=true
-        PDF_ENGINE="pdflatex"
-    elif [ "$XELATEX_AVAILABLE" = true ]; then
-        LATEX_INSTALLED=true
-        PDF_ENGINE="xelatex"
-    elif [ "$LUALATEX_AVAILABLE" = true ]; then
-        LATEX_INSTALLED=true
-        PDF_ENGINE="lualatex"
     fi
 
-    if [ "$LATEX_INSTALLED" = true ]; then
-        echo -e "Using PDF engine: ${GREEN}$PDF_ENGINE${NC}"
-    else
+    if [ "$LATEX_INSTALLED" = false ]; then
         echo -e "${RED}No LaTeX engine found${NC}"
     fi
     echo
@@ -871,6 +855,13 @@ preprocess_markdown() {
 
         # All other Unicode characters are handled by \newunicodechar in the template
         # No additional preprocessing needed
+    else
+        # For LuaLaTeX and XeLaTeX, wrap CJK characters with font commands
+        echo -e "${YELLOW}Wrapping CJK characters with font commands for Unicode support${NC}"
+
+        # Wrap CJK characters with \cjkfont{} command
+        # This uses Perl regex to find CJK characters and wrap them
+        perl -i -pe 's/([\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{20000}-\x{2A6DF}\x{2A700}-\x{2B73F}\x{2B740}-\x{2B81F}\x{2B820}-\x{2CEAF}]+)/\\cjkfont{$1}/g' "$temp_file"
     fi
     
     # Move the temp file back to the original
@@ -1433,6 +1424,37 @@ convert() {
     if [ "$ARG_READ_METADATA" = true ]; then
         parse_yaml_metadata "$INPUT_FILE"
         apply_metadata_args "$ARG_READ_METADATA"
+    fi
+
+    # Detect Unicode characters that require Unicode engines
+    echo -e "${YELLOW}Analyzing document content for Unicode character requirements...${NC}"
+    if detect_unicode_characters "$INPUT_FILE"; then
+        echo -e "${YELLOW}Unicode characters detected that require advanced LaTeX engine support${NC}"
+        # Prioritize Unicode-capable engines - XeLaTeX has better font fallback than LuaLaTeX
+        if [ "$XELATEX_AVAILABLE" = true ]; then
+            PDF_ENGINE="xelatex"
+            echo -e "${GREEN}Selected XeLaTeX engine for Unicode support${NC}"
+        elif [ "$LUALATEX_AVAILABLE" = true ]; then
+            PDF_ENGINE="lualatex"
+            echo -e "${GREEN}Selected LuaLaTeX engine for Unicode support${NC}"
+        elif [ "$PDFLATEX_AVAILABLE" = true ]; then
+            PDF_ENGINE="pdflatex"
+            echo -e "${YELLOW}Warning: Using pdfLaTeX with limited Unicode support. Some characters may not render correctly.${NC}"
+        else
+            echo -e "${RED}Error: No LaTeX engine available for Unicode content${NC}"
+            return 1
+        fi
+    else
+        echo -e "${GREEN}No Unicode characters requiring special handling detected${NC}"
+        # Use default engine selection (pdfLaTeX preferred for compatibility)
+        if [ "$PDFLATEX_AVAILABLE" = true ]; then
+            PDF_ENGINE="pdflatex"
+        elif [ "$XELATEX_AVAILABLE" = true ]; then
+            PDF_ENGINE="xelatex"
+        elif [ "$LUALATEX_AVAILABLE" = true ]; then
+            PDF_ENGINE="lualatex"
+        fi
+        echo -e "Using PDF engine: ${GREEN}$PDF_ENGINE${NC}"
     fi
 
     # Create a backup of the original markdown file
