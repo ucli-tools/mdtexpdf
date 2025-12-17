@@ -123,13 +123,14 @@ function Para(el)
     local m = el.content[1]
     if m.t == 'Math' and m.mathtype == 'DisplayMath' then
       local math_text = m.text or ''
-      
+
+      -- DISABLED: Causing align* errors
       -- First priority: Fix comma-separated variable definitions
-      if needs_comma_breaking(math_text) then
-        local tex = break_at_commas(math_text)
-        return pandoc.RawBlock('latex', tex)
-      end
-      
+      -- if needs_comma_breaking(math_text) then
+      --   local tex = break_at_commas(math_text)
+      --   return pandoc.RawBlock('latex', tex)
+      -- end
+
       -- Second priority: Handle equations that overflow the page
       if is_overflowing_equation(math_text) then
         local tex = handle_overflow(math_text)

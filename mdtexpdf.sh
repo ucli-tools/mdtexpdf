@@ -65,6 +65,9 @@ create_template_file() {
     if [ "$section_numbers" = "false" ]; then
         numbering_commands="\\setcounter{secnumdepth}{0}"
     fi
+
+    # Simplified title page logic - always use \maketitle
+    local title_page_logic="\$if(title)\$\\maketitle\$endif\$"
     
     # Set document class and book-specific commands based on format
     local docclass_opts="12pt"
@@ -628,8 +631,17 @@ $numbering_commands
 \\newcommand{\\NormalTok}[1]{#1}
 
 % Title information from YAML frontmatter
+% Only set \title for article format or when not using custom title page
 \$if(title)\$
+\$if(format_book)\$
+\$if(header_footer_policy_all)\$
+% For book format with 'all' policy, custom title page is used, don't set \title
+\$else\$
 \\title{\$title\$}
+\$endif\$
+\$else\$
+\\title{\$title\$}
+\$endif\$
 \$endif\$
 \$if(author)\$
 \$if(format_book)\$
@@ -670,7 +682,7 @@ $numbering_commands
 \\vspace*{\\fill}
 {\\Huge \\textbf{\$title\$}}\\\\[0.5cm]
 \$if(subtitle)\$
-{\\LARGE \\textit{\$subtitle\$}}\\\\[1.5cm]
+{\\LARGE \\itshape \$subtitle\$}\\\\[1.5cm]
 \$endif\$
 \$if(author)\$
 {\\large \$author\$ \$if(email)\$ --- \$email\$ \$endif\$}\\\\[1cm]
@@ -1737,10 +1749,9 @@ EOF
     
     # Build filter options
     FILTER_OPTION=""
-    # TEMPORARILY DISABLE ALL FILTERS FOR DEBUGGING
-    # for filter in "${LUA_FILTERS[@]}"; do
-    #     FILTER_OPTION="$FILTER_OPTION --lua-filter=$filter"
-    # done
+    for filter in "${LUA_FILTERS[@]}"; do
+        FILTER_OPTION="$FILTER_OPTION --lua-filter=$filter"
+    done
 
     # Run pandoc with the selected PDF engine
     echo -e "${BLUE}Using enhanced equation line breaking for text-heavy equations${NC}"
