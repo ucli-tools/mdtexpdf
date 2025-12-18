@@ -62,6 +62,7 @@ mdtexpdf is a command-line tool designed to simplify the process of creating pro
 - **Tables and Figures**: Support for tables, images, and other Markdown elements
 - **Theorem Environments**: Use LaTeX theorem environments in your Markdown
 - **Chemical Equations**: Support for chemical formulas and equations
+- **CJK Character Support**: Full support for Chinese, Japanese, and Korean characters while preserving Western quote formatting
 - **Automatic Equation Line Breaking**: Long mathematical equations automatically wrap to fit the page width
 - **Section Numbering Control**: Option to disable section numbering for cleaner documents
 - **Easy Installation**: Simple install and uninstall process
@@ -77,6 +78,7 @@ To use mdtexpdf, you need:
   - macOS: MacTeX or BasicTeX
   - Windows: MiKTeX
 - Required LaTeX packages (automatically checked by the tool)
+- For CJK character support: Noto Sans CJK fonts (`fonts-noto-cjk` on Debian/Ubuntu)
 
 ## Installation
 
