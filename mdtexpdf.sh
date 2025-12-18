@@ -49,17 +49,17 @@ create_template_file() {
     local section_numbers="${6:-true}"
     local format="${7:-article}"
     local header_footer_policy="${8:-content-only}"
-    
+
     # Use default values if not provided
     doc_title=${doc_title:-"Title"}
     doc_author=${doc_author:-"Author"}
-    
+
     # Determine if we're using XeLaTeX or LuaLaTeX
     local use_unicode_math=false
     if [ "$PDF_ENGINE" = "xelatex" ] || [ "$PDF_ENGINE" = "lualatex" ]; then
         use_unicode_math=true
     fi
-    
+
     # Determine if we should number sections
     local numbering_commands=""
     if [ "$section_numbers" = "false" ]; then
@@ -68,7 +68,7 @@ create_template_file() {
 
     # Simplified title page logic - always use \maketitle
     local title_page_logic="\$if(title)\$\\maketitle\$endif\$"
-    
+
     # Set document class and book-specific commands based on format
     local docclass_opts="12pt"
     local docclass="article"
@@ -117,18 +117,24 @@ BOOK_CMDS_EOF
 
     cat > "$template_path" << EOF
     \documentclass[$docclass_opts]{$docclass}
-    
+
     % Conditional packages based on LaTeX engine
     \\usepackage{iftex}
     \\ifluatex
         % LuaLaTeX-specific setup
         \\usepackage{fontspec}
-        % Let fontspec use its default fonts
+        % Load fonts with Unicode support
+        \\setmainfont{Latin Modern Roman}[Ligatures=TeX]
+        \\setsansfont{Latin Modern Sans}[Ligatures=TeX]
+        \\setmonofont{Latin Modern Mono}[Ligatures=TeX]
     \\else
         \\ifxetex
             % XeLaTeX-specific setup
             \\usepackage{fontspec}
-            % Let fontspec use its default fonts
+            % Load fonts with Unicode support
+            \\setmainfont{Latin Modern Roman}[Ligatures=TeX]
+            \\setsansfont{Latin Modern Sans}[Ligatures=TeX]
+            \\setmonofont{Latin Modern Mono}[Ligatures=TeX]
         \\else
             % pdfLaTeX-specific setup
             \\usepackage[utf8]{inputenc}
@@ -160,29 +166,61 @@ BOOK_CMDS_EOF
     \\usepackage{enumitem}
     \\usepackage[version=4]{mhchem}
     \\usepackage{framed}   % For snugshade environment
+
+    % Additional Unicode font setup for CJK characters (after packages are loaded)
+    % Use xeCJK with minimal punctuation interference to preserve Western quote formatting
+    \\ifluatex
+        % LuaLaTeX: Load CJK fonts for better Unicode support
+        \\newfontfamily\\cjkfont{Noto Sans CJK SC}
+    \\else
+        \\ifxetex
+            % XeLaTeX: Use xeCJK with minimal punctuation interference to preserve Western quote formatting
+            \\usepackage{xeCJK}
+            \\setCJKmainfont{Noto Sans CJK SC}
+            \\setCJKsansfont{Noto Sans CJK SC}
+            \\setCJKmonofont{Noto Sans Mono CJK SC}
+            % Configure xeCJK to minimize punctuation effects
+            \\xeCJKsetup{
+                AutoFakeBold=false,
+                AutoFakeSlant=false,
+                CheckSingle=false,
+                PunctStyle=plain
+            }
+            % Declare Western quotation marks as Default class so xeCJK doesn't process them
+            % This preserves Western quote formatting even when CJK characters are present
+            \\xeCJKDeclareCharClass{Default}{"0022}  % ASCII double quote "
+            \\xeCJKDeclareCharClass{Default}{"0027}  % ASCII single quote '
+            \\xeCJKDeclareCharClass{Default}{"2018}  % Left single quotation mark '
+            \\xeCJKDeclareCharClass{Default}{"2019}  % Right single quotation mark '
+            \\xeCJKDeclareCharClass{Default}{"201C}  % Left double quotation mark "
+            \\xeCJKDeclareCharClass{Default}{"201D}  % Right double quotation mark "
+            \\xeCJKDeclareCharClass{Default}{"2032}  % Prime ′
+            \\xeCJKDeclareCharClass{Default}{"2033}  % Double prime ″
+        \\fi
+    \\fi
     $book_specific_commands
-    
+
     % Define \real command if it doesn't exist (alternative to realnum package)
     \\providecommand{\\real}[1]{#1}
-    
+
     % Define \arraybackslash if it doesn't exist
     \\providecommand{\\arraybackslash}{\\let\\\\\\tabularnewline}
-    
+
     % Define \pandocbounded command used by Pandoc for complex math expressions
     \\providecommand{\\pandocbounded}[1]{\\ensuremath{#1}}
-    
+
     % Define \passthrough command, sometimes used by Pandoc with --listings
     \providecommand{\passthrough}[1]{#1}
-    
+
     % Define common mathematical Unicode characters
     \\ifluatex\\else\\ifxetex\\else
         % These definitions are only needed for pdfLaTeX
         % For XeLaTeX and LuaLaTeX, unicode-math handles these
         \\usepackage{accents}  % For vector arrows and other accents
-        
+
         % U+20D1 COMBINING RIGHT HARPOON ABOVE
         \\newunicodechar{⃑}{\\vec}
-        
+
         % Greek letters - lowercase (text mode compatible)
         \\newunicodechar{α}{\\ensuremath{\\alpha}}
         \\newunicodechar{β}{\\ensuremath{\\beta}}
@@ -208,7 +246,7 @@ BOOK_CMDS_EOF
         \\newunicodechar{χ}{\\ensuremath{\\chi}}
         \\newunicodechar{ψ}{\\ensuremath{\\psi}}
         \\newunicodechar{ω}{\\ensuremath{\\omega}}
-        
+
         % Greek letters - uppercase (text mode compatible)
         \\newunicodechar{Α}{A}
         \\newunicodechar{Β}{B}
@@ -234,7 +272,7 @@ BOOK_CMDS_EOF
         \\newunicodechar{Χ}{X}
         \\newunicodechar{Ψ}{\\ensuremath{\\Psi}}
         \\newunicodechar{Ω}{\\ensuremath{\\Omega}}
-        
+
         % Additional Greek letter variants (text mode compatible)
         \\newunicodechar{ϑ}{\\ensuremath{\\vartheta}}
         \\newunicodechar{ϕ}{\\ensuremath{\\varphi}}
@@ -305,7 +343,7 @@ BOOK_CMDS_EOF
         \\newunicodechar{⇐}{\\ensuremath{\\Leftarrow}}
         \\newunicodechar{⇔}{\\ensuremath{\\Leftrightarrow}}
     \\fi\\fi
-    
+
     % Configure listings for code blocks
     \lstset{
       basicstyle=\ttfamily\small,
@@ -318,61 +356,7 @@ BOOK_CMDS_EOF
       framesep=5pt,
       framexleftmargin=5pt,
       tabsize=4,
-      extendedchars=true,       % Allow extended characters (UTF-8)
-      literate={ï»¿}{}{0}        % Remove UTF-8 BOM
-               {é}{{\'{e}}}1
-               {è}{{\`{e}}}1
-               {ê}{{\^{e}}}1
-               {ë}{{\"{e}}}1
-               {É}{{\'{E}}}1
-               {È}{{\`{E}}}1
-               {Ê}{{\^{E}}}1
-               {Ë}{{\"{E}}}1
-               {á}{{\'{a}}}1
-               {à}{{\`{a}}}1
-               {â}{{\^{a}}}1
-               {ä}{{\"{a}}}1
-               {Á}{{\'{A}}}1
-               {À}{{\`{A}}}1
-               {Â}{{\^{A}}}1
-               {Ä}{{\"{A}}}1
-               {ó}{{\'{o}}}1
-               {ò}{{\`{o}}}1
-               {ô}{{\^{o}}}1
-               {ö}{{\"{o}}}1
-               {Ó}{{\'{O}}}1
-               {Ò}{{\`{O}}}1
-               {Ô}{{\^{O}}}1
-               {Ö}{{\"{O}}}1
-               {í}{{\'{i}}}1
-               {ì}{{\`{i}}}1
-               {î}{{\^{i}}}1
-               {ï}{{\"{i}}}1
-               {Í}{{\'{I}}}1
-               {Ì}{{\`{I}}}1
-               {Î}{{\^{I}}}1
-               {Ï}{{\"{I}}}1
-               {ú}{{\'{u}}}1
-               {ù}{{\`{u}}}1
-               {û}{{\^{u}}}1
-               {ü}{{\"{u}}}1
-               {Ú}{{\'{U}}}1
-               {Ù}{{\`{U}}}1
-               {Û}{{\^{U}}}1
-               {Ü}{{\"{U}}}1
-               {ç}{{\c{c}}}1
-               {Ç}{{\c{C}}}1
-               {ñ}{{\~{n}}}1
-               {Ñ}{{\~{N}}}1
-               {ß}{{\ss}}1
-$(if [ "$PDF_ENGINE" = "pdflatex" ]; then
-cat << 'INNER_LST_LITERALS_EOF'
-               {├}{{\texttt{|--}}}3
-               {│}{{\texttt{|}}}1
-               {└}{{\texttt{`--}}}3
-               {─}{{\texttt{-}}}1
-INNER_LST_LITERALS_EOF
-fi)
+      extendedchars=true        % Allow extended characters (UTF-8)
     }
 
 % Set page geometry
@@ -417,7 +401,7 @@ fi)
 % First page style (plain) - should mirror the above logic
 \fancypagestyle{plain}{
     \fancyhf{} % Clear header/footer for plain style
-    
+
     % Conditionally add headers based on header_footer_policy
     \$if(header_footer_policy_all)\$
         % Include headers on all plain pages (title, part, chapter pages) when policy is all
@@ -496,13 +480,13 @@ fi)
 % Title page style - specific handling for title page
 \fancypagestyle{titlepage}{
     \fancyhf{} % Clear header/footer for title page
-    
+
     % Only add headers/footers on title page if policy is 'all'
     \$if(header_footer_policy_all)\$
         \fancyhead[L]{\small\textit{$doc_author}}
         \fancyhead[R]{\small\textit{$doc_title}}
         \renewcommand{\headrulewidth}{0.4pt}
-        
+
         \$if(no_footer)\$
             % All footers remain empty
         \$else\$
@@ -718,6 +702,33 @@ EOF
     return $?
 }
 
+# Function to detect Unicode characters that require Unicode engines
+detect_unicode_characters() {
+    local input_file="$1"
+
+    # Check for CJK characters (Chinese, Japanese, Korean)
+    # CJK Unified Ideographs: U+4E00-U+9FFF
+    # CJK Extension A: U+3400-U+4DBF
+    # CJK Extension B: U+20000-U+2A6DF
+    # CJK Extension C: U+2A700-U+2B73F
+    # CJK Extension D: U+2B740-U+2B81F
+    # CJK Extension E: U+2B820-U+2CEAF
+    if grep -qP '[\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{20000}-\x{2A6DF}\x{2A700}-\x{2B73F}\x{2B740}-\x{2B81F}\x{2B820}-\x{2CEAF}]' "$input_file"; then
+        return 0  # Found CJK characters
+    fi
+
+    # Check for other Unicode characters that might not be supported by pdfLaTeX
+    # Arabic: U+0600-U+06FF
+    # Hebrew: U+0590-U+05FF
+    # Devanagari: U+0900-U+097F
+    # And other scripts that pdfLaTeX typically doesn't support well
+    if grep -qP '[\x{0600}-\x{06FF}\x{0590}-\x{05FF}\x{0900}-\x{097F}\x{0980}-\x{09FF}\x{0A00}-\x{0A7F}\x{0A80}-\x{0AFF}\x{0B00}-\x{0B7F}\x{0B80}-\x{0BFF}\x{0C00}-\x{0C7F}\x{0C80}-\x{0CFF}\x{0D00}-\x{0D7F}\x{0D80}-\x{0DFF}]' "$input_file"; then
+        return 0  # Found other complex script characters
+    fi
+
+    return 1  # No Unicode characters requiring special handling found
+}
+
 # Function to check prerequisites
 check_prerequisites() {
     echo -e "${YELLOW}=== LaTeX-Markdown PDF Generator Prerequisites Check ===${NC}"
@@ -734,39 +745,30 @@ check_prerequisites() {
     # Check for LaTeX engines
     echo -e "${YELLOW}Checking for LaTeX engines...${NC}"
     LATEX_INSTALLED=false
-    
+
     # Check for LaTeX engines
     LUALATEX_AVAILABLE=false
     XELATEX_AVAILABLE=false
     PDFLATEX_AVAILABLE=false
-    
+
     if check_command lualatex; then
         LUALATEX_AVAILABLE=true
     fi
-    
+
     if check_command xelatex; then
         XELATEX_AVAILABLE=true
     fi
-    
+
     if check_command pdflatex; then
         PDFLATEX_AVAILABLE=true
     fi
-    
-    # Prioritize pdfLaTeX for better compatibility
-    if [ "$PDFLATEX_AVAILABLE" = true ]; then
+
+    # Engine selection will be done later based on content analysis
+    if [ "$PDFLATEX_AVAILABLE" = true ] || [ "$XELATEX_AVAILABLE" = true ] || [ "$LUALATEX_AVAILABLE" = true ]; then
         LATEX_INSTALLED=true
-        PDF_ENGINE="pdflatex"
-    elif [ "$XELATEX_AVAILABLE" = true ]; then
-        LATEX_INSTALLED=true
-        PDF_ENGINE="xelatex"
-    elif [ "$LUALATEX_AVAILABLE" = true ]; then
-        LATEX_INSTALLED=true
-        PDF_ENGINE="lualatex"
     fi
 
-    if [ "$LATEX_INSTALLED" = true ]; then
-        echo -e "Using PDF engine: ${GREEN}$PDF_ENGINE${NC}"
-    else
+    if [ "$LATEX_INSTALLED" = false ]; then
         echo -e "${RED}No LaTeX engine found${NC}"
     fi
     echo
@@ -775,7 +777,7 @@ check_prerequisites() {
     if [ "$LATEX_INSTALLED" = true ]; then
         echo -e "${YELLOW}Checking for required LaTeX packages...${NC}"
         PACKAGES_MISSING=false
-        
+
         # List of required packages
         REQUIRED_PACKAGES=(
             "geometry" "fancyhdr" "graphicx" "amsmath" "amssymb" "hyperref" "xcolor"
@@ -783,7 +785,7 @@ check_prerequisites() {
             "enumitem" "etoolbox" "float" "lmodern" "textcomp" "upquote" "microtype" "mhchem"
             "breqn"  # For automatic line breaking in equations
         )
-        
+
         for package in "${REQUIRED_PACKAGES[@]}"; do
             if ! check_latex_package "$package"; then
                 PACKAGES_MISSING=true
@@ -795,7 +797,7 @@ check_prerequisites() {
     # Print installation instructions if prerequisites are missing
     if [ "$PANDOC_INSTALLED" = false ] || [ "$LATEX_INSTALLED" = false ] || [ "$PACKAGES_MISSING" = true ]; then
         echo -e "${YELLOW}=== Installation Instructions ===${NC}"
-        
+
         if [ "$PANDOC_INSTALLED" = false ]; then
             echo -e "${YELLOW}To install Pandoc:${NC}"
             echo "  - Ubuntu/Debian: sudo apt-get install pandoc"
@@ -803,7 +805,7 @@ check_prerequisites() {
             echo "  - Windows with Chocolatey: choco install pandoc"
             echo
         fi
-        
+
         if [ "$LATEX_INSTALLED" = false ] || [ "$PACKAGES_MISSING" = true ]; then
             echo -e "${YELLOW}To install LaTeX with required packages:${NC}"
             echo "  - Ubuntu/Debian: sudo apt-get install texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-science"
@@ -811,7 +813,7 @@ check_prerequisites() {
             echo "  - Windows: Install MiKTeX from https://miktex.org/download"
             echo
         fi
-        
+
         echo -e "${RED}Please install the missing prerequisites and run this script again.${NC}"
         return 1
     fi
@@ -825,12 +827,12 @@ check_prerequisites() {
 preprocess_markdown() {
     local input_file="$1"
     local temp_file="${input_file}.temp"
-    
+
     echo -e "${BLUE}Preprocessing markdown file for better LaTeX compatibility...${NC}"
-    
+
     # Create a copy of the file
     cp "$input_file" "$temp_file"
-    
+
     # Remove duplicate title H1 heading if it matches YAML frontmatter title
     if [ -n "$META_TITLE" ]; then
         # Get the first H1 heading from the content (after YAML frontmatter)
@@ -860,7 +862,7 @@ preprocess_markdown() {
             ' "$temp_file" > "${temp_file}.tmp" && mv "${temp_file}.tmp" "$temp_file"
         fi
     fi
-    
+
     # Replace problematic Unicode characters with LaTeX commands
     if [ "$PDF_ENGINE" = "pdflatex" ]; then
         echo -e "${YELLOW}Using pdfLaTeX engine - Unicode characters handled by template${NC}"
@@ -871,18 +873,21 @@ preprocess_markdown() {
 
         # All other Unicode characters are handled by \newunicodechar in the template
         # No additional preprocessing needed
+    else
+        # For LuaLaTeX and XeLaTeX, CJK characters will be handled automatically by xeCJK
+        echo -e "${YELLOW}Using Unicode engines - CJK characters will be handled automatically by xeCJK${NC}"
     fi
-    
+
     # Move the temp file back to the original
     mv "$temp_file" "$input_file"
-    
+
     echo -e "${GREEN}Preprocessing complete${NC}"
 }
 
 # Function to parse HTML metadata from markdown file
 parse_html_metadata() {
     local input_file="$1"
-    
+
     # Initialize metadata variables
     META_TITLE=""
     META_AUTHOR=""
@@ -900,9 +905,9 @@ parse_html_metadata() {
     META_NO_DATE=""
     META_FORMAT="article" # Default format
     META_HEADER_FOOTER_POLICY="" # New metadata for header/footer policy
-    
+
     echo -e "${BLUE}Parsing metadata from HTML comments...${NC}"
-    
+
     # Extract metadata from multi-line HTML comment block
     local in_comment=false
     while IFS= read -r line; do
@@ -911,25 +916,25 @@ parse_html_metadata() {
             in_comment=true
             continue
         fi
-        
+
         # Check if we're exiting a comment block
         if echo "$line" | grep -q "^[[:space:]]*-->[[:space:]]*$"; then
             in_comment=false
             continue
         fi
-        
+
         # If we're inside a comment block, parse key: value pairs
         if [ "$in_comment" = true ]; then
             # Check if line contains key: value format
             if echo "$line" | grep -q ":"; then
                 local key=$(echo "$line" | sed -n 's/^[[:space:]]*\([^:]*\):[[:space:]]*.*$/\1/p')
                 local value=$(echo "$line" | sed -n 's/^[[:space:]]*[^:]*:[[:space:]]*"\?\([^"]*\)"\?[[:space:]]*$/\1/p')
-                
+
                 # If value extraction with quotes failed, try without quotes
                 if [ -z "$value" ]; then
                     value=$(echo "$line" | sed -n 's/^[[:space:]]*[^:]*:[[:space:]]*\(.*\)[[:space:]]*$/\1/p')
                 fi
-                
+
                 # Trim whitespace from key and value
                 key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
                 value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
@@ -939,7 +944,7 @@ parse_html_metadata() {
         else
             continue
         fi
-        
+
         case "$key" in
             "description")
                 META_DESCRIPTION="$value"
@@ -1010,7 +1015,7 @@ parse_html_metadata() {
                 ;;
         esac
     done < "$input_file"
-    
+
     # Extract title from first H1 heading if not provided in metadata
     if [ -z "$META_TITLE" ]; then
         META_TITLE=$(grep -m 1 "^# " "$input_file" | sed 's/^# //')
@@ -1023,7 +1028,7 @@ parse_html_metadata() {
 # Function to parse YAML frontmatter from markdown file
 parse_yaml_metadata() {
     local input_file="$1"
-    
+
     # Initialize metadata variables
     META_TITLE=""
     META_AUTHOR=""
@@ -1045,9 +1050,9 @@ parse_yaml_metadata() {
     META_GENRE=""
     META_NARRATOR_VOICE=""
     META_READING_SPEED=""
-    
+
     echo -e "${BLUE}Parsing metadata from YAML frontmatter...${NC}"
-    
+
     # Check if file has YAML frontmatter (starts with ---)
     if ! head -n 1 "$input_file" | grep -q "^---\s*$"; then
         echo -e "${YELLOW}No YAML frontmatter found, trying H1 title extraction...${NC}"
@@ -1058,20 +1063,20 @@ parse_yaml_metadata() {
         fi
         return
     fi
-    
+
     # Extract YAML frontmatter block (between first --- and second ---)
     local yaml_content
     yaml_content=$(sed -n '/^---$/,/^---$/p' "$input_file" | sed '1d;$d')
-    
+
     if [ -z "$yaml_content" ]; then
         echo -e "${YELLOW}Empty YAML frontmatter block${NC}"
         return
     fi
-    
+
     # Create temporary YAML file for parsing
     local temp_yaml=$(mktemp)
     echo "$yaml_content" > "$temp_yaml"
-    
+
     # Parse YAML using yq and extract metadata fields
     # Core metadata (Dublin Core standard)
     META_TITLE=$(yq eval '.title // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
@@ -1079,44 +1084,44 @@ parse_yaml_metadata() {
     META_DATE=$(yq eval '.date // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_DESCRIPTION=$(yq eval '.description // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_LANGUAGE=$(yq eval '.language // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
-    
+
     # Document structure metadata
     META_SECTION=$(yq eval '.section // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_SLUG=$(yq eval '.slug // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_FORMAT=$(yq eval '.format // "article"' "$temp_yaml" 2>/dev/null | sed 's/^null$/article/')
-    
+
     # PDF-specific metadata
     META_TOC=$(yq eval '.toc // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_TOC_DEPTH=$(yq eval '.toc_depth // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_FOOTER=$(yq eval '.footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_HEADER_FOOTER_POLICY=$(yq eval '.header_footer_policy // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
-    
+
     # Boolean flags (convert true/false to appropriate values)
     local section_numbers_val=$(yq eval '.section_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     local no_numbers_val=$(yq eval '.no_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$section_numbers_val" = "false" ] && META_NO_NUMBERS="true"
     [ "$no_numbers_val" = "true" ] && META_NO_NUMBERS="true"
-    
+
     local no_footer_val=$(yq eval '.no_footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$no_footer_val" = "true" ] && META_NO_FOOTER="true"
-    
+
     local pageof_val=$(yq eval '.pageof // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$pageof_val" = "true" ] && META_PAGEOF="true"
-    
+
     local date_footer_val=$(yq eval '.date_footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$date_footer_val" = "true" ] && META_DATE_FOOTER="true"
-    
+
     local no_date_val=$(yq eval '.no_date // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$no_date_val" = "true" ] && META_NO_DATE="true"
-    
+
     # Audio-specific metadata (for future compatibility)
     META_GENRE=$(yq eval '.genre // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_NARRATOR_VOICE=$(yq eval '.narrator_voice // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_READING_SPEED=$(yq eval '.reading_speed // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
-    
+
     # Clean up temporary file
     rm -f "$temp_yaml"
-    
+
     # Display found metadata
     [ -n "$META_TITLE" ] && echo -e "${GREEN}Found metadata - title: $META_TITLE${NC}"
     [ -n "$META_AUTHOR" ] && echo -e "${GREEN}Found metadata - author: $META_AUTHOR${NC}"
@@ -1138,7 +1143,7 @@ parse_yaml_metadata() {
     [ -n "$META_GENRE" ] && echo -e "${GREEN}Found metadata - genre: $META_GENRE${NC}"
     [ -n "$META_NARRATOR_VOICE" ] && echo -e "${GREEN}Found metadata - narrator_voice: $META_NARRATOR_VOICE${NC}"
     [ -n "$META_READING_SPEED" ] && echo -e "${GREEN}Found metadata - reading_speed: $META_READING_SPEED${NC}"
-    
+
     # Extract title from first H1 heading if not provided in metadata
     if [ -z "$META_TITLE" ]; then
         META_TITLE=$(grep -m 1 "^# " "$input_file" | sed 's/^# //')
@@ -1151,10 +1156,10 @@ parse_yaml_metadata() {
 # Function to apply metadata to command-line arguments
 apply_metadata_args() {
     local read_metadata="$1"
-    
+
     if [ "$read_metadata" = true ]; then
         echo -e "${BLUE}Applying metadata to arguments (CLI args take precedence)...${NC}"
-        
+
         # Apply metadata values only if command-line arguments weren't provided
         [ -z "$ARG_TITLE" ] && [ -n "$META_TITLE" ] && ARG_TITLE="$META_TITLE"
         [ -z "$ARG_AUTHOR" ] && [ -n "$META_AUTHOR" ] && ARG_AUTHOR="$META_AUTHOR"
@@ -1162,12 +1167,12 @@ apply_metadata_args() {
         [ -z "$ARG_FOOTER" ] && [ -n "$META_FOOTER" ] && ARG_FOOTER="$META_FOOTER"
         [ -z "$ARG_DATE_FOOTER" ] && [ -n "$META_DATE_FOOTER" ] && ARG_DATE_FOOTER="$META_DATE_FOOTER"
         [ -z "$ARG_FORMAT" ] && [ -n "$META_FORMAT" ] && ARG_FORMAT="$META_FORMAT"
-        
+
         # Apply header/footer policy only if not explicitly set via CLI and metadata is valid
         if [ "$ARG_HEADER_FOOTER_POLICY" = "default" ] && [ -n "$META_HEADER_FOOTER_POLICY" ]; then
             ARG_HEADER_FOOTER_POLICY="$META_HEADER_FOOTER_POLICY"
         fi
-        
+
         # Handle boolean flags - only apply if not explicitly set via CLI
         if [ "$ARG_TOC" = "$DEFAULT_TOC" ] && [ -n "$META_TOC" ]; then
             case "$META_TOC" in
@@ -1179,11 +1184,11 @@ apply_metadata_args() {
                     ;;
             esac
         fi
-        
+
         if [ "$ARG_TOC_DEPTH" = "$DEFAULT_TOC_DEPTH" ] && [ -n "$META_TOC_DEPTH" ]; then
             ARG_TOC_DEPTH="$META_TOC_DEPTH"
         fi
-        
+
         if [ "$ARG_SECTION_NUMBERS" = "$DEFAULT_SECTION_NUMBERS" ] && [ -n "$META_NO_NUMBERS" ]; then
             case "$META_NO_NUMBERS" in
                 "true"|"True"|"TRUE"|"yes"|"Yes"|"YES"|"1")
@@ -1194,7 +1199,7 @@ apply_metadata_args() {
                     ;;
             esac
         fi
-        
+
         if [ "$ARG_NO_FOOTER" = false ] && [ -n "$META_NO_FOOTER" ]; then
             case "$META_NO_FOOTER" in
                 "true"|"True"|"TRUE"|"yes"|"Yes"|"YES"|"1")
@@ -1202,7 +1207,7 @@ apply_metadata_args() {
                     ;;
             esac
         fi
-        
+
         if [ "$ARG_PAGE_OF" = false ] && [ -n "$META_PAGEOF" ]; then
             case "$META_PAGEOF" in
                 "true"|"True"|"TRUE"|"yes"|"Yes"|"YES"|"1")
@@ -1210,7 +1215,7 @@ apply_metadata_args() {
                     ;;
             esac
         fi
-        
+
         if [ "$ARG_NO_DATE" = false ] && [ -n "$META_NO_DATE" ]; then
             case "$META_NO_DATE" in
                 "true"|"True"|"TRUE"|"yes"|"Yes"|"YES"|"1")
@@ -1218,7 +1223,7 @@ apply_metadata_args() {
                     ;;
             esac
         fi
-        
+
         echo -e "${GREEN}Metadata applied successfully${NC}"
     fi
 }
@@ -1240,7 +1245,7 @@ convert() {
     ARG_READ_METADATA=false # New variable for metadata reading
     ARG_FORMAT="" # New variable for document format
     ARG_HEADER_FOOTER_POLICY="default" # New variable for header/footer policy (default, partial, all)
-    
+
     # Parse command-line arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -1388,7 +1393,7 @@ convert() {
                 ;;
         esac
     done
-    
+
     # Check if input file is specified
     if [ -z "$INPUT_FILE" ]; then
         echo -e "${RED}Error: No input file specified.${NC}"
@@ -1435,6 +1440,37 @@ convert() {
         apply_metadata_args "$ARG_READ_METADATA"
     fi
 
+    # Detect Unicode characters that require Unicode engines
+    echo -e "${YELLOW}Analyzing document content for Unicode character requirements...${NC}"
+    if detect_unicode_characters "$INPUT_FILE"; then
+        echo -e "${YELLOW}Unicode characters detected that require advanced LaTeX engine support${NC}"
+        # Prioritize Unicode-capable engines - XeLaTeX has better font fallback than LuaLaTeX
+        if [ "$XELATEX_AVAILABLE" = true ]; then
+            PDF_ENGINE="xelatex"
+            echo -e "${GREEN}Selected XeLaTeX engine for Unicode support${NC}"
+        elif [ "$LUALATEX_AVAILABLE" = true ]; then
+            PDF_ENGINE="lualatex"
+            echo -e "${GREEN}Selected LuaLaTeX engine for Unicode support${NC}"
+        elif [ "$PDFLATEX_AVAILABLE" = true ]; then
+            PDF_ENGINE="pdflatex"
+            echo -e "${YELLOW}Warning: Using pdfLaTeX with limited Unicode support. Some characters may not render correctly.${NC}"
+        else
+            echo -e "${RED}Error: No LaTeX engine available for Unicode content${NC}"
+            return 1
+        fi
+    else
+        echo -e "${GREEN}No Unicode characters requiring special handling detected${NC}"
+        # Use default engine selection (pdfLaTeX preferred for compatibility)
+        if [ "$PDFLATEX_AVAILABLE" = true ]; then
+            PDF_ENGINE="pdflatex"
+        elif [ "$XELATEX_AVAILABLE" = true ]; then
+            PDF_ENGINE="xelatex"
+        elif [ "$LUALATEX_AVAILABLE" = true ]; then
+            PDF_ENGINE="lualatex"
+        fi
+        echo -e "Using PDF engine: ${GREEN}$PDF_ENGINE${NC}"
+    fi
+
     # Create a backup of the original markdown file
     BACKUP_FILE="${INPUT_FILE}.bak"
     echo -e "${BLUE}Creating backup of original markdown file: $BACKUP_FILE${NC}"
@@ -1444,12 +1480,12 @@ convert() {
     if [ -z "$OUTPUT_FILE" ]; then
         OUTPUT_FILE="${INPUT_FILE%.md}.pdf"
     fi
-    
+
 
 
     # Preprocess the markdown file for better LaTeX compatibility
     preprocess_markdown "$INPUT_FILE"
-    
+
     # Image captions are now handled by the image_size_filter.lua Lua filter
 
     # Convert markdown to PDF using pandoc with our template
@@ -1462,13 +1498,13 @@ convert() {
     # Check for template.tex in the current directory first (highest priority)
     TEMPLATE_IN_CURRENT_DIR=false
     TEMPLATE_PATH="$(pwd)/template.tex"
-    
+
     if [ -f "$TEMPLATE_PATH" ]; then
         TEMPLATE_IN_CURRENT_DIR=true
     else
         # Not found in current directory, check other locations
         TEMPLATE_PATH=""
-        
+
         # Check in templates subdirectory
         if [ -f "$(pwd)/templates/template.tex" ]; then
             TEMPLATE_PATH="$(pwd)/templates/template.tex"
@@ -1482,11 +1518,11 @@ convert() {
             TEMPLATE_PATH="/usr/local/share/mdtexpdf/templates/template.tex"
         fi
     fi
-    
+
     # Debug output to show which template is being used
     echo -e "${BLUE}Debug: Template path is $TEMPLATE_PATH${NC}"
     echo -e "${BLUE}Debug: Template in current dir: $TEMPLATE_IN_CURRENT_DIR${NC}"
-    
+
     # Check if we found a template in the current directory
     if [ "$TEMPLATE_IN_CURRENT_DIR" = true ]; then
         echo -e "Using template: ${GREEN}$TEMPLATE_PATH${NC}"
@@ -1501,7 +1537,7 @@ convert() {
             echo -e "${YELLOW}No template.tex found.${NC}"
             echo -e "${GREEN}A template.tex file is required. Create one now? (y/n) [y]:${NC}"
         fi
-        
+
         # Skip prompt if arguments were provided
         if [ -n "$ARG_TITLE" ] || [ -n "$ARG_AUTHOR" ] || [ -n "$ARG_DATE" ] || [ -n "$ARG_FOOTER" ] || [ "$ARG_NO_FOOTER" = true ]; then
             CREATE_TEMPLATE="y"
@@ -1510,18 +1546,18 @@ convert() {
             read CREATE_TEMPLATE
             CREATE_TEMPLATE=${CREATE_TEMPLATE:-"y"}
         fi
-        
+
         echo -e "${BLUE}Debug: User chose to create template: $CREATE_TEMPLATE${NC}"
-        
+
         # Create template if user chose to
         if [[ $CREATE_TEMPLATE =~ ^[Yy]$ ]]; then
             echo -e "${BLUE}Debug: Creating template...${NC}"
             # Get document details for both template and YAML frontmatter
             echo -e "${YELLOW}Setting up document preferences...${NC}"
-            
+
             # Check if the file has a first-level heading (# Title) before asking for title
             FIRST_HEADING=$(grep -m 1 "^# " "$INPUT_FILE" | sed 's/^# //')
-            
+
             # Set title based on command-line argument or prompt user
             if [ -n "$ARG_TITLE" ]; then
                 TITLE="$ARG_TITLE"
@@ -1531,7 +1567,7 @@ convert() {
                 echo -e "${BLUE}Found title in document: '$FIRST_HEADING'${NC}"
                 echo -e "${GREEN}Enter document title (press Enter to use the found title) [${FIRST_HEADING}]:${NC}"
                 read USER_TITLE
-                
+
                 if [ -z "$USER_TITLE" ]; then
                     # User pressed Enter, use the found title
                     TITLE="$FIRST_HEADING"
@@ -1548,7 +1584,7 @@ convert() {
                 read TITLE
                 TITLE=${TITLE:-"$DEFAULT_TITLE"}
             fi
-            
+
             # Set author based on command-line argument or prompt user
             if [ -n "$ARG_AUTHOR" ]; then
                 AUTHOR="$ARG_AUTHOR"
@@ -1558,7 +1594,7 @@ convert() {
                 read AUTHOR
                 AUTHOR=${AUTHOR:-"$(whoami)"}
             fi
-            
+
             # Set date based on command-line argument or prompt user
             if [ "$ARG_NO_DATE" = true ]; then
                 DOC_DATE=""
@@ -1571,7 +1607,7 @@ convert() {
                 read DOC_DATE
                 DOC_DATE=${DOC_DATE:-"$(date +"%B %d, %Y")"}
             fi
-            
+
             # Set footer preferences based on command-line arguments or prompt user
             if [ "$ARG_NO_FOOTER" = true ]; then
                 FOOTER_TEXT=""
@@ -1583,7 +1619,7 @@ convert() {
                 echo -e "${GREEN}Do you want to add a footer to your document? (y/n) [y]:${NC}"
                 read ADD_FOOTER
                 ADD_FOOTER=${ADD_FOOTER:-"y"}
-                
+
                 if [[ $ADD_FOOTER =~ ^[Yy]$ ]]; then
                     echo -e "${GREEN}Enter footer text (press Enter for default ' All rights reserved $(date +"%Y")'):${NC}"
                     read FOOTER_TEXT
@@ -1592,7 +1628,7 @@ convert() {
                     FOOTER_TEXT=""
                 fi
             fi
-            
+
             # Format the date footer if specified
             DATE_FOOTER_TEXT=""
             if [ -n "$ARG_DATE_FOOTER" ]; then # Check if --date-footer was used at all
@@ -1612,29 +1648,29 @@ convert() {
                     DATE_FOOTER_TEXT="$(date +"%y/%m/%d")"
                 fi
             fi
-            
+
             # Create a template file in the current directory
             TEMPLATE_PATH="$(pwd)/template.tex"
             echo -e "${YELLOW}Creating template file: $TEMPLATE_PATH${NC}"
             create_template_file "$TEMPLATE_PATH" "$FOOTER_TEXT" "$TITLE" "$AUTHOR" "$DATE_FOOTER_TEXT" "$ARG_SECTION_NUMBERS" "$ARG_FORMAT" "$ARG_HEADER_FOOTER_POLICY"
-            
+
             if [ ! -f "$TEMPLATE_PATH" ]; then
                 echo -e "${RED}Error: Failed to create template.tex.${NC}"
                 return 1
             fi
-            
+
             echo -e "${GREEN}Created new template file: $TEMPLATE_PATH${NC}"
-            
+
             # Check if the Markdown file has proper YAML frontmatter
             if ! head -n 1 "$INPUT_FILE" | grep -q "^---"; then
                 echo -e "${YELLOW}Updating $INPUT_FILE with proper YAML frontmatter...${NC}"
-                
+
                 # Check if the file has a first-level heading (# Title)
                 FIRST_HEADING=$(grep -m 1 "^# " "$INPUT_FILE" | sed 's/^# //')
-                
+
                 # Create a temporary file with the YAML frontmatter
                 TMP_FILE=$(mktemp)
-                
+
                 # Add YAML frontmatter with the user-specified title
                 cat > "$TMP_FILE" << EOF
 ---
@@ -1647,7 +1683,7 @@ output:
 ---
 
 EOF
-                
+
                 # If a first-level heading was found and it matches the title we're using,
                 # comment it out to avoid duplication
                 if [ -n "$FIRST_HEADING" ]; then
@@ -1664,10 +1700,10 @@ EOF
                     # No first heading, just append the content
                     cat "$INPUT_FILE" >> "$TMP_FILE"
                 fi
-                
+
                 # Replace the original file
                 mv "$TMP_FILE" "$INPUT_FILE"
-                
+
                 echo -e "${GREEN}Updated $INPUT_FILE with proper YAML frontmatter.${NC}"
             fi
         else
@@ -1685,7 +1721,7 @@ EOF
     # Find the path to the Lua filters
     SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
     LUA_FILTERS=()
-    
+
     # Check for heading fix filter (add this first to process headings before other filters)
     if [ -f "$(pwd)/heading_fix_filter.lua" ]; then
         LUA_FILTERS+=("$(pwd)/heading_fix_filter.lua")
@@ -1699,7 +1735,7 @@ EOF
     else
         echo -e "${YELLOW}Warning: heading_fix_filter.lua not found. Level 4 and 5 headings may run inline.${NC}"
     fi
-    
+
     # Check for long equation filter
     if [ -f "$(pwd)/long_equation_filter.lua" ]; then
         LUA_FILTERS+=("$(pwd)/long_equation_filter.lua")
@@ -1713,7 +1749,7 @@ EOF
     else
         echo -e "${YELLOW}Warning: long_equation_filter.lua not found. Long equations may not wrap properly.${NC}"
     fi
-    
+
     # Check for image size filter
     if [ -f "$(pwd)/image_size_filter.lua" ]; then
         LUA_FILTERS+=("$(pwd)/image_size_filter.lua")
@@ -1746,7 +1782,7 @@ EOF
             echo -e "${YELLOW}Warning: book_structure.lua not found. Book format may not work correctly.${NC}"
         fi
     fi
-    
+
     # Build filter options
     FILTER_OPTION=""
     for filter in "${LUA_FILTERS[@]}"; do
@@ -1755,13 +1791,13 @@ EOF
 
     # Run pandoc with the selected PDF engine
     echo -e "${BLUE}Using enhanced equation line breaking for text-heavy equations${NC}"
-    
+
     # Add TOC option if requested
     TOC_OPTION=""
     if [ "$ARG_TOC" = true ]; then
         TOC_OPTION="--toc"
     fi
-    
+
     # Generate section numbering variable for pandoc if needed
     SECTION_NUMBERING_OPTION=""
     if [ "$ARG_SECTION_NUMBERS" = false ]; then
@@ -1799,7 +1835,7 @@ EOF
         # default policy - no special variables needed (plain pages will have no headers/footers)
         HEADER_FOOTER_VARS+=("--variable=header_footer_policy_default=true")
     fi
-    
+
     # Add format variable for template logic
     if [ "$ARG_FORMAT" = "book" ]; then
         HEADER_FOOTER_VARS+=("--variable=format_book=true")
@@ -1827,30 +1863,30 @@ EOF
     # Check if conversion was successful
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}Success! PDF created as $OUTPUT_FILE${NC}"
-        
+
         # Clean up: Remove template.tex file if it was created in the current directory
         if [ -f "$(pwd)/template.tex" ]; then
             echo -e "${BLUE}Cleaning up: Removing template.tex${NC}"
             rm -f "$(pwd)/template.tex"
         fi
-        
+
         # Restore the original markdown file from backup
         if [ -f "$BACKUP_FILE" ]; then
             echo -e "${BLUE}Restoring original markdown file from backup${NC}"
             mv "$BACKUP_FILE" "$INPUT_FILE"
         fi
-        
+
         echo -e "${GREEN}Cleanup complete. Only the PDF and original markdown file remain.${NC}"
         return 0
     else
         echo -e "${RED}Error: PDF conversion failed.${NC}"
-        
+
         # Restore the original markdown file from backup even if conversion failed
         if [ -f "$BACKUP_FILE" ]; then
             echo -e "${BLUE}Restoring original markdown file from backup${NC}"
             mv "$BACKUP_FILE" "$INPUT_FILE"
         fi
-        
+
         return 1
     fi
 }
@@ -1864,7 +1900,7 @@ create() {
     fi
 
     OUTPUT_FILE="$1"
-    
+
     if [ -f "$OUTPUT_FILE" ]; then
         echo -e "${RED}Error: File '$OUTPUT_FILE' already exists.${NC}"
         echo -e "Use a different filename or delete the existing file."
@@ -1872,7 +1908,7 @@ create() {
     fi
 
     echo -e "${YELLOW}Creating new markdown document: $OUTPUT_FILE${NC}"
-    
+
     # Interactive mode - ask for document details
     if [ -z "$2" ]; then
         echo -e "${GREEN}Enter document title:${NC}"
@@ -1881,7 +1917,7 @@ create() {
     else
         TITLE="$2"
     fi
-    
+
     if [ -z "$3" ]; then
         echo -e "${GREEN}Enter author name:${NC}"
         read AUTHOR
@@ -1889,16 +1925,16 @@ create() {
     else
         AUTHOR="$3"
     fi
-    
+
     echo -e "${GREEN}Enter document date [$(date +"%B %d, %Y")]:${NC}"
     read DOC_DATE
     DOC_DATE=${DOC_DATE:-"$(date +"%B %d, %Y")"}
-    
+
     # Always ask about footer preferences
     echo -e "${GREEN}Do you want to add a footer to your document? (y/n) [y]:${NC}"
     read ADD_FOOTER
     ADD_FOOTER=${ADD_FOOTER:-"y"}
-    
+
     if [[ $ADD_FOOTER =~ ^[Yy]$ ]]; then
         echo -e "${GREEN}Enter footer text (press Enter for default '© All rights reserved $(date +"%Y")'):${NC}"
         read FOOTER_TEXT
@@ -1906,24 +1942,24 @@ create() {
     else
         FOOTER_TEXT=""
     fi
-    
+
     # Always create a new template.tex in the current directory
     TEMPLATE_PATH="$(pwd)/template.tex"
     echo -e "${YELLOW}Creating template file: $TEMPLATE_PATH${NC}"
-    
+
     # Create the template file
     create_template_file "$TEMPLATE_PATH" "$FOOTER_TEXT" "$TITLE" "$AUTHOR" "" "true" "article" "content-only"
-    
+
     if [ ! -f "$TEMPLATE_PATH" ]; then
         echo -e "${RED}Error: Failed to create template.tex.${NC}"
         return 1
     fi
-    
+
     echo -e "${GREEN}Created new template file: $TEMPLATE_PATH${NC}"
-    
+
     # Debug output to show which template is being used
     echo -e "${BLUE}Debug: Template path is $TEMPLATE_PATH${NC}"
-    
+
     # Create the markdown file with YAML frontmatter and example content
     cat > "$OUTPUT_FILE" << EOF
 ---
@@ -1997,11 +2033,11 @@ install() {
         # Create directories for templates and resources
         sudo mkdir -p /usr/local/share/mdtexpdf/templates
         sudo mkdir -p /usr/local/share/mdtexpdf/examples
-        
+
         # Copy the script to /usr/local/bin
         sudo cp "$0" /usr/local/bin/mdtexpdf
         sudo chmod 755 /usr/local/bin/mdtexpdf
-        
+
         # Copy the Lua filters if they exist
         SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
         
@@ -2150,6 +2186,7 @@ help() {
     echo -e "                    ${BLUE}--pageof              Use 'Page X of Y' format in footer${NC}"
     echo -e "                    ${BLUE}--date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\"${NC}"
     echo -e "                    ${BLUE}--read-metadata       Read metadata from HTML comments in markdown file${NC}"
+    echo -e "                    ${BLUE}--format FORMAT       Set document format (article or book)${NC}"
     echo -e "                    ${BLUE}--header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default${NC}"
   echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert -a \"John Doe\" -t \"My Document\" --toc --toc-depth 3 document.md output.pdf\n"
@@ -2211,7 +2248,7 @@ case "$1" in
         else
             echo -e "${RED}Error: Unknown command '$1'.${NC}"
         fi
-        echo -e "Use ${BLUE}mdtexpdf help${NC} to see available commands."
+        echo -e "Use ${BLUE}mdtexpdf help${NC} to see the commands."
         exit 1
         ;;
 esac
