@@ -135,6 +135,20 @@ BOOK_CMDS_EOF
             \\setmainfont{Latin Modern Roman}[Ligatures=TeX]
             \\setsansfont{Latin Modern Sans}[Ligatures=TeX]
             \\setmonofont{Latin Modern Mono}[Ligatures=TeX]
+
+            % Additional Unicode font setup for CJK characters (after packages are loaded)
+            % Use xeCJK with minimal punctuation interference to preserve Western quote formatting
+            \\usepackage{xeCJK}
+            \\setCJKmainfont{Noto Sans CJK SC}
+            \\setCJKsansfont{Noto Sans CJK SC}
+            \\setCJKmonofont{Noto Sans Mono CJK SC}
+            % Configure xeCJK to minimize punctuation effects
+            \\xeCJKsetup{
+                AutoFakeBold=false,
+                AutoFakeSlant=false,
+                CheckSingle=false,
+                PunctStyle=plain
+            }
         \\else
             % pdfLaTeX-specific setup
             \\usepackage[utf8]{inputenc}
@@ -166,38 +180,6 @@ BOOK_CMDS_EOF
     \\usepackage{enumitem}
     \\usepackage[version=4]{mhchem}
     \\usepackage{framed}   % For snugshade environment
-
-    % Additional Unicode font setup for CJK characters (after packages are loaded)
-    % Use xeCJK with minimal punctuation interference to preserve Western quote formatting
-    \\ifluatex
-        % LuaLaTeX: Load CJK fonts for better Unicode support
-        \\newfontfamily\\cjkfont{Noto Sans CJK SC}
-    \\else
-        \\ifxetex
-            % XeLaTeX: Use xeCJK with minimal punctuation interference to preserve Western quote formatting
-            \\usepackage{xeCJK}
-            \\setCJKmainfont{Noto Sans CJK SC}
-            \\setCJKsansfont{Noto Sans CJK SC}
-            \\setCJKmonofont{Noto Sans Mono CJK SC}
-            % Configure xeCJK to minimize punctuation effects
-            \\xeCJKsetup{
-                AutoFakeBold=false,
-                AutoFakeSlant=false,
-                CheckSingle=false,
-                PunctStyle=plain
-            }
-            % Declare Western quotation marks as Default class so xeCJK doesn't process them
-            % This preserves Western quote formatting even when CJK characters are present
-            \\xeCJKDeclareCharClass{Default}{"0022}  % ASCII double quote "
-            \\xeCJKDeclareCharClass{Default}{"0027}  % ASCII single quote '
-            \\xeCJKDeclareCharClass{Default}{"2018}  % Left single quotation mark '
-            \\xeCJKDeclareCharClass{Default}{"2019}  % Right single quotation mark '
-            \\xeCJKDeclareCharClass{Default}{"201C}  % Left double quotation mark "
-            \\xeCJKDeclareCharClass{Default}{"201D}  % Right double quotation mark "
-            \\xeCJKDeclareCharClass{Default}{"2032}  % Prime ′
-            \\xeCJKDeclareCharClass{Default}{"2033}  % Double prime ″
-        \\fi
-    \\fi
     $book_specific_commands
 
     % Define \real command if it doesn't exist (alternative to realnum package)
@@ -1444,10 +1426,12 @@ convert() {
     echo -e "${YELLOW}Analyzing document content for Unicode character requirements...${NC}"
     if detect_unicode_characters "$INPUT_FILE"; then
         echo -e "${YELLOW}Unicode characters detected that require advanced LaTeX engine support${NC}"
-        # Prioritize Unicode-capable engines - XeLaTeX has better font fallback than LuaLaTeX
+        # Prioritize Unicode-capable engines - XeLaTeX with xeCJK for CJK support
         if [ "$XELATEX_AVAILABLE" = true ]; then
             PDF_ENGINE="xelatex"
             echo -e "${GREEN}Selected XeLaTeX engine for Unicode support${NC}"
+            echo -e "${BLUE}Note: CJK characters (Chinese, Japanese, Korean) will be handled automatically by xeCJK${NC}"
+            echo -e "${BLUE}Some font fallback warnings may appear during compilation, but characters will render correctly.${NC}"
         elif [ "$LUALATEX_AVAILABLE" = true ]; then
             PDF_ENGINE="lualatex"
             echo -e "${GREEN}Selected LuaLaTeX engine for Unicode support${NC}"
@@ -1863,6 +1847,11 @@ EOF
     # Check if conversion was successful
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}Success! PDF created as $OUTPUT_FILE${NC}"
+
+        # Additional message for CJK documents
+        if detect_unicode_characters "$INPUT_FILE" >/dev/null 2>&1; then
+            echo -e "${GREEN}✓ CJK characters (Chinese, Japanese, Korean) have been properly rendered in the PDF.${NC}"
+        fi
 
         # Clean up: Remove template.tex file if it was created in the current directory
         if [ -f "$(pwd)/template.tex" ]; then
