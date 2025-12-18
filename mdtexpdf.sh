@@ -149,6 +149,16 @@ BOOK_CMDS_EOF
                 CheckSingle=false,
                 PunctStyle=plain
             }
+            % Declare Western quotation marks as Default class so xeCJK doesn't process them
+            % This preserves Western quote formatting even when CJK characters are present
+            \\xeCJKDeclareCharClass{Default}{"0022}  % ASCII double quote "
+            \\xeCJKDeclareCharClass{Default}{"0027}  % ASCII single quote '
+            \\xeCJKDeclareCharClass{Default}{"2018}  % Left single quotation mark '
+            \\xeCJKDeclareCharClass{Default}{"2019}  % Right single quotation mark '
+            \\xeCJKDeclareCharClass{Default}{"201C}  % Left double quotation mark "
+            \\xeCJKDeclareCharClass{Default}{"201D}  % Right double quotation mark "
+            \\xeCJKDeclareCharClass{Default}{"2032}  % Prime '
+            \\xeCJKDeclareCharClass{Default}{"2033}  % Double prime ″
         \\else
             % pdfLaTeX-specific setup
             \\usepackage[utf8]{inputenc}
