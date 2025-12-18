@@ -110,8 +110,8 @@ end
 
 -- Function to handle overflowing equations
 local function handle_overflow(math_text)
-  -- Use dmath* for automatic breaking of very long equations
-  return "\\begin{dmath*}\n" .. math_text .. "\n\\end{dmath*}"
+  -- Use multline* for automatic breaking of very long equations
+  return "\\begin{multline*}\n" .. math_text .. "\n\\end{multline*}"
 end
 
 -- Replace display math paragraphs with appropriate line-breaking environments
@@ -131,11 +131,11 @@ function Para(el)
       --   return pandoc.RawBlock('latex', tex)
       -- end
 
-      -- Second priority: Handle equations that overflow the page
-      if is_overflowing_equation(math_text) then
-        local tex = handle_overflow(math_text)
-        return pandoc.RawBlock('latex', tex)
-      end
+      -- DISABLED: Second priority: Handle equations that overflow the page
+      -- if is_overflowing_equation(math_text) then
+      --   local tex = handle_overflow(math_text)
+      --   return pandoc.RawBlock('latex', tex)
+      -- end
     end
   end
   return nil
