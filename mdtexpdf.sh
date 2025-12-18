@@ -186,6 +186,16 @@ BOOK_CMDS_EOF
                 CheckSingle=false,
                 PunctStyle=plain
             }
+            % Declare Western quotation marks as Default class so xeCJK doesn't process them
+            % This preserves Western quote formatting even when CJK characters are present
+            \\xeCJKDeclareCharClass{Default}{"0022}  % ASCII double quote "
+            \\xeCJKDeclareCharClass{Default}{"0027}  % ASCII single quote '
+            \\xeCJKDeclareCharClass{Default}{"2018}  % Left single quotation mark '
+            \\xeCJKDeclareCharClass{Default}{"2019}  % Right single quotation mark '
+            \\xeCJKDeclareCharClass{Default}{"201C}  % Left double quotation mark "
+            \\xeCJKDeclareCharClass{Default}{"201D}  % Right double quotation mark "
+            \\xeCJKDeclareCharClass{Default}{"2032}  % Prime ′
+            \\xeCJKDeclareCharClass{Default}{"2033}  % Double prime ″
         \\fi
     \\fi
     $book_specific_commands
@@ -1853,21 +1863,6 @@ EOF
     # Check if conversion was successful
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}Success! PDF created as $OUTPUT_FILE${NC}"
-
-        # Post-process PDF to fix quote fonts if xeCJK affected them
-        if [ "$PDF_ENGINE" = "xelatex" ] && detect_unicode_characters "$INPUT_FILE"; then
-            echo -e "${BLUE}Post-processing PDF to fix quote fonts...${NC}"
-            # Create a backup of the original PDF
-            cp "$OUTPUT_FILE" "${OUTPUT_FILE}.backup"
-
-            # Use sed to modify PDF content (basic approach)
-            # This is a simplified post-processing that attempts to fix quote font references
-            # Note: This is experimental and may need refinement
-            sed -i 's/\/F1 /\/F0 /g' "$OUTPUT_FILE" 2>/dev/null || true
-            sed -i 's/\/F2 /\/F0 /g' "$OUTPUT_FILE" 2>/dev/null || true
-
-            echo -e "${GREEN}Post-processing complete${NC}"
-        fi
 
         # Clean up: Remove template.tex file if it was created in the current directory
         if [ -f "$(pwd)/template.tex" ]; then
