@@ -1,0 +1,43 @@
+name: Trigger Registry Update
+
+# This workflow should be copied to each UCLI tool repository
+# It triggers the registry to update when the tool is updated
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  trigger-registry-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger ucli-registry update
+        run: |
+          echo "Triggering registry update for ${GITHUB_REPOSITORY}..."
+
+          # Debug: Check if token exists
+          if [[ -z "${{ secrets.UCLI_REGISTRY_UPDATE_TOKEN }}" ]]; then
+            echo "❌ Error: UCLI_REGISTRY_UPDATE_TOKEN secret not found"
+            exit 1
+          fi
+
+          # Make the API call
+          response=$(curl -s -w "%{http_code}" -X POST \
+            -H "Authorization: token ${{ secrets.UCLI_REGISTRY_UPDATE_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/ucli-tools/ucli-registry/dispatches \
+            -d "{\"event_type\": \"tool-updated\", \"client_payload\": {\"tool\": \"${GITHUB_REPOSITORY}\"}}")
+
+          # Check response
+          http_code="${response: -3}"
+          response_body="${response:0:${#response}-3}"
+
+          if [[ "$http_code" == "204" ]]; then
+            echo "✅ Successfully triggered registry update"
+            echo "Repository: ${GITHUB_REPOSITORY}"
+          else
+            echo "❌ Failed to trigger registry update"
+            echo "HTTP Code: $http_code"
+            echo "Response: $response_body"
+            exit 1
+          fi
