@@ -682,10 +682,14 @@ $numbering_commands
 \\thispagestyle{empty}
 \\vspace*{\\fill}
 \\begin{flushleft}
-\\textbf{\$title\$}\\\\[0.5cm]
+\\textbf{\$title\$}\\\\[0.3cm]
 \$if(subtitle)\$
 \\textit{\$subtitle\$}\\\\[0.5cm]
 \$endif\$
+\$if(author)\$
+by \$author\$\\\\[0.5cm]
+\$endif\$
+\\rule{0.4\\textwidth}{0.4pt}\\\\[0.5cm]
 \$if(copyright_holder)\$
 Copyright \\copyright\\ \$if(copyright_year)\$\$copyright_year\$\$else\$\\the\\year\$endif\$ \$copyright_holder\$\\\\[0.3cm]
 \$elseif(publisher)\$
