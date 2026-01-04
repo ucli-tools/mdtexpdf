@@ -705,7 +705,17 @@ Published by \$publisher\$\\\\[0.3cm]
 ISBN: \$isbn\$\\\\[0.3cm]
 \$endif\$
 \$if(edition)\$
-\$edition\$\\\\[0.3cm]
+\$edition\$\$if(edition_date)\$ --- \$edition_date\$\$endif\$\\\\[0.3cm]
+\$endif\$
+\$if(printing)\$
+\$printing\$\\\\[0.3cm]
+\$endif\$
+\$if(publisher_address)\$
+\\vspace{0.3cm}
+\$publisher_address\$\\\\[0.3cm]
+\$endif\$
+\$if(publisher_website)\$
+\\url{\$publisher_website\$}\\\\[0.3cm]
 \$endif\$
 \\end{flushleft}
 \\cleardoublepage
@@ -1230,6 +1240,12 @@ parse_yaml_metadata() {
     META_EDITION=$(yq eval '.edition // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_COPYRIGHT_YEAR=$(yq eval '.copyright_year // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_COPYRIGHT_HOLDER=$(yq eval '.copyright_holder // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    
+    # Enhanced copyright page fields (industry standard)
+    META_EDITION_DATE=$(yq eval '.edition_date // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_PRINTING=$(yq eval '.printing // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_PUBLISHER_ADDRESS=$(yq eval '.publisher_address // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_PUBLISHER_WEBSITE=$(yq eval '.publisher_website // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
 
     # Clean up temporary file
     rm -f "$temp_yaml"
@@ -1269,6 +1285,10 @@ parse_yaml_metadata() {
     [ -n "$META_EDITION" ] && echo -e "${GREEN}Found metadata - edition: $META_EDITION${NC}"
     [ -n "$META_COPYRIGHT_YEAR" ] && echo -e "${GREEN}Found metadata - copyright_year: $META_COPYRIGHT_YEAR${NC}"
     [ -n "$META_COPYRIGHT_HOLDER" ] && echo -e "${GREEN}Found metadata - copyright_holder: $META_COPYRIGHT_HOLDER${NC}"
+    [ -n "$META_EDITION_DATE" ] && echo -e "${GREEN}Found metadata - edition_date: $META_EDITION_DATE${NC}"
+    [ -n "$META_PRINTING" ] && echo -e "${GREEN}Found metadata - printing: $META_PRINTING${NC}"
+    [ -n "$META_PUBLISHER_ADDRESS" ] && echo -e "${GREEN}Found metadata - publisher_address: $META_PUBLISHER_ADDRESS${NC}"
+    [ -n "$META_PUBLISHER_WEBSITE" ] && echo -e "${GREEN}Found metadata - publisher_website: $META_PUBLISHER_WEBSITE${NC}"
 
     # Extract title from first H1 heading if not provided in metadata
     if [ -z "$META_TITLE" ]; then
@@ -2051,6 +2071,27 @@ EOF
     # Copyright holder (takes precedence over publisher and author)
     if [ -n "$META_COPYRIGHT_HOLDER" ] && [ "$META_COPYRIGHT_HOLDER" != "null" ]; then
         BOOK_FEATURE_VARS+=("--variable=copyright_holder=$META_COPYRIGHT_HOLDER")
+    fi
+    
+    # Enhanced copyright page fields (industry standard)
+    # Edition date
+    if [ -n "$META_EDITION_DATE" ] && [ "$META_EDITION_DATE" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=edition_date=$META_EDITION_DATE")
+    fi
+    
+    # Printing info
+    if [ -n "$META_PRINTING" ] && [ "$META_PRINTING" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=printing=$META_PRINTING")
+    fi
+    
+    # Publisher address
+    if [ -n "$META_PUBLISHER_ADDRESS" ] && [ "$META_PUBLISHER_ADDRESS" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=publisher_address=$META_PUBLISHER_ADDRESS")
+    fi
+    
+    # Publisher website
+    if [ -n "$META_PUBLISHER_WEBSITE" ] && [ "$META_PUBLISHER_WEBSITE" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=publisher_website=$META_PUBLISHER_WEBSITE")
     fi
 
     pandoc "$INPUT_FILE" \
