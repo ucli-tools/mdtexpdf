@@ -6,11 +6,12 @@ mdtexpdf uses YAML frontmatter for document metadata. This standardized format i
 
 ## Template Structure
 
-The metadata is organized into three distinct sections:
+The metadata is organized into four distinct sections:
 
 1. **Common Metadata** - Used by both mdtexpdf and mdaudiobook
 2. **PDF-Specific Metadata** - Used only by mdtexpdf
-3. **Audio-Specific Metadata** - Used only by mdaudiobook (ignored by mdtexpdf)
+3. **Professional Book Features** - Book format front/back matter options
+4. **Audio-Specific Metadata** - Used only by mdaudiobook (ignored by mdtexpdf)
 
 ## Complete Template
 
@@ -49,6 +50,35 @@ no_footer: false                    # Disable footer completely
 pageof: true                        # Show "Page X of Y"
 date_footer: "DD/MM/YY"            # Date format in footer
 no_date: false                      # Disable date in footer
+
+# =============================================================================
+# PROFESSIONAL BOOK FEATURES (mdtexpdf only - book format)
+# =============================================================================
+# Front matter pages (appear in this order)
+half_title: true                    # Half-title page (title only, no author)
+# [Title Page appears automatically]
+copyright_page: true                # Copyright/colophon page
+dedication: "To my family"          # Dedication page text
+epigraph: "Quote text here"         # Epigraph page quote
+epigraph_source: "Author Name"      # Attribution for epigraph
+
+# Chapter formatting
+chapters_on_recto: true             # Start chapters on odd (right) pages
+drop_caps: true                     # Decorative first letter of chapters
+
+# Copyright page information
+publisher: "Publisher Name"         # Publisher name
+isbn: "978-0-000-00000-0"          # ISBN number
+edition: "First Edition"            # Edition text
+edition_date: "January 2025"        # Edition date
+printing: "First Printing, Jan 2025" # Printing information
+copyright_year: 2025                # Copyright year
+copyright_holder: "Author Name"     # Copyright holder (defaults to author)
+publisher_address: |                # Publisher address (use | for multi-line)
+  Publisher Name
+  123 Publishing Lane
+  City, State 12345
+publisher_website: "https://publisher.com"  # Publisher website URL
 
 # =============================================================================
 # AUDIO-SPECIFIC METADATA (mdaudiobook only)
@@ -90,6 +120,39 @@ narrator: "AI Narrator"             # Narrator name for metadata
 | `pageof` | boolean | Show "Page X of Y" | true, false |
 | `date_footer` | string | Date format in footer | "DD/MM/YY", "MM/DD/YYYY" |
 | `no_date` | boolean | Disable date in footer | true, false |
+
+### Professional Book Features (book format only)
+
+#### Front Matter Pages
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| `half_title` | boolean | Half-title page (title only) | true, false |
+| `copyright_page` | boolean | Copyright/colophon page | true, false |
+| `dedication` | string | Dedication page text | "To my family" |
+| `epigraph` | string | Epigraph quote text | "The unexamined life..." |
+| `epigraph_source` | string | Epigraph attribution | "Socrates" |
+
+#### Chapter Formatting
+
+| Field | Type | Description | Options |
+|-------|------|-------------|---------|
+| `chapters_on_recto` | boolean | Start chapters on odd pages | true, false |
+| `drop_caps` | boolean | Decorative first letter | true, false |
+
+#### Copyright Page Information
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| `publisher` | string | Publisher name | "Example Press" |
+| `isbn` | string | ISBN number | "978-0-000-00000-0" |
+| `edition` | string | Edition text | "First Edition" |
+| `edition_date` | string | Edition date | "January 2025" |
+| `printing` | string | Printing information | "First Printing, Jan 2025" |
+| `copyright_year` | integer | Copyright year | 2025 |
+| `copyright_holder` | string | Copyright holder | "Author Name" |
+| `publisher_address` | string | Publisher address (use YAML \| for multi-line) | See template |
+| `publisher_website` | string | Publisher website URL | "https://example.com" |
 
 ### Audio-Specific Metadata
 
@@ -146,6 +209,51 @@ pageof: true
 genre: "Technical"
 narrator_voice: "en-us-standard-b"
 reading_speed: "slow"
+---
+```
+
+### Professional Book (Full Front Matter)
+```yaml
+---
+title: "The Unary Language"
+subtitle: "Or why there is something instead of nothing"
+author: "Author Name"
+email: "author@example.com"
+date: "January 2025"
+description: "A philosophical exploration of mathematics and existence"
+language: "en"
+
+format: "book"
+toc: true
+toc_depth: 2
+no_numbers: true
+header_footer_policy: "all"
+footer: "© 2025 Publisher Name | publisher.com. All rights reserved."
+pageof: true
+date_footer: true
+
+# Professional book features
+half_title: true
+copyright_page: true
+dedication: "To all seekers of mathematical truth."
+epigraph: "No fact can hold or be real unless there is a sufficient reason why it is so."
+epigraph_source: "Gottfried Wilhelm Leibniz"
+chapters_on_recto: true
+drop_caps: true
+
+# Copyright page details
+publisher: "Publisher Name"
+isbn: "978-0-000-00000-0"
+edition: "First Edition"
+edition_date: "January 2025"
+printing: "First Printing, January 2025"
+copyright_year: 2025
+copyright_holder: "Author Name"
+publisher_address: |
+  Publisher Name
+  123 Publishing Lane
+  City, State 12345
+publisher_website: "https://publisher.com"
 ---
 ```
 
