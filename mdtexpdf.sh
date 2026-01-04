@@ -1900,6 +1900,25 @@ EOF
         fi
     fi
 
+    # Add drop caps filter if drop_caps is enabled
+    if [ "$META_DROP_CAPS" = "true" ]; then
+        local drop_caps_filter_path=""
+        if [ -f "$(pwd)/filters/drop_caps_filter.lua" ]; then
+            drop_caps_filter_path="$(pwd)/filters/drop_caps_filter.lua"
+        elif [ -f "$SCRIPT_DIR/filters/drop_caps_filter.lua" ]; then
+            drop_caps_filter_path="$SCRIPT_DIR/filters/drop_caps_filter.lua"
+        elif [ -f "/usr/local/share/mdtexpdf/drop_caps_filter.lua" ]; then
+            drop_caps_filter_path="/usr/local/share/mdtexpdf/drop_caps_filter.lua"
+        fi
+
+        if [ -n "$drop_caps_filter_path" ]; then
+            LUA_FILTERS+=("$drop_caps_filter_path")
+            echo -e "${BLUE}Using Lua filter for drop caps: $drop_caps_filter_path${NC}"
+        else
+            echo -e "${YELLOW}Warning: drop_caps_filter.lua not found. Drop caps will not be applied.${NC}"
+        fi
+    fi
+
     # Build filter options
     FILTER_OPTION=""
     for filter in "${LUA_FILTERS[@]}"; do
@@ -2275,6 +2294,22 @@ install() {
             echo -e "${GREEN}✓ Installed book_structure.lua for book format${NC}"
         else
             echo -e "${YELLOW}Warning: book_structure.lua not found. Book format may not work correctly.${NC}"
+        fi
+
+        # Install drop_caps_filter.lua filter
+        local drop_caps_filter_src=""
+        if [ -f "$SCRIPT_DIR/filters/drop_caps_filter.lua" ]; then
+            drop_caps_filter_src="$SCRIPT_DIR/filters/drop_caps_filter.lua"
+        elif [ -f "$(pwd)/filters/drop_caps_filter.lua" ]; then
+            drop_caps_filter_src="$(pwd)/filters/drop_caps_filter.lua"
+        fi
+
+        if [ -n "$drop_caps_filter_src" ]; then
+            sudo cp "$drop_caps_filter_src" /usr/local/share/mdtexpdf/
+            sudo chmod 644 /usr/local/share/mdtexpdf/drop_caps_filter.lua
+            echo -e "${GREEN}✓ Installed drop_caps_filter.lua for drop caps${NC}"
+        else
+            echo -e "${YELLOW}Warning: drop_caps_filter.lua not found. Drop caps will not be available.${NC}"
         fi
         
         # Copy templates to the shared directory
