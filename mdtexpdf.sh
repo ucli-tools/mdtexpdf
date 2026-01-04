@@ -686,7 +686,11 @@ $numbering_commands
 \$if(subtitle)\$
 \\textit{\$subtitle\$}\\\\[0.5cm]
 \$endif\$
-\$if(author)\$
+\$if(copyright_holder)\$
+Copyright \\copyright\\ \$if(copyright_year)\$\$copyright_year\$\$else\$\\the\\year\$endif\$ \$copyright_holder\$\\\\[0.3cm]
+\$elseif(publisher)\$
+Copyright \\copyright\\ \$if(copyright_year)\$\$copyright_year\$\$else\$\\the\\year\$endif\$ \$publisher\$\\\\[0.3cm]
+\$elseif(author)\$
 Copyright \\copyright\\ \$if(copyright_year)\$\$copyright_year\$\$else\$\\the\\year\$endif\$ \$author\$\\\\[0.3cm]
 \$endif\$
 All rights reserved.\\\\[0.5cm]
@@ -1139,6 +1143,7 @@ parse_yaml_metadata() {
     META_ISBN=""
     META_EDITION=""
     META_COPYRIGHT_YEAR=""
+    META_COPYRIGHT_HOLDER=""
 
     echo -e "${BLUE}Parsing metadata from YAML frontmatter...${NC}"
 
@@ -1220,6 +1225,7 @@ parse_yaml_metadata() {
     META_ISBN=$(yq eval '.isbn // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_EDITION=$(yq eval '.edition // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_COPYRIGHT_YEAR=$(yq eval '.copyright_year // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_COPYRIGHT_HOLDER=$(yq eval '.copyright_holder // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
 
     # Clean up temporary file
     rm -f "$temp_yaml"
@@ -1258,6 +1264,7 @@ parse_yaml_metadata() {
     [ -n "$META_ISBN" ] && echo -e "${GREEN}Found metadata - isbn: $META_ISBN${NC}"
     [ -n "$META_EDITION" ] && echo -e "${GREEN}Found metadata - edition: $META_EDITION${NC}"
     [ -n "$META_COPYRIGHT_YEAR" ] && echo -e "${GREEN}Found metadata - copyright_year: $META_COPYRIGHT_YEAR${NC}"
+    [ -n "$META_COPYRIGHT_HOLDER" ] && echo -e "${GREEN}Found metadata - copyright_holder: $META_COPYRIGHT_HOLDER${NC}"
 
     # Extract title from first H1 heading if not provided in metadata
     if [ -z "$META_TITLE" ]; then
@@ -2035,6 +2042,11 @@ EOF
     # Copyright year
     if [ -n "$META_COPYRIGHT_YEAR" ] && [ "$META_COPYRIGHT_YEAR" != "null" ]; then
         BOOK_FEATURE_VARS+=("--variable=copyright_year=$META_COPYRIGHT_YEAR")
+    fi
+    
+    # Copyright holder (takes precedence over publisher and author)
+    if [ -n "$META_COPYRIGHT_HOLDER" ] && [ "$META_COPYRIGHT_HOLDER" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=copyright_holder=$META_COPYRIGHT_HOLDER")
     fi
 
     pandoc "$INPUT_FILE" \
