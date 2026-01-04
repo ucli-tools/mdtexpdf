@@ -677,6 +677,38 @@ $numbering_commands
 \\cleardoublepage
 \$endif\$
 
+% ============== MAIN TITLE PAGE ==============
+
+\$if(title)\$
+\$if(header_footer_policy_all)\$
+\$if(format_book)\$
+% For book format with 'all' policy, create custom title page that respects headers/footers
+\\thispagestyle{titlepage}
+\\begin{center}
+\\vspace*{\\fill}
+{\\Huge \\textbf{\$title\$}}\\\\[0.5cm]
+\$if(subtitle)\$
+{\\LARGE \\itshape \$subtitle\$}\\\\[1.5cm]
+\$endif\$
+\$if(author)\$
+{\\large \$author\$ \$if(email)\$ --- \$email\$ \$endif\$}\\\\[1cm]
+\$endif\$
+\$if(date)\$
+{\\large \$date\$}
+\$endif\$
+\\vspace*{\\fill}
+\\end{center}
+\\cleardoublepage
+\$else\$
+% For article format with 'all' policy, use standard maketitle but ensure headers/footers work
+\\maketitle
+\$endif\$
+\$else\$
+% For default and partial policies, use standard maketitle
+\\maketitle
+\$endif\$
+\$endif\$
+
 % Copyright page (verso of title page - traditional book convention)
 \$if(copyright_page)\$
 \\thispagestyle{empty}
@@ -747,38 +779,6 @@ ISBN: \$isbn\$\\\\[0.3cm]
 \\end{center}
 \\vspace*{\\fill}
 \\cleardoublepage
-\$endif\$
-
-% ============== MAIN TITLE PAGE ==============
-
-\$if(title)\$
-\$if(header_footer_policy_all)\$
-\$if(format_book)\$
-% For book format with 'all' policy, create custom title page that respects headers/footers
-\\thispagestyle{titlepage}
-\\begin{center}
-\\vspace*{\\fill}
-{\\Huge \\textbf{\$title\$}}\\\\[0.5cm]
-\$if(subtitle)\$
-{\\LARGE \\itshape \$subtitle\$}\\\\[1.5cm]
-\$endif\$
-\$if(author)\$
-{\\large \$author\$ \$if(email)\$ --- \$email\$ \$endif\$}\\\\[1cm]
-\$endif\$
-\$if(date)\$
-{\\large \$date\$}
-\$endif\$
-\\vspace*{\\fill}
-\\end{center}
-\\newpage
-\$else\$
-% For article format with 'all' policy, use standard maketitle but ensure headers/footers work
-\\maketitle
-\$endif\$
-\$else\$
-% For default and partial policies, use standard maketitle
-\\maketitle
-\$endif\$
 \$endif\$
 
 % Set TOC depth and generate TOC if needed
