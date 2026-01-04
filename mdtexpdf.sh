@@ -75,7 +75,9 @@ create_template_file() {
     local book_specific_commands=""
     if [ "$format" = "book" ]; then
         docclass="book"
-        docclass_opts="12pt, openany"
+        # Use openright (chapters on recto/odd pages) or openany based on metadata
+        # This will be controlled by Pandoc variable chapters_on_recto
+        docclass_opts="12pt"  # openany/openright handled via Pandoc conditional
         book_specific_commands=$(cat << 'BOOK_CMDS_EOF'
 % Custom styling for book format
 \usepackage{titlesec}
@@ -116,7 +118,12 @@ BOOK_CMDS_EOF
     fi
 
     cat > "$template_path" << EOF
-    \documentclass[$docclass_opts]{$docclass}
+    % Document class with conditional openright for chapters on recto (odd pages)
+    \$if(chapters_on_recto)\$
+    \documentclass[$docclass_opts, openright]{$docclass}
+    \$else\$
+    \documentclass[$docclass_opts, openany]{$docclass}
+    \$endif\$
 
     % Conditional packages based on LaTeX engine
     \\usepackage{iftex}
@@ -190,6 +197,14 @@ BOOK_CMDS_EOF
     \\usepackage{enumitem}
     \\usepackage[version=4]{mhchem}
     \\usepackage{framed}   % For snugshade environment
+    
+    % Drop caps support (conditional)
+    \$if(drop_caps)\$
+    \\usepackage{lettrine}
+    \\setcounter{DefaultLines}{3}
+    \\renewcommand{\\DefaultLoversize}{0.1}
+    \\renewcommand{\\DefaultLraise}{0}
+    \$endif\$
     $book_specific_commands
 
     % Define \real command if it doesn't exist (alternative to realnum package)
@@ -649,6 +664,75 @@ $numbering_commands
 
 \\begin{document}
 
+% ============== FRONT MATTER PAGES (Professional Book Features) ==============
+
+% Half-title page (just the title, no author/date - traditional book convention)
+\$if(half_title)\$
+\\thispagestyle{empty}
+\\begin{center}
+\\vspace*{\\fill}
+{\\LARGE \\textbf{\$title\$}}
+\\vspace*{\\fill}
+\\end{center}
+\\cleardoublepage
+\$endif\$
+
+% Copyright page (verso of title page - traditional book convention)
+\$if(copyright_page)\$
+\\thispagestyle{empty}
+\\vspace*{\\fill}
+\\begin{flushleft}
+\\textbf{\$title\$}\\\\[0.5cm]
+\$if(subtitle)\$
+\\textit{\$subtitle\$}\\\\[0.5cm]
+\$endif\$
+\$if(author)\$
+Copyright \\copyright\\ \$if(copyright_year)\$\$copyright_year\$\$else\$\\the\\year\$endif\$ \$author\$\\\\[0.3cm]
+\$endif\$
+All rights reserved.\\\\[0.5cm]
+\$if(publisher)\$
+Published by \$publisher\$\\\\[0.3cm]
+\$endif\$
+\$if(isbn)\$
+ISBN: \$isbn\$\\\\[0.3cm]
+\$endif\$
+\$if(edition)\$
+\$edition\$\\\\[0.3cm]
+\$endif\$
+\\end{flushleft}
+\\cleardoublepage
+\$endif\$
+
+% Dedication page (from metadata - centered, italic)
+\$if(dedication)\$
+\\thispagestyle{empty}
+\\vspace*{\\fill}
+\\begin{center}
+\\textit{\$dedication\$}
+\\end{center}
+\\vspace*{\\fill}
+\\cleardoublepage
+\$endif\$
+
+% Epigraph page (from metadata - quote with optional source)
+\$if(epigraph)\$
+\\thispagestyle{empty}
+\\vspace*{\\fill}
+\\begin{center}
+\\begin{minipage}{0.7\\textwidth}
+\\textit{``\$epigraph\$''}
+\$if(epigraph_source)\$
+\\\\[0.5cm]
+\\hfill--- \$epigraph_source\$
+\$endif\$
+\\end{minipage}
+\\end{center}
+\\vspace*{\\fill}
+\\cleardoublepage
+\$endif\$
+
+% ============== MAIN TITLE PAGE ==============
+
 \$if(title)\$
 \$if(header_footer_policy_all)\$
 \$if(format_book)\$
@@ -1042,6 +1126,19 @@ parse_yaml_metadata() {
     META_GENRE=""
     META_NARRATOR_VOICE=""
     META_READING_SPEED=""
+    
+    # Professional book features
+    META_HALF_TITLE=""
+    META_COPYRIGHT_PAGE=""
+    META_DEDICATION=""
+    META_EPIGRAPH=""
+    META_EPIGRAPH_SOURCE=""
+    META_CHAPTERS_ON_RECTO=""
+    META_DROP_CAPS=""
+    META_PUBLISHER=""
+    META_ISBN=""
+    META_EDITION=""
+    META_COPYRIGHT_YEAR=""
 
     echo -e "${BLUE}Parsing metadata from YAML frontmatter...${NC}"
 
@@ -1111,6 +1208,19 @@ parse_yaml_metadata() {
     META_NARRATOR_VOICE=$(yq eval '.narrator_voice // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_READING_SPEED=$(yq eval '.reading_speed // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
 
+    # Professional book features
+    META_HALF_TITLE=$(yq eval '.half_title // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_COPYRIGHT_PAGE=$(yq eval '.copyright_page // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_DEDICATION=$(yq eval '.dedication // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_EPIGRAPH=$(yq eval '.epigraph // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_EPIGRAPH_SOURCE=$(yq eval '.epigraph_source // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_CHAPTERS_ON_RECTO=$(yq eval '.chapters_on_recto // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_DROP_CAPS=$(yq eval '.drop_caps // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_PUBLISHER=$(yq eval '.publisher // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_ISBN=$(yq eval '.isbn // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_EDITION=$(yq eval '.edition // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_COPYRIGHT_YEAR=$(yq eval '.copyright_year // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+
     # Clean up temporary file
     rm -f "$temp_yaml"
 
@@ -1135,6 +1245,19 @@ parse_yaml_metadata() {
     [ -n "$META_GENRE" ] && echo -e "${GREEN}Found metadata - genre: $META_GENRE${NC}"
     [ -n "$META_NARRATOR_VOICE" ] && echo -e "${GREEN}Found metadata - narrator_voice: $META_NARRATOR_VOICE${NC}"
     [ -n "$META_READING_SPEED" ] && echo -e "${GREEN}Found metadata - reading_speed: $META_READING_SPEED${NC}"
+    
+    # Professional book features
+    [ -n "$META_HALF_TITLE" ] && echo -e "${GREEN}Found metadata - half_title: $META_HALF_TITLE${NC}"
+    [ -n "$META_COPYRIGHT_PAGE" ] && echo -e "${GREEN}Found metadata - copyright_page: $META_COPYRIGHT_PAGE${NC}"
+    [ -n "$META_DEDICATION" ] && echo -e "${GREEN}Found metadata - dedication: $META_DEDICATION${NC}"
+    [ -n "$META_EPIGRAPH" ] && echo -e "${GREEN}Found metadata - epigraph: $META_EPIGRAPH${NC}"
+    [ -n "$META_EPIGRAPH_SOURCE" ] && echo -e "${GREEN}Found metadata - epigraph_source: $META_EPIGRAPH_SOURCE${NC}"
+    [ -n "$META_CHAPTERS_ON_RECTO" ] && echo -e "${GREEN}Found metadata - chapters_on_recto: $META_CHAPTERS_ON_RECTO${NC}"
+    [ -n "$META_DROP_CAPS" ] && echo -e "${GREEN}Found metadata - drop_caps: $META_DROP_CAPS${NC}"
+    [ -n "$META_PUBLISHER" ] && echo -e "${GREEN}Found metadata - publisher: $META_PUBLISHER${NC}"
+    [ -n "$META_ISBN" ] && echo -e "${GREEN}Found metadata - isbn: $META_ISBN${NC}"
+    [ -n "$META_EDITION" ] && echo -e "${GREEN}Found metadata - edition: $META_EDITION${NC}"
+    [ -n "$META_COPYRIGHT_YEAR" ] && echo -e "${GREEN}Found metadata - copyright_year: $META_COPYRIGHT_YEAR${NC}"
 
     # Extract title from first H1 heading if not provided in metadata
     if [ -z "$META_TITLE" ]; then
@@ -1837,6 +1960,64 @@ EOF
         HEADER_FOOTER_VARS+=("--variable=format_article=true")
     fi
 
+    # Professional book features (passed to template)
+    BOOK_FEATURE_VARS=()
+    
+    # Half-title page
+    if [ "$META_HALF_TITLE" = "true" ] || [ "$META_HALF_TITLE" = "True" ] || [ "$META_HALF_TITLE" = "TRUE" ]; then
+        BOOK_FEATURE_VARS+=("--variable=half_title=true")
+    fi
+    
+    # Copyright page
+    if [ "$META_COPYRIGHT_PAGE" = "true" ] || [ "$META_COPYRIGHT_PAGE" = "True" ] || [ "$META_COPYRIGHT_PAGE" = "TRUE" ]; then
+        BOOK_FEATURE_VARS+=("--variable=copyright_page=true")
+    fi
+    
+    # Dedication (from metadata - string value)
+    if [ -n "$META_DEDICATION" ] && [ "$META_DEDICATION" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=dedication=$META_DEDICATION")
+    fi
+    
+    # Epigraph (from metadata - string value)
+    if [ -n "$META_EPIGRAPH" ] && [ "$META_EPIGRAPH" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=epigraph=$META_EPIGRAPH")
+    fi
+    
+    # Epigraph source
+    if [ -n "$META_EPIGRAPH_SOURCE" ] && [ "$META_EPIGRAPH_SOURCE" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=epigraph_source=$META_EPIGRAPH_SOURCE")
+    fi
+    
+    # Chapters on recto (odd pages only)
+    if [ "$META_CHAPTERS_ON_RECTO" = "true" ] || [ "$META_CHAPTERS_ON_RECTO" = "True" ] || [ "$META_CHAPTERS_ON_RECTO" = "TRUE" ]; then
+        BOOK_FEATURE_VARS+=("--variable=chapters_on_recto=true")
+    fi
+    
+    # Drop caps
+    if [ "$META_DROP_CAPS" = "true" ] || [ "$META_DROP_CAPS" = "True" ] || [ "$META_DROP_CAPS" = "TRUE" ]; then
+        BOOK_FEATURE_VARS+=("--variable=drop_caps=true")
+    fi
+    
+    # Publisher
+    if [ -n "$META_PUBLISHER" ] && [ "$META_PUBLISHER" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=publisher=$META_PUBLISHER")
+    fi
+    
+    # ISBN
+    if [ -n "$META_ISBN" ] && [ "$META_ISBN" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=isbn=$META_ISBN")
+    fi
+    
+    # Edition
+    if [ -n "$META_EDITION" ] && [ "$META_EDITION" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=edition=$META_EDITION")
+    fi
+    
+    # Copyright year
+    if [ -n "$META_COPYRIGHT_YEAR" ] && [ "$META_COPYRIGHT_YEAR" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=copyright_year=$META_COPYRIGHT_YEAR")
+    fi
+
     pandoc "$INPUT_FILE" \
         --from markdown \
         --to pdf \
@@ -1852,6 +2033,7 @@ EOF
         $SECTION_NUMBERING_OPTION \
         "${FOOTER_VARS[@]}" \
         "${HEADER_FOOTER_VARS[@]}" \
+        "${BOOK_FEATURE_VARS[@]}" \
         --standalone
 
     # Check if conversion was successful
