@@ -524,6 +524,55 @@ BOOK_CMDS_EOF
     \$endif\$
 }
 
+% Front matter page style - for copyright, dedication, epigraph pages
+% Uses headers/footers when policy is 'all', otherwise empty
+\fancypagestyle{frontmatter}{
+    \fancyhf{} % Clear header/footer
+    \$if(header_footer_policy_all)\$
+        \fancyhead[L]{\small\textit{$doc_author}}
+        \fancyhead[R]{\small\textit{$doc_title}}
+        \renewcommand{\headrulewidth}{0.4pt}
+        \$if(no_footer)\$
+            \renewcommand{\footrulewidth}{0pt}
+        \$else\$
+            \$if(date_footer_content)\$
+                \fancyfoot[L]{\$date_footer_content\$}
+            \$endif\$
+            \$if(center_footer_content)\$
+                \fancyfoot[C]{\$center_footer_content\$}
+            \$else\$
+                \fancyfoot[C]{\copyright All rights reserved \the\year}
+            \$endif\$
+            \$if(page_of_format)\$
+                \fancyfoot[R]{\thepage/\pageref{LastPage}}
+            \$else\$
+                \fancyfoot[R]{\thepage}
+            \$endif\$
+            \renewcommand{\footrulewidth}{0.4pt}
+        \$endif\$
+    \$else\$
+        \renewcommand{\headrulewidth}{0pt}
+        \renewcommand{\footrulewidth}{0pt}
+    \$endif\$
+}
+
+% Custom cleardoublepage that respects header_footer_policy
+% When policy is 'all', blank pages have headers/footers
+\$if(header_footer_policy_all)\$
+\makeatletter
+\renewcommand{\cleardoublepage}{%
+    \clearpage
+    \if@twoside
+        \ifodd\c@page\else
+            \thispagestyle{frontmatter}%
+            \hbox{}\newpage
+            \if@twocolumn\hbox{}\newpage\fi
+        \fi
+    \fi
+}
+\makeatother
+\$endif\$
+
 % Adjust paragraph spacing: add a full line skip between paragraphs
 \\setlength{\\parskip}{\\baselineskip}
 % Remove paragraph indentation
@@ -668,7 +717,7 @@ $numbering_commands
 
 % Half-title page (just the title, no author/date - traditional book convention)
 \$if(half_title)\$
-\\thispagestyle{empty}
+\\thispagestyle{frontmatter}
 \\begin{center}
 \\vspace*{\\fill}
 {\\LARGE \\textbf{\$title\$}}
@@ -711,7 +760,7 @@ $numbering_commands
 
 % Copyright page (verso of title page - traditional book convention)
 \$if(copyright_page)\$
-\\thispagestyle{empty}
+\\thispagestyle{frontmatter}
 \\vspace*{\\fill}
 \\begin{flushleft}
 \\textbf{\$title\$}\\\\[0.3cm]
@@ -755,7 +804,7 @@ ISBN: \$isbn\$\\\\[0.3cm]
 
 % Dedication page (from metadata - centered, italic)
 \$if(dedication)\$
-\\thispagestyle{empty}
+\\thispagestyle{frontmatter}
 \\vspace*{\\fill}
 \\begin{center}
 \\textit{\$dedication\$}
@@ -766,7 +815,7 @@ ISBN: \$isbn\$\\\\[0.3cm]
 
 % Epigraph page (from metadata - quote with optional source)
 \$if(epigraph)\$
-\\thispagestyle{empty}
+\\thispagestyle{frontmatter}
 \\vspace*{\\fill}
 \\begin{center}
 \\begin{minipage}{0.7\\textwidth}
