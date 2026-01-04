@@ -571,6 +571,33 @@ BOOK_CMDS_EOF
     \fi
 }
 \makeatother
+
+% Also redefine 'empty' page style to have headers/footers when policy is 'all'
+% This catches any internally-created blank pages by LaTeX
+\fancypagestyle{empty}{
+    \fancyhf{}
+    \fancyhead[L]{\small\textit{$doc_author}}
+    \fancyhead[R]{\small\textit{$doc_title}}
+    \renewcommand{\headrulewidth}{0.4pt}
+    \$if(no_footer)\$
+        \renewcommand{\footrulewidth}{0pt}
+    \$else\$
+        \$if(date_footer_content)\$
+            \fancyfoot[L]{\$date_footer_content\$}
+        \$endif\$
+        \$if(center_footer_content)\$
+            \fancyfoot[C]{\$center_footer_content\$}
+        \$else\$
+            \fancyfoot[C]{\copyright All rights reserved \the\year}
+        \$endif\$
+        \$if(page_of_format)\$
+            \fancyfoot[R]{\thepage/\pageref{LastPage}}
+        \$else\$
+            \fancyfoot[R]{\thepage}
+        \$endif\$
+        \renewcommand{\footrulewidth}{0.4pt}
+    \$endif\$
+}
 \$endif\$
 
 % Adjust paragraph spacing: add a full line skip between paragraphs
