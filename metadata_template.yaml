@@ -34,6 +34,31 @@ date_footer: "DD/MM/YY"            # Date format in footer
 no_date: false                      # Disable date in footer
 
 # =============================================================================
+# PROFESSIONAL BOOK FEATURES (mdtexpdf only - book format)
+# =============================================================================
+# Front matter pages (appear in this order: half-title, title, copyright, dedication, epigraph, TOC)
+half_title: false                   # Half-title page (title only, no author)
+copyright_page: false               # Copyright/colophon page
+dedication: ""                      # Dedication page text (leave empty to skip)
+epigraph: ""                        # Epigraph quote text (leave empty to skip)
+epigraph_source: ""                 # Attribution for epigraph
+
+# Chapter formatting
+chapters_on_recto: false            # Start chapters on odd (right) pages
+drop_caps: false                    # Decorative first letter of chapters
+
+# Copyright page information
+publisher: ""                       # Publisher name
+isbn: ""                            # ISBN number
+edition: ""                         # Edition text (e.g., "First Edition")
+edition_date: ""                    # Edition date (e.g., "January 2025")
+printing: ""                        # Printing info (e.g., "First Printing, Jan 2025")
+copyright_year: 2025                # Copyright year
+copyright_holder: ""                # Copyright holder (defaults to author if empty)
+publisher_address: ""               # Publisher address (use | for multi-line in YAML)
+publisher_website: ""               # Publisher website URL
+
+# =============================================================================
 # AUDIO-SPECIFIC METADATA (mdaudiobook only)
 # =============================================================================
 genre: "Educational"                # Audiobook genre
