@@ -110,6 +110,93 @@ function Header(el)
       return pandoc.RawBlock('latex', '\\chapter*{Afterword}\\addcontentsline{toc}{chapter}{Afterword}')
     end
 
+    -- ============================================
+    -- FRONT MATTER PAGES (special styling, no TOC entry)
+    -- These are typically used before the main content
+    -- ============================================
+    
+    -- Dedication → Centered page with no header, italic text follows
+    -- Content after this heading will be styled by the DedicationContent environment
+    if string.match(header_text, '^[Dd]edication$') then
+      return pandoc.RawBlock('latex', '\\clearpage\\thispagestyle{empty}\\vspace*{\\fill}\\begin{center}\\itshape\\large')
+    end
+
+    -- Epigraph → Right-aligned quote page with source attribution
+    -- Content after this heading will be styled by the EpigraphContent environment
+    if string.match(header_text, '^[Ee]pigraph$') then
+      return pandoc.RawBlock('latex', '\\clearpage\\thispagestyle{empty}\\vspace*{\\fill}\\begin{flushright}\\itshape\\large')
+    end
+
     -- Return unchanged if no pattern matches
     return el
   end
+
+-- ============================================
+-- BLOCK PROCESSING
+-- Handle content following special headers
+-- ============================================
+
+-- Track state for special content processing
+local in_dedication = false
+local in_epigraph = false
+
+function Pandoc(doc)
+    local new_blocks = {}
+    local i = 1
+    
+    while i <= #doc.blocks do
+        local block = doc.blocks[i]
+        
+        -- Check if this is a dedication header
+        if block.t == "Header" then
+            local header_text = pandoc.utils.stringify(block.content)
+            
+            if string.match(header_text, '^[Dd]edication$') then
+                -- Add the opening LaTeX
+                table.insert(new_blocks, pandoc.RawBlock('latex',
+                    '\\clearpage\\thispagestyle{empty}\\vspace*{\\fill}\\begin{center}\\itshape\\large'))
+                
+                -- Collect content until next header
+                i = i + 1
+                while i <= #doc.blocks and doc.blocks[i].t ~= "Header" do
+                    table.insert(new_blocks, doc.blocks[i])
+                    i = i + 1
+                end
+                
+                -- Close the dedication
+                table.insert(new_blocks, pandoc.RawBlock('latex',
+                    '\\end{center}\\vspace*{\\fill}\\clearpage'))
+                
+                -- Don't increment i again, we're at the next header
+                goto continue
+                
+            elseif string.match(header_text, '^[Ee]pigraph$') then
+                -- Add the opening LaTeX
+                table.insert(new_blocks, pandoc.RawBlock('latex',
+                    '\\clearpage\\thispagestyle{empty}\\vspace*{\\fill}\\begin{flushright}\\itshape\\large'))
+                
+                -- Collect content until next header
+                i = i + 1
+                while i <= #doc.blocks and doc.blocks[i].t ~= "Header" do
+                    table.insert(new_blocks, doc.blocks[i])
+                    i = i + 1
+                end
+                
+                -- Close the epigraph
+                table.insert(new_blocks, pandoc.RawBlock('latex',
+                    '\\end{flushright}\\vspace*{\\fill}\\clearpage'))
+                
+                -- Don't increment i again, we're at the next header
+                goto continue
+            end
+        end
+        
+        table.insert(new_blocks, block)
+        i = i + 1
+        
+        ::continue::
+    end
+    
+    doc.blocks = new_blocks
+    return doc
+end
