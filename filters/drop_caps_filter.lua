@@ -4,6 +4,10 @@
 
 local drop_caps_enabled = false
 
+-- Threshold for short paragraphs (approximately 3 lines of ~60 chars = 180)
+-- Paragraphs below this threshold will get extra space after drop cap
+local SHORT_PARAGRAPH_THRESHOLD = 150
+
 -- Check if drop caps is enabled via metadata
 function Meta(meta)
     if meta.drop_caps then
@@ -12,12 +16,32 @@ function Meta(meta)
     return meta
 end
 
+-- Helper function to calculate total text length of a paragraph
+local function get_paragraph_length(para)
+    local total_len = 0
+    for _, inline in ipairs(para.content) do
+        if inline.t == "Str" then
+            total_len = total_len + #inline.text
+        elseif inline.t == "Space" then
+            total_len = total_len + 1
+        elseif inline.t == "SoftBreak" or inline.t == "LineBreak" then
+            total_len = total_len + 1
+        end
+    end
+    return total_len
+end
+
 -- Helper function to apply drop cap to a paragraph
+-- Returns the modified paragraph and a flag indicating if it's short
 local function apply_drop_cap(para)
     local content = para.content
     if #content == 0 then
-        return para
+        return para, false
     end
+    
+    -- Check paragraph length to determine if extra spacing is needed
+    local para_length = get_paragraph_length(para)
+    local is_short = para_length < SHORT_PARAGRAPH_THRESHOLD
     
     -- Get the first inline element
     local first = content[1]
@@ -52,12 +76,12 @@ local function apply_drop_cap(para)
                     table.insert(new_content, content[i])
                 end
                 
-                return pandoc.Para(new_content)
+                return pandoc.Para(new_content), is_short
             end
         end
     end
     
-    return para
+    return para, false
 end
 
 -- Process all blocks in order to track chapters and apply drop caps
@@ -84,7 +108,15 @@ function Blocks(blocks)
         -- Apply drop cap to first paragraph after chapter
         elseif block.t == "Para" then
             if after_chapter then
-                table.insert(result, apply_drop_cap(block))
+                local modified_para, is_short = apply_drop_cap(block)
+                table.insert(result, modified_para)
+                
+                -- Add vertical space after short paragraphs to prevent overlap
+                if is_short then
+                    -- Add 1.5 baselineskips of space (accounts for 3-line drop cap)
+                    table.insert(result, pandoc.RawBlock("latex", "\\vspace{1.5\\baselineskip}"))
+                end
+                
                 after_chapter = false
             else
                 table.insert(result, block)
