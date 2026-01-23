@@ -15,6 +15,12 @@ Explain the topic below and include relevant mathematical formulas, symbols, etc
 - Do no use `---` to separate sections. 
 - Use proper LaTeX syntax for all mathematical symbols, formulas, and expressions.
 - For any mathematics, e.g. any equation/function shown, we explain each variable/symbol used, we even name it, e.g. if it's phi we should state how to pronounce it. Thus, it's very didactic and newcomers don't feel overwhelmed by the mathematics.
+- For **chemical formulas**, use the mhchem package syntax with `\ce{}`:
+  - Inline: `$\ce{H2O}$`, `$\ce{CH3COOH}$`, `$\ce{Fe^2+}$`
+  - Block equations: `$$\ce{2H2 + O2 -> 2H2O}$$`
+  - Equilibrium: `$$\ce{CH3COOH <=> CH3COO- + H+}$$`
+  - Do NOT use Unicode subscripts/superscripts like H₂O or CO₂; use `$\ce{H2O}$` and `$\ce{CO2}$` instead.
+- For **Greek letters** in text, you may use Unicode directly (α, β, γ) or in math mode use LaTeX (`$\alpha$`, `$\beta$`).
 
 This will allow me to transfer the markdown `.md` into VS Code preview with correct LaTeX rendering.
 
