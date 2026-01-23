@@ -75,7 +75,9 @@ create_template_file() {
     local book_specific_commands=""
     if [ "$format" = "book" ]; then
         docclass="book"
-        docclass_opts="12pt, openany"
+        # Use openright (chapters on recto/odd pages) or openany based on metadata
+        # This will be controlled by Pandoc variable chapters_on_recto
+        docclass_opts="12pt"  # openany/openright handled via Pandoc conditional
         book_specific_commands=$(cat << 'BOOK_CMDS_EOF'
 % Custom styling for book format
 \usepackage{titlesec}
@@ -116,7 +118,12 @@ BOOK_CMDS_EOF
     fi
 
     cat > "$template_path" << EOF
-    \documentclass[$docclass_opts]{$docclass}
+    % Document class with conditional openright for chapters on recto (odd pages)
+    \$if(chapters_on_recto)\$
+    \documentclass[$docclass_opts, openright]{$docclass}
+    \$else\$
+    \documentclass[$docclass_opts, openany]{$docclass}
+    \$endif\$
 
     % Conditional packages based on LaTeX engine
     \\usepackage{iftex}
@@ -190,6 +197,21 @@ BOOK_CMDS_EOF
     \\usepackage{enumitem}
     \\usepackage[version=4]{mhchem}
     \\usepackage{framed}   % For snugshade environment
+
+    % TikZ for cover pages (full-bleed images with text overlay)
+    \\usepackage{tikz}
+    \\usetikzlibrary{positioning}
+
+    % Rotating package for margin provenance text
+    \\usepackage{rotating}
+
+    % Drop caps support (conditional)
+    \$if(drop_caps)\$
+    \\usepackage{lettrine}
+    \\setcounter{DefaultLines}{3}
+    \\renewcommand{\\DefaultLoversize}{0.1}
+    \\renewcommand{\\DefaultLraise}{0}
+    \$endif\$
     $book_specific_commands
 
     % Define \real command if it doesn't exist (alternative to realnum package)
@@ -334,6 +356,35 @@ BOOK_CMDS_EOF
         \\newunicodechar{⇒}{\\ensuremath{\\Rightarrow}}
         \\newunicodechar{⇐}{\\ensuremath{\\Leftarrow}}
         \\newunicodechar{⇔}{\\ensuremath{\\Leftrightarrow}}
+        \\newunicodechar{⇌}{\\ensuremath{\\rightleftharpoons}}
+
+        % Unicode subscript digits (for chemical formulas like H₂O)
+        \\newunicodechar{₀}{\\ensuremath{_0}}
+        \\newunicodechar{₁}{\\ensuremath{_1}}
+        \\newunicodechar{₂}{\\ensuremath{_2}}
+        \\newunicodechar{₃}{\\ensuremath{_3}}
+        \\newunicodechar{₄}{\\ensuremath{_4}}
+        \\newunicodechar{₅}{\\ensuremath{_5}}
+        \\newunicodechar{₆}{\\ensuremath{_6}}
+        \\newunicodechar{₇}{\\ensuremath{_7}}
+        \\newunicodechar{₈}{\\ensuremath{_8}}
+        \\newunicodechar{₉}{\\ensuremath{_9}}
+        \\newunicodechar{₊}{\\ensuremath{_+}}
+        \\newunicodechar{₋}{\\ensuremath{_-}}
+
+        % Unicode superscript digits and symbols
+        \\newunicodechar{⁰}{\\ensuremath{^0}}
+        \\newunicodechar{¹}{\\ensuremath{^1}}
+        \\newunicodechar{²}{\\ensuremath{^2}}
+        \\newunicodechar{³}{\\ensuremath{^3}}
+        \\newunicodechar{⁴}{\\ensuremath{^4}}
+        \\newunicodechar{⁵}{\\ensuremath{^5}}
+        \\newunicodechar{⁶}{\\ensuremath{^6}}
+        \\newunicodechar{⁷}{\\ensuremath{^7}}
+        \\newunicodechar{⁸}{\\ensuremath{^8}}
+        \\newunicodechar{⁹}{\\ensuremath{^9}}
+        \\newunicodechar{⁺}{\\ensuremath{^+}}
+        \\newunicodechar{⁻}{\\ensuremath{^-}}
     \\fi\\fi
 
     % Configure listings for code blocks
@@ -509,6 +560,82 @@ BOOK_CMDS_EOF
     \$endif\$
 }
 
+% Front matter page style - for copyright, dedication, epigraph pages
+% Uses headers/footers when policy is 'all', otherwise empty
+\fancypagestyle{frontmatter}{
+    \fancyhf{} % Clear header/footer
+    \$if(header_footer_policy_all)\$
+        \fancyhead[L]{\small\textit{$doc_author}}
+        \fancyhead[R]{\small\textit{$doc_title}}
+        \renewcommand{\headrulewidth}{0.4pt}
+        \$if(no_footer)\$
+            \renewcommand{\footrulewidth}{0pt}
+        \$else\$
+            \$if(date_footer_content)\$
+                \fancyfoot[L]{\$date_footer_content\$}
+            \$endif\$
+            \$if(center_footer_content)\$
+                \fancyfoot[C]{\$center_footer_content\$}
+            \$else\$
+                \fancyfoot[C]{\copyright All rights reserved \the\year}
+            \$endif\$
+            \$if(page_of_format)\$
+                \fancyfoot[R]{\thepage/\pageref{LastPage}}
+            \$else\$
+                \fancyfoot[R]{\thepage}
+            \$endif\$
+            \renewcommand{\footrulewidth}{0.4pt}
+        \$endif\$
+    \$else\$
+        \renewcommand{\headrulewidth}{0pt}
+        \renewcommand{\footrulewidth}{0pt}
+    \$endif\$
+}
+
+% Custom cleardoublepage that respects header_footer_policy
+% When policy is 'all', blank pages have headers/footers
+\$if(header_footer_policy_all)\$
+\makeatletter
+\renewcommand{\cleardoublepage}{%
+    \clearpage
+    \if@twoside
+        \ifodd\c@page\else
+            \thispagestyle{frontmatter}%
+            \hbox{}\newpage
+            \if@twocolumn\hbox{}\newpage\fi
+        \fi
+    \fi
+}
+\makeatother
+
+% Also redefine 'empty' page style to have headers/footers when policy is 'all'
+% This catches any internally-created blank pages by LaTeX
+\fancypagestyle{empty}{
+    \fancyhf{}
+    \fancyhead[L]{\small\textit{$doc_author}}
+    \fancyhead[R]{\small\textit{$doc_title}}
+    \renewcommand{\headrulewidth}{0.4pt}
+    \$if(no_footer)\$
+        \renewcommand{\footrulewidth}{0pt}
+    \$else\$
+        \$if(date_footer_content)\$
+            \fancyfoot[L]{\$date_footer_content\$}
+        \$endif\$
+        \$if(center_footer_content)\$
+            \fancyfoot[C]{\$center_footer_content\$}
+        \$else\$
+            \fancyfoot[C]{\copyright All rights reserved \the\year}
+        \$endif\$
+        \$if(page_of_format)\$
+            \fancyfoot[R]{\thepage/\pageref{LastPage}}
+        \$else\$
+            \fancyfoot[R]{\thepage}
+        \$endif\$
+        \renewcommand{\footrulewidth}{0.4pt}
+    \$endif\$
+}
+\$endif\$
+
 % Adjust paragraph spacing: add a full line skip between paragraphs
 \\setlength{\\parskip}{\\baselineskip}
 % Remove paragraph indentation
@@ -649,6 +776,50 @@ $numbering_commands
 
 \\begin{document}
 
+% ============== FRONT COVER (Première de Couverture) ==============
+\$if(cover_image)\$
+\\newgeometry{margin=0pt}
+\\thispagestyle{empty}
+\\begin{tikzpicture}[remember picture,overlay]
+  % Background image - full bleed
+  \\node[inner sep=0pt,outer sep=0pt] at (current page.center) {
+    \\includegraphics[width=\\paperwidth,height=\\paperheight,keepaspectratio=false]{\$cover_image\$}
+  };
+  % Optional dark overlay for text readability
+  \$if(cover_overlay_opacity)\$
+  \\fill[black,opacity=\$cover_overlay_opacity\$] (current page.south west) rectangle (current page.north east);
+  \$endif\$
+  % Title text - centered
+  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\Huge\\bfseries,align=center,text width=0.8\\paperwidth] at (current page.center) {
+    \$title\$
+    \$if(cover_subtitle_show)\$\$if(subtitle)\$\\\\[0.5cm]{\\LARGE\\itshape \$subtitle\$}\$endif\$\$endif\$
+  };
+  % Author at bottom (if cover_author_position is set)
+  \$if(cover_author_position)\$
+  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\Large,anchor=south] at ([yshift=2cm]current page.south) {
+    \$author\$
+  };
+  \$endif\$
+\\end{tikzpicture}
+\\restoregeometry
+\\clearpage
+\$endif\$
+
+% ============== FRONT MATTER PAGES (Professional Book Features) ==============
+
+% Half-title page (just the title, no author/date - traditional book convention)
+\$if(half_title)\$
+\\thispagestyle{frontmatter}
+\\begin{center}
+\\vspace*{\\fill}
+{\\LARGE \\textbf{\$title\$}}
+\\vspace*{\\fill}
+\\end{center}
+\\cleardoublepage
+\$endif\$
+
+% ============== MAIN TITLE PAGE ==============
+
 \$if(title)\$
 \$if(header_footer_policy_all)\$
 \$if(format_book)\$
@@ -668,7 +839,7 @@ $numbering_commands
 \$endif\$
 \\vspace*{\\fill}
 \\end{center}
-\\newpage
+\\cleardoublepage
 \$else\$
 % For article format with 'all' policy, use standard maketitle but ensure headers/footers work
 \\maketitle
@@ -679,6 +850,96 @@ $numbering_commands
 \$endif\$
 \$endif\$
 
+% Copyright page (verso of title page - traditional book convention)
+\$if(copyright_page)\$
+\\thispagestyle{frontmatter}
+\\vspace*{\\fill}
+\\begin{flushleft}
+\\textbf{\$title\$}\\\\[0.3cm]
+\$if(subtitle)\$
+\\textit{\$subtitle\$}\\\\[0.5cm]
+\$endif\$
+\$if(author)\$
+by \$author\$\\\\[0.5cm]
+\$endif\$
+\\rule{0.4\\textwidth}{0.4pt}\\\\[0.5cm]
+\$if(copyright_holder)\$
+Copyright \\copyright\\ \$if(copyright_year)\$\$copyright_year\$\$else\$\\the\\year\$endif\$ \$copyright_holder\$\\\\[0.3cm]
+\$elseif(publisher)\$
+Copyright \\copyright\\ \$if(copyright_year)\$\$copyright_year\$\$else\$\\the\\year\$endif\$ \$publisher\$\\\\[0.3cm]
+\$elseif(author)\$
+Copyright \\copyright\\ \$if(copyright_year)\$\$copyright_year\$\$else\$\\the\\year\$endif\$ \$author\$\\\\[0.3cm]
+\$endif\$
+All rights reserved.\\\\[0.5cm]
+\$if(publisher)\$
+Published by \$publisher\$\\\\[0.3cm]
+\$endif\$
+\$if(isbn)\$
+ISBN: \$isbn\$\\\\[0.3cm]
+\$endif\$
+\$if(edition)\$
+\$edition\$\$if(edition_date)\$ --- \$edition_date\$\$endif\$\\\\[0.3cm]
+\$endif\$
+\$if(printing)\$
+\$printing\$\\\\[0.3cm]
+\$endif\$
+\$if(publisher_address)\$
+\\vspace{0.3cm}
+\$publisher_address\$\\\\[0.3cm]
+\$endif\$
+\$if(publisher_website)\$
+\\url{\$publisher_website\$}\\\\[0.3cm]
+\$endif\$
+\\end{flushleft}
+\\cleardoublepage
+\$endif\$
+
+% Authorship & Support page (after copyright page)
+\$if(author_pubkey)\$
+\\thispagestyle{frontmatter}
+\\vspace*{\\fill}
+\\begin{flushleft}
+{\\Large\\bfseries Authorship \\& Support}\\\\[1cm]
+\\textbf{AUTHORSHIP VERIFICATION}\\\\[0.5cm]
+\$author_pubkey_type\$: {\\small\\texttt{\$author_pubkey\$}}\\\\[1cm]
+\\rule{0.4\\textwidth}{0.4pt}\\\\[1cm]
+\$if(donation_wallets)\$
+\\textbf{SUPPORT THE AUTHOR}\\\\[0.5cm]
+\$donation_wallets\$
+\$endif\$
+\\end{flushleft}
+\\vspace*{\\fill}
+\\cleardoublepage
+\$endif\$
+
+% Dedication page (from metadata - centered, italic)
+\$if(dedication)\$
+\\thispagestyle{frontmatter}
+\\vspace*{\\fill}
+\\begin{center}
+\\textit{\$dedication\$}
+\\end{center}
+\\vspace*{\\fill}
+\\cleardoublepage
+\$endif\$
+
+% Epigraph page (from metadata - quote with optional source)
+\$if(epigraph)\$
+\\thispagestyle{frontmatter}
+\\vspace*{\\fill}
+\\begin{center}
+\\begin{minipage}{0.7\\textwidth}
+\\textit{``\$epigraph\$''}
+\$if(epigraph_source)\$
+\\\\[0.5cm]
+\\hfill--- \$epigraph_source\$
+\$endif\$
+\\end{minipage}
+\\end{center}
+\\vspace*{\\fill}
+\\cleardoublepage
+\$endif\$
+
 % Set TOC depth and generate TOC if needed
 \\setcounter{tocdepth}{$ARG_TOC_DEPTH}
 \$if(toc)\$
@@ -687,6 +948,42 @@ $numbering_commands
 \$endif\$
 
 \$body\$
+
+% ============== BACK COVER (Quatrième de Couverture) ==============
+\$if(back_cover_image)\$
+\\clearpage
+\\newgeometry{margin=0pt}
+\\thispagestyle{empty}
+\\begin{tikzpicture}[remember picture,overlay]
+  % Background image - full bleed
+  \\node[inner sep=0pt,outer sep=0pt] at (current page.center) {
+    \\includegraphics[width=\\paperwidth,height=\\paperheight,keepaspectratio=false]{\$back_cover_image\$}
+  };
+  % Optional dark overlay for text readability
+  \$if(cover_overlay_opacity)\$
+  \\fill[black,opacity=\$cover_overlay_opacity\$] (current page.south west) rectangle (current page.north east);
+  \$endif\$
+  % Content box - quote, summary, or custom text
+  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\large,align=center,text width=0.7\\paperwidth] at ([yshift=2cm]current page.center) {
+    \$if(back_cover_quote)\$
+    {\\itshape ``\$back_cover_quote\$''}
+    \$if(back_cover_quote_source)\$\\\\[0.5cm]--- \$back_cover_quote_source\$\$endif\$
+    \$elseif(back_cover_summary)\$
+    \$back_cover_summary\$
+    \$elseif(back_cover_text)\$
+    \$back_cover_text\$
+    \$endif\$
+  };
+  % Author bio section (if enabled)
+  \$if(back_cover_author_bio)\$
+  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\normalsize,align=left,text width=0.7\\paperwidth,anchor=south] at ([yshift=3cm]current page.south) {
+    {\\bfseries About the Author}\\\\[0.3cm]
+    \$if(back_cover_author_bio_text)\$\$back_cover_author_bio_text\$\$endif\$
+  };
+  \$endif\$
+\\end{tikzpicture}
+\\restoregeometry
+\$endif\$
 
 \\end{document}
 EOF
@@ -719,6 +1016,68 @@ detect_unicode_characters() {
     fi
 
     return 1  # No Unicode characters requiring special handling found
+}
+
+# Function to auto-detect cover images at default paths
+# Returns the path to the cover image if found, empty string otherwise
+detect_cover_image() {
+    local input_dir="$1"
+    local image_type="$2"  # "cover" or "back"
+
+    # Define search patterns based on image type
+    local patterns=()
+    if [ "$image_type" = "cover" ]; then
+        patterns=("cover" "front" "front_cover" "premiere")
+    else
+        patterns=("back" "back_cover" "quatrieme")
+    fi
+
+    # Define supported extensions
+    local extensions=("jpg" "jpeg" "png" "pdf")
+
+    # Define search directories (relative to input file)
+    local dirs=("img" "images" "assets" ".")
+
+    # Search for cover image
+    for dir in "${dirs[@]}"; do
+        for pattern in "${patterns[@]}"; do
+            for ext in "${extensions[@]}"; do
+                local test_path="$input_dir/$dir/$pattern.$ext"
+                if [ -f "$test_path" ]; then
+                    echo "$test_path"
+                    return 0
+                fi
+                # Also try uppercase extension
+                local test_path_upper="$input_dir/$dir/$pattern.${ext^^}"
+                if [ -f "$test_path_upper" ]; then
+                    echo "$test_path_upper"
+                    return 0
+                fi
+            done
+        done
+    done
+
+    echo ""
+    return 1
+}
+
+# Function to truncate long addresses/keys for display
+# Usage: truncate_address "full_address" [chars_to_show]
+# Returns: first N chars + "..." + last N chars
+truncate_address() {
+    local full_address="$1"
+    local chars="${2:-4}"  # Default to 4 characters each side
+
+    local length=${#full_address}
+
+    # Only truncate if longer than 2*chars + 3 (for "...")
+    if [ "$length" -gt $((chars * 2 + 3)) ]; then
+        local start="${full_address:0:$chars}"
+        local end="${full_address: -$chars}"
+        echo "${start}...${end}"
+    else
+        echo "$full_address"
+    fi
 }
 
 # Function to check prerequisites
@@ -800,9 +1159,17 @@ check_prerequisites() {
 
         if [ "$LATEX_INSTALLED" = false ] || [ "$PACKAGES_MISSING" = true ]; then
             echo -e "${YELLOW}To install LaTeX with required packages:${NC}"
-            echo "  - Ubuntu/Debian: sudo apt-get install texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-science"
-            echo "  - macOS with Homebrew: brew install --cask mactex"
-            echo "  - Windows: Install MiKTeX from https://miktex.org/download"
+            echo
+            echo -e "${PURPLE}Quick install (copy & paste):${NC}"
+            echo
+            echo "  Ubuntu/Debian:"
+            echo "    sudo apt-get update && sudo apt-get install -y texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-science texlive-luatex texlive-xetex texlive-fonts-extra"
+            echo
+            echo "  macOS (Homebrew):"
+            echo "    brew install --cask mactex"
+            echo
+            echo "  Windows:"
+            echo "    Install MiKTeX from https://miktex.org/download"
             echo
         fi
 
@@ -1043,6 +1410,20 @@ parse_yaml_metadata() {
     META_NARRATOR_VOICE=""
     META_READING_SPEED=""
 
+    # Professional book features
+    META_HALF_TITLE=""
+    META_COPYRIGHT_PAGE=""
+    META_DEDICATION=""
+    META_EPIGRAPH=""
+    META_EPIGRAPH_SOURCE=""
+    META_CHAPTERS_ON_RECTO=""
+    META_DROP_CAPS=""
+    META_PUBLISHER=""
+    META_ISBN=""
+    META_EDITION=""
+    META_COPYRIGHT_YEAR=""
+    META_COPYRIGHT_HOLDER=""
+
     echo -e "${BLUE}Parsing metadata from YAML frontmatter...${NC}"
 
     # Check if file has YAML frontmatter (starts with ---)
@@ -1111,6 +1492,63 @@ parse_yaml_metadata() {
     META_NARRATOR_VOICE=$(yq eval '.narrator_voice // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_READING_SPEED=$(yq eval '.reading_speed // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
 
+    # Professional book features
+    META_HALF_TITLE=$(yq eval '.half_title // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_COPYRIGHT_PAGE=$(yq eval '.copyright_page // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_DEDICATION=$(yq eval '.dedication // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_EPIGRAPH=$(yq eval '.epigraph // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_EPIGRAPH_SOURCE=$(yq eval '.epigraph_source // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_CHAPTERS_ON_RECTO=$(yq eval '.chapters_on_recto // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_DROP_CAPS=$(yq eval '.drop_caps // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_PUBLISHER=$(yq eval '.publisher // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_ISBN=$(yq eval '.isbn // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_EDITION=$(yq eval '.edition // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_COPYRIGHT_YEAR=$(yq eval '.copyright_year // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_COPYRIGHT_HOLDER=$(yq eval '.copyright_holder // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+
+    # Enhanced copyright page fields (industry standard)
+    META_EDITION_DATE=$(yq eval '.edition_date // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_PRINTING=$(yq eval '.printing // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_PUBLISHER_ADDRESS=$(yq eval '.publisher_address // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_PUBLISHER_WEBSITE=$(yq eval '.publisher_website // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+
+    # === COVER SYSTEM (Première et Quatrième de Couverture) ===
+    # Front cover
+    META_COVER_IMAGE=$(yq eval '.cover_image // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_COVER_TITLE_COLOR=$(yq eval '.cover_title_color // "white"' "$temp_yaml" 2>/dev/null | sed 's/^null$/white/')
+    META_COVER_SUBTITLE_SHOW=$(yq eval '.cover_subtitle_show // "true"' "$temp_yaml" 2>/dev/null | sed 's/^null$/true/')
+    META_COVER_AUTHOR_POSITION=$(yq eval '.cover_author_position // "bottom"' "$temp_yaml" 2>/dev/null | sed 's/^null$/bottom/')
+    META_COVER_OVERLAY_OPACITY=$(yq eval '.cover_overlay_opacity // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+
+    # Back cover
+    META_BACK_COVER_IMAGE=$(yq eval '.back_cover_image // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_BACK_COVER_CONTENT=$(yq eval '.back_cover_content // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_BACK_COVER_TEXT=$(yq eval '.back_cover_text // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_BACK_COVER_QUOTE=$(yq eval '.back_cover_quote // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_BACK_COVER_QUOTE_SOURCE=$(yq eval '.back_cover_quote_source // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_BACK_COVER_SUMMARY=$(yq eval '.back_cover_summary // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_BACK_COVER_AUTHOR_BIO=$(yq eval '.back_cover_author_bio // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_BACK_COVER_AUTHOR_BIO_TEXT=$(yq eval '.back_cover_author_bio_text // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_BACK_COVER_ISBN_BARCODE=$(yq eval '.back_cover_isbn_barcode // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+
+    # === AUTHORSHIP & SUPPORT SYSTEM ===
+    META_AUTHOR_PUBKEY=$(yq eval '.author_pubkey // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_AUTHOR_PUBKEY_TYPE=$(yq eval '.author_pubkey_type // "PGP"' "$temp_yaml" 2>/dev/null | sed 's/^null$/PGP/')
+
+    # Parse donation_wallets list - build LaTeX-formatted string
+    META_DONATION_WALLETS=""
+    local wallet_count=$(yq eval '.donation_wallets | length' "$temp_yaml" 2>/dev/null)
+    if [ -n "$wallet_count" ] && [ "$wallet_count" != "0" ] && [ "$wallet_count" != "null" ]; then
+        for i in $(seq 0 $((wallet_count - 1))); do
+            local wallet_type=$(yq eval ".donation_wallets[$i].type" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+            local wallet_address=$(yq eval ".donation_wallets[$i].address" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+            if [ -n "$wallet_type" ] && [ -n "$wallet_address" ]; then
+                # Build LaTeX string - single backslash in output needs \\ in bash
+                META_DONATION_WALLETS="${META_DONATION_WALLETS}${wallet_type}: {\\small\\texttt{${wallet_address}}}\\\\[0.3cm] "
+            fi
+        done
+    fi
+
     # Clean up temporary file
     rm -f "$temp_yaml"
 
@@ -1135,6 +1573,34 @@ parse_yaml_metadata() {
     [ -n "$META_GENRE" ] && echo -e "${GREEN}Found metadata - genre: $META_GENRE${NC}"
     [ -n "$META_NARRATOR_VOICE" ] && echo -e "${GREEN}Found metadata - narrator_voice: $META_NARRATOR_VOICE${NC}"
     [ -n "$META_READING_SPEED" ] && echo -e "${GREEN}Found metadata - reading_speed: $META_READING_SPEED${NC}"
+
+    # Professional book features
+    [ -n "$META_HALF_TITLE" ] && echo -e "${GREEN}Found metadata - half_title: $META_HALF_TITLE${NC}"
+    [ -n "$META_COPYRIGHT_PAGE" ] && echo -e "${GREEN}Found metadata - copyright_page: $META_COPYRIGHT_PAGE${NC}"
+    [ -n "$META_DEDICATION" ] && echo -e "${GREEN}Found metadata - dedication: $META_DEDICATION${NC}"
+    [ -n "$META_EPIGRAPH" ] && echo -e "${GREEN}Found metadata - epigraph: $META_EPIGRAPH${NC}"
+    [ -n "$META_EPIGRAPH_SOURCE" ] && echo -e "${GREEN}Found metadata - epigraph_source: $META_EPIGRAPH_SOURCE${NC}"
+    [ -n "$META_CHAPTERS_ON_RECTO" ] && echo -e "${GREEN}Found metadata - chapters_on_recto: $META_CHAPTERS_ON_RECTO${NC}"
+    [ -n "$META_DROP_CAPS" ] && echo -e "${GREEN}Found metadata - drop_caps: $META_DROP_CAPS${NC}"
+    [ -n "$META_PUBLISHER" ] && echo -e "${GREEN}Found metadata - publisher: $META_PUBLISHER${NC}"
+    [ -n "$META_ISBN" ] && echo -e "${GREEN}Found metadata - isbn: $META_ISBN${NC}"
+    [ -n "$META_EDITION" ] && echo -e "${GREEN}Found metadata - edition: $META_EDITION${NC}"
+    [ -n "$META_COPYRIGHT_YEAR" ] && echo -e "${GREEN}Found metadata - copyright_year: $META_COPYRIGHT_YEAR${NC}"
+    [ -n "$META_COPYRIGHT_HOLDER" ] && echo -e "${GREEN}Found metadata - copyright_holder: $META_COPYRIGHT_HOLDER${NC}"
+    [ -n "$META_EDITION_DATE" ] && echo -e "${GREEN}Found metadata - edition_date: $META_EDITION_DATE${NC}"
+    [ -n "$META_PRINTING" ] && echo -e "${GREEN}Found metadata - printing: $META_PRINTING${NC}"
+    [ -n "$META_PUBLISHER_ADDRESS" ] && echo -e "${GREEN}Found metadata - publisher_address: $META_PUBLISHER_ADDRESS${NC}"
+    [ -n "$META_PUBLISHER_WEBSITE" ] && echo -e "${GREEN}Found metadata - publisher_website: $META_PUBLISHER_WEBSITE${NC}"
+
+    # Cover system
+    [ -n "$META_COVER_IMAGE" ] && echo -e "${GREEN}Found metadata - cover_image: $META_COVER_IMAGE${NC}"
+    [ -n "$META_COVER_OVERLAY_OPACITY" ] && echo -e "${GREEN}Found metadata - cover_overlay_opacity: $META_COVER_OVERLAY_OPACITY${NC}"
+    [ -n "$META_BACK_COVER_IMAGE" ] && echo -e "${GREEN}Found metadata - back_cover_image: $META_BACK_COVER_IMAGE${NC}"
+    [ -n "$META_BACK_COVER_CONTENT" ] && echo -e "${GREEN}Found metadata - back_cover_content: $META_BACK_COVER_CONTENT${NC}"
+
+    # Authorship & support
+    [ -n "$META_AUTHOR_PUBKEY" ] && echo -e "${GREEN}Found metadata - author_pubkey: [set]${NC}"
+    [ -n "$META_DONATION_WALLETS" ] && echo -e "${GREEN}Found metadata - donation_wallets: [set]${NC}"
 
     # Extract title from first H1 heading if not provided in metadata
     if [ -z "$META_TITLE" ]; then
@@ -1777,6 +2243,25 @@ EOF
         fi
     fi
 
+    # Add drop caps filter if drop_caps is enabled
+    if [ "$META_DROP_CAPS" = "true" ]; then
+        local drop_caps_filter_path=""
+        if [ -f "$(pwd)/filters/drop_caps_filter.lua" ]; then
+            drop_caps_filter_path="$(pwd)/filters/drop_caps_filter.lua"
+        elif [ -f "$SCRIPT_DIR/filters/drop_caps_filter.lua" ]; then
+            drop_caps_filter_path="$SCRIPT_DIR/filters/drop_caps_filter.lua"
+        elif [ -f "/usr/local/share/mdtexpdf/drop_caps_filter.lua" ]; then
+            drop_caps_filter_path="/usr/local/share/mdtexpdf/drop_caps_filter.lua"
+        fi
+
+        if [ -n "$drop_caps_filter_path" ]; then
+            LUA_FILTERS+=("$drop_caps_filter_path")
+            echo -e "${BLUE}Using Lua filter for drop caps: $drop_caps_filter_path${NC}"
+        else
+            echo -e "${YELLOW}Warning: drop_caps_filter.lua not found. Drop caps will not be applied.${NC}"
+        fi
+    fi
+
     # Build filter options
     FILTER_OPTION=""
     for filter in "${LUA_FILTERS[@]}"; do
@@ -1837,6 +2322,206 @@ EOF
         HEADER_FOOTER_VARS+=("--variable=format_article=true")
     fi
 
+    # Professional book features (passed to template)
+    BOOK_FEATURE_VARS=()
+
+    # Half-title page
+    if [ "$META_HALF_TITLE" = "true" ] || [ "$META_HALF_TITLE" = "True" ] || [ "$META_HALF_TITLE" = "TRUE" ]; then
+        BOOK_FEATURE_VARS+=("--variable=half_title=true")
+    fi
+
+    # Copyright page
+    if [ "$META_COPYRIGHT_PAGE" = "true" ] || [ "$META_COPYRIGHT_PAGE" = "True" ] || [ "$META_COPYRIGHT_PAGE" = "TRUE" ]; then
+        BOOK_FEATURE_VARS+=("--variable=copyright_page=true")
+    fi
+
+    # Dedication (from metadata - string value)
+    if [ -n "$META_DEDICATION" ] && [ "$META_DEDICATION" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=dedication=$META_DEDICATION")
+    fi
+
+    # Epigraph (from metadata - string value)
+    if [ -n "$META_EPIGRAPH" ] && [ "$META_EPIGRAPH" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=epigraph=$META_EPIGRAPH")
+    fi
+
+    # Epigraph source
+    if [ -n "$META_EPIGRAPH_SOURCE" ] && [ "$META_EPIGRAPH_SOURCE" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=epigraph_source=$META_EPIGRAPH_SOURCE")
+    fi
+
+    # Chapters on recto (odd pages only)
+    if [ "$META_CHAPTERS_ON_RECTO" = "true" ] || [ "$META_CHAPTERS_ON_RECTO" = "True" ] || [ "$META_CHAPTERS_ON_RECTO" = "TRUE" ]; then
+        BOOK_FEATURE_VARS+=("--variable=chapters_on_recto=true")
+    fi
+
+    # Drop caps
+    if [ "$META_DROP_CAPS" = "true" ] || [ "$META_DROP_CAPS" = "True" ] || [ "$META_DROP_CAPS" = "TRUE" ]; then
+        BOOK_FEATURE_VARS+=("--variable=drop_caps=true")
+    fi
+
+    # Publisher
+    if [ -n "$META_PUBLISHER" ] && [ "$META_PUBLISHER" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=publisher=$META_PUBLISHER")
+    fi
+
+    # ISBN
+    if [ -n "$META_ISBN" ] && [ "$META_ISBN" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=isbn=$META_ISBN")
+    fi
+
+    # Edition
+    if [ -n "$META_EDITION" ] && [ "$META_EDITION" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=edition=$META_EDITION")
+    fi
+
+    # Copyright year
+    if [ -n "$META_COPYRIGHT_YEAR" ] && [ "$META_COPYRIGHT_YEAR" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=copyright_year=$META_COPYRIGHT_YEAR")
+    fi
+
+    # Copyright holder (takes precedence over publisher and author)
+    if [ -n "$META_COPYRIGHT_HOLDER" ] && [ "$META_COPYRIGHT_HOLDER" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=copyright_holder=$META_COPYRIGHT_HOLDER")
+    fi
+
+    # Enhanced copyright page fields (industry standard)
+    # Edition date
+    if [ -n "$META_EDITION_DATE" ] && [ "$META_EDITION_DATE" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=edition_date=$META_EDITION_DATE")
+    fi
+
+    # Printing info
+    if [ -n "$META_PRINTING" ] && [ "$META_PRINTING" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=printing=$META_PRINTING")
+    fi
+
+    # Publisher address
+    if [ -n "$META_PUBLISHER_ADDRESS" ] && [ "$META_PUBLISHER_ADDRESS" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=publisher_address=$META_PUBLISHER_ADDRESS")
+    fi
+
+    # Publisher website
+    if [ -n "$META_PUBLISHER_WEBSITE" ] && [ "$META_PUBLISHER_WEBSITE" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=publisher_website=$META_PUBLISHER_WEBSITE")
+    fi
+
+    # === COVER SYSTEM VARIABLES ===
+    # Get input file directory for auto-detection
+    local INPUT_DIR=$(dirname "$INPUT_FILE")
+
+    # Front cover image (with auto-detection fallback)
+    local COVER_IMAGE_PATH="$META_COVER_IMAGE"
+    if [ -z "$COVER_IMAGE_PATH" ]; then
+        COVER_IMAGE_PATH=$(detect_cover_image "$INPUT_DIR" "cover")
+        if [ -n "$COVER_IMAGE_PATH" ]; then
+            echo -e "${GREEN}Auto-detected front cover image: $COVER_IMAGE_PATH${NC}"
+        fi
+    fi
+    if [ -n "$COVER_IMAGE_PATH" ] && [ -f "$COVER_IMAGE_PATH" ]; then
+        BOOK_FEATURE_VARS+=("--variable=cover_image=$COVER_IMAGE_PATH")
+    elif [ -n "$META_COVER_IMAGE" ]; then
+        # Try relative to input file
+        local RELATIVE_COVER="$INPUT_DIR/$META_COVER_IMAGE"
+        if [ -f "$RELATIVE_COVER" ]; then
+            BOOK_FEATURE_VARS+=("--variable=cover_image=$RELATIVE_COVER")
+        else
+            echo -e "${YELLOW}Warning: Cover image not found: $META_COVER_IMAGE${NC}"
+        fi
+    fi
+
+    # Cover title color
+    if [ -n "$META_COVER_TITLE_COLOR" ]; then
+        BOOK_FEATURE_VARS+=("--variable=cover_title_color=$META_COVER_TITLE_COLOR")
+    fi
+
+    # Cover subtitle show
+    if [ "$META_COVER_SUBTITLE_SHOW" = "true" ] || [ "$META_COVER_SUBTITLE_SHOW" = "True" ] || [ "$META_COVER_SUBTITLE_SHOW" = "TRUE" ]; then
+        BOOK_FEATURE_VARS+=("--variable=cover_subtitle_show=true")
+    fi
+
+    # Cover author position
+    if [ -n "$META_COVER_AUTHOR_POSITION" ] && [ "$META_COVER_AUTHOR_POSITION" != "none" ]; then
+        BOOK_FEATURE_VARS+=("--variable=cover_author_position=$META_COVER_AUTHOR_POSITION")
+    fi
+
+    # Cover overlay opacity
+    if [ -n "$META_COVER_OVERLAY_OPACITY" ]; then
+        BOOK_FEATURE_VARS+=("--variable=cover_overlay_opacity=$META_COVER_OVERLAY_OPACITY")
+    fi
+
+    # Back cover image (with auto-detection fallback)
+    local BACK_COVER_IMAGE_PATH="$META_BACK_COVER_IMAGE"
+    if [ -z "$BACK_COVER_IMAGE_PATH" ]; then
+        BACK_COVER_IMAGE_PATH=$(detect_cover_image "$INPUT_DIR" "back")
+        if [ -n "$BACK_COVER_IMAGE_PATH" ]; then
+            echo -e "${GREEN}Auto-detected back cover image: $BACK_COVER_IMAGE_PATH${NC}"
+        fi
+    fi
+    if [ -n "$BACK_COVER_IMAGE_PATH" ] && [ -f "$BACK_COVER_IMAGE_PATH" ]; then
+        BOOK_FEATURE_VARS+=("--variable=back_cover_image=$BACK_COVER_IMAGE_PATH")
+    elif [ -n "$META_BACK_COVER_IMAGE" ]; then
+        # Try relative to input file
+        local RELATIVE_BACK_COVER="$INPUT_DIR/$META_BACK_COVER_IMAGE"
+        if [ -f "$RELATIVE_BACK_COVER" ]; then
+            BOOK_FEATURE_VARS+=("--variable=back_cover_image=$RELATIVE_BACK_COVER")
+        else
+            echo -e "${YELLOW}Warning: Back cover image not found: $META_BACK_COVER_IMAGE${NC}"
+        fi
+    fi
+
+    # Back cover content type
+    if [ -n "$META_BACK_COVER_CONTENT" ]; then
+        BOOK_FEATURE_VARS+=("--variable=back_cover_content=$META_BACK_COVER_CONTENT")
+    fi
+
+    # Back cover quote
+    if [ -n "$META_BACK_COVER_QUOTE" ] && [ "$META_BACK_COVER_QUOTE" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=back_cover_quote=$META_BACK_COVER_QUOTE")
+    fi
+
+    # Back cover quote source
+    if [ -n "$META_BACK_COVER_QUOTE_SOURCE" ] && [ "$META_BACK_COVER_QUOTE_SOURCE" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=back_cover_quote_source=$META_BACK_COVER_QUOTE_SOURCE")
+    fi
+
+    # Back cover summary
+    if [ -n "$META_BACK_COVER_SUMMARY" ] && [ "$META_BACK_COVER_SUMMARY" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=back_cover_summary=$META_BACK_COVER_SUMMARY")
+    fi
+
+    # Back cover custom text
+    if [ -n "$META_BACK_COVER_TEXT" ] && [ "$META_BACK_COVER_TEXT" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=back_cover_text=$META_BACK_COVER_TEXT")
+    fi
+
+    # Back cover author bio
+    if [ "$META_BACK_COVER_AUTHOR_BIO" = "true" ] || [ "$META_BACK_COVER_AUTHOR_BIO" = "True" ] || [ "$META_BACK_COVER_AUTHOR_BIO" = "TRUE" ]; then
+        BOOK_FEATURE_VARS+=("--variable=back_cover_author_bio=true")
+    fi
+
+    # Back cover author bio text
+    if [ -n "$META_BACK_COVER_AUTHOR_BIO_TEXT" ] && [ "$META_BACK_COVER_AUTHOR_BIO_TEXT" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=back_cover_author_bio_text=$META_BACK_COVER_AUTHOR_BIO_TEXT")
+    fi
+
+    # Back cover ISBN barcode placeholder
+    if [ "$META_BACK_COVER_ISBN_BARCODE" = "true" ] || [ "$META_BACK_COVER_ISBN_BARCODE" = "True" ] || [ "$META_BACK_COVER_ISBN_BARCODE" = "TRUE" ]; then
+        BOOK_FEATURE_VARS+=("--variable=back_cover_isbn_barcode=true")
+    fi
+
+    # === AUTHORSHIP & SUPPORT SYSTEM VARIABLES ===
+    # Author public key
+    if [ -n "$META_AUTHOR_PUBKEY" ] && [ "$META_AUTHOR_PUBKEY" != "null" ]; then
+        BOOK_FEATURE_VARS+=("--variable=author_pubkey=$META_AUTHOR_PUBKEY")
+        BOOK_FEATURE_VARS+=("--variable=author_pubkey_type=$META_AUTHOR_PUBKEY_TYPE")
+    fi
+
+    # Donation wallets (pre-formatted LaTeX string)
+    if [ -n "$META_DONATION_WALLETS" ]; then
+        BOOK_FEATURE_VARS+=("--variable=donation_wallets=$META_DONATION_WALLETS")
+    fi
+
     pandoc "$INPUT_FILE" \
         --from markdown \
         --to pdf \
@@ -1852,6 +2537,7 @@ EOF
         $SECTION_NUMBERING_OPTION \
         "${FOOTER_VARS[@]}" \
         "${HEADER_FOOTER_VARS[@]}" \
+        "${BOOK_FEATURE_VARS[@]}" \
         --standalone
 
     # Check if conversion was successful
@@ -2039,7 +2725,7 @@ install() {
 
         # Copy the Lua filters if they exist
         SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-        
+
         # Copy heading fix filter
         if [ -f "$SCRIPT_DIR/heading_fix_filter.lua" ]; then
             sudo cp "$SCRIPT_DIR/heading_fix_filter.lua" /usr/local/share/mdtexpdf/
@@ -2052,7 +2738,7 @@ install() {
         else
             echo -e "${YELLOW}Warning: heading_fix_filter.lua not found. Level 4 and 5 headings may run inline.${NC}"
         fi
-        
+
         # Copy long equation filter
         if [ -f "$SCRIPT_DIR/long_equation_filter.lua" ]; then
             sudo cp "$SCRIPT_DIR/long_equation_filter.lua" /usr/local/share/mdtexpdf/
@@ -2065,7 +2751,7 @@ install() {
         else
             echo -e "${YELLOW}Warning: long_equation_filter.lua not found. Long equations may not wrap properly.${NC}"
         fi
-        
+
         # Copy image size filter
         if [ -f "$SCRIPT_DIR/image_size_filter.lua" ]; then
             sudo cp "$SCRIPT_DIR/image_size_filter.lua" /usr/local/share/mdtexpdf/
@@ -2094,9 +2780,25 @@ install() {
         else
             echo -e "${YELLOW}Warning: book_structure.lua not found. Book format may not work correctly.${NC}"
         fi
-        
+
+        # Install drop_caps_filter.lua filter
+        local drop_caps_filter_src=""
+        if [ -f "$SCRIPT_DIR/filters/drop_caps_filter.lua" ]; then
+            drop_caps_filter_src="$SCRIPT_DIR/filters/drop_caps_filter.lua"
+        elif [ -f "$(pwd)/filters/drop_caps_filter.lua" ]; then
+            drop_caps_filter_src="$(pwd)/filters/drop_caps_filter.lua"
+        fi
+
+        if [ -n "$drop_caps_filter_src" ]; then
+            sudo cp "$drop_caps_filter_src" /usr/local/share/mdtexpdf/
+            sudo chmod 644 /usr/local/share/mdtexpdf/drop_caps_filter.lua
+            echo -e "${GREEN}✓ Installed drop_caps_filter.lua for drop caps${NC}"
+        else
+            echo -e "${YELLOW}Warning: drop_caps_filter.lua not found. Drop caps will not be available.${NC}"
+        fi
+
         # Copy templates to the shared directory
-        
+
         # Look for templates in various locations
         if [ -d "$SCRIPT_DIR/templates" ]; then
             sudo cp -r "$SCRIPT_DIR/templates/"* /usr/local/share/mdtexpdf/templates/
@@ -2105,7 +2807,7 @@ install() {
             sudo cp "$SCRIPT_DIR/template.tex" /usr/local/share/mdtexpdf/templates/
             sudo chmod 644 /usr/local/share/mdtexpdf/templates/template.tex
         fi
-        
+
         # Copy example files
         if [ -d "$SCRIPT_DIR/examples" ]; then
             sudo cp -r "$SCRIPT_DIR/examples/"* /usr/local/share/mdtexpdf/examples/
@@ -2138,10 +2840,10 @@ uninstall() {
     if sudo -v; then
         echo -e "${YELLOW}Removing executable...${NC}"
         sudo rm -f /usr/local/bin/mdtexpdf
-        
+
         echo -e "${YELLOW}Removing shared files...${NC}"
         sudo rm -rf /usr/local/share/mdtexpdf
-        
+
         echo -e "${PURPLE}mdtexpdf has been uninstalled successfully.${NC}"
         echo
     else
@@ -2155,13 +2857,13 @@ help() {
     echo -e "\n${YELLOW}═══════════════════════════════════════════${NC}"
     echo -e "${YELLOW}         mdtexpdf - Markdown to PDF         ${NC}"
     echo -e "${YELLOW}═══════════════════════════════════════════${NC}\n"
-    
+
     echo -e "${PURPLE}Description:${NC} mdtexpdf is a tool for converting Markdown documents to PDF using LaTeX templates."
     echo -e "${PURPLE}             It supports LaTeX math equations, custom templates, and more.${NC}"
     echo -e "${PURPLE}Usage:${NC}       mdtexpdf <command> [arguments]"
     echo -e "${PURPLE}License:${NC}     Apache 2.0"
     echo -e "${PURPLE}Code:${NC}        https://github.com/ucli-tools/mdtexpdf\n"
-    
+
     echo -e "${PURPLE}Commands:${NC}"
     echo -e "  ${GREEN}convert [options] <input.md> [output.pdf]${NC}"
     echo -e "                  ${BLUE}Convert a Markdown file to PDF using LaTeX${NC}"
@@ -2189,33 +2891,33 @@ help() {
     echo -e "                    ${BLUE}--header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default${NC}"
   echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert -a \"John Doe\" -t \"My Document\" --toc --toc-depth 3 document.md output.pdf\n"
-    
+
     echo -e "  ${GREEN}create <output.md> [title] [author]${NC}"
     echo -e "                  ${BLUE}Create a new Markdown document with LaTeX template${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf create document.md"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf create document.md \"My Title\" \"Author Name\"\n"
-    
+
     echo -e "  ${GREEN}check${NC}"
     echo -e "                  ${BLUE}Check if all prerequisites are installed${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf check\n"
-    
+
     echo -e "  ${GREEN}install${NC}"
     echo -e "                  ${BLUE}Install mdtexpdf system-wide${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf install\n"
-    
+
     echo -e "  ${GREEN}uninstall${NC}"
     echo -e "                  ${BLUE}Remove mdtexpdf from the system${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf uninstall\n"
-    
+
     echo -e "  ${GREEN}help${NC}"
     echo -e "                  ${BLUE}Display this help information${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf help\n"
-    
+
     echo -e "${PURPLE}Prerequisites:${NC}"
     echo -e "  - Pandoc: Document conversion tool"
     echo -e "  - LaTeX: PDF generation engine (pdflatex, xelatex, or lualatex)"
     echo -e "  - LaTeX Packages: Various packages for formatting and math support\n"
-    
+
     echo -e "${PURPLE}For more information, see the README.md file.${NC}\n"
 }
 

@@ -31,7 +31,7 @@ book_name/
 
 ### Single File vs. Multiple Files
 
-For most books, a single markdown file is recommended. The file should be named after the directory (e.g., `blue_skies.md` in `blue_skies/` directory).
+For most books, a single markdown file is recommended. The file should be named after the directory (e.g., `my_book.md` in `my_book/` directory).
 
 ---
 
@@ -110,9 +110,9 @@ narrator: "AI Narrator"
 
 | Field | Description | Example |
 |-------|-------------|---------|
-| `title` | Book title | `"The Example Book"` |
-| `subtitle` | Subtitle (book format, shown under title) | `"A Study in Atmospheric Science"` |
-| `author` | Author name | `"Jane Smith"` |
+| `title` | Book title | `"Book Title"` |
+| `subtitle` | Subtitle (book format, shown under title) | `"A Study in the Subject"` |
+| `author` | Author name | `"Author Name"` |
 | `email` | Author email (book format, next to author) | `"author@example.com"` |
 | `date` | Publication date | `"January 2026"` |
 | `description` | Brief description | `"Exploring data analysis..."` |
@@ -370,14 +370,187 @@ d &= e + f
 \end{align}$$
 ```
 
-### Chemical Equations
+### Chemistry
 
-mdtexpdf supports chemical formulas using the mhchem package:
+mdtexpdf supports chemical formulas using the mhchem package with the `\ce{}` command.
+
+#### Inline Chemical Formulas
+
+For chemical formulas within text, use `$\ce{...}$`:
 
 ```markdown
-$$\ce{H2O}$$
+Water ($\ce{H2O}$) is essential for life.
 
+Acetic acid ($\ce{CH3COOH}$) is the active component of vinegar.
+
+The hydroxide ion ($\ce{OH-}$) is a common base.
+```
+
+#### Chemical Equations (Block)
+
+For standalone chemical equations, use `$$\ce{...}$$`:
+
+```markdown
+The combustion of methane:
+
+$$\ce{CH4 + 2O2 -> CO2 + 2H2O}$$
+
+Acid-base neutralization:
+
+$$\ce{HCl + NaOH -> NaCl + H2O}$$
+```
+
+#### Chemical Reaction Arrows
+
+| Arrow | Syntax | Meaning |
+|-------|--------|---------|
+| `->` | `\ce{A -> B}` | Forward reaction |
+| `<-` | `\ce{A <- B}` | Reverse reaction |
+| `<->` | `\ce{A <-> B}` | Resonance |
+| `<=>` | `\ce{A <=> B}` | Equilibrium |
+| `<=>>` | `\ce{A <=>> B}` | Equilibrium (forward favored) |
+| `<<=>` | `\ce{A <<=> B}` | Equilibrium (reverse favored) |
+
+**Equilibrium example:**
+
+```markdown
+$$\ce{CH3COOH <=> CH3COO- + H+}$$
+```
+
+#### Common Chemical Formulas
+
+```markdown
+# Simple molecules
+$\ce{H2O}$, $\ce{CO2}$, $\ce{O2}$, $\ce{N2}$, $\ce{H2}$
+
+# Acids
+$\ce{HCl}$, $\ce{H2SO4}$, $\ce{HNO3}$, $\ce{CH3COOH}$
+
+# Bases
+$\ce{NaOH}$, $\ce{KOH}$, $\ce{Ca(OH)2}$, $\ce{NH3}$
+
+# Salts
+$\ce{NaCl}$, $\ce{CaCO3}$, $\ce{Na2SO4}$
+
+# Ions
+$\ce{H+}$, $\ce{OH-}$, $\ce{Na+}$, $\ce{Cl-}$, $\ce{SO4^2-}$, $\ce{CO3^2-}$
+
+# Complex formulas
+$\ce{Ca(CH3COO)2}$, $\ce{Al2O3}$, $\ce{Fe2O3}$, $\ce{Fe3O4}$
+```
+
+#### Charges and Oxidation States
+
+```markdown
+# Ionic charges
+$\ce{Fe^2+}$, $\ce{Fe^3+}$, $\ce{O^2-}$
+
+# Oxidation states
+$\ce{Fe^{II}}$, $\ce{Fe^{III}}$
+
+# Radical dot
+$\ce{Cl.}$
+```
+
+#### Stoichiometry
+
+```markdown
 $$\ce{2H2 + O2 -> 2H2O}$$
+
+$$\ce{6CO2 + 6H2O -> C6H12O6 + 6O2}$$
+```
+
+#### State Symbols
+
+```markdown
+$\ce{H2O (l)}$    # liquid
+$\ce{NaCl (s)}$   # solid
+$\ce{CO2 (g)}$    # gas
+$\ce{NaCl (aq)}$  # aqueous
+```
+
+#### Important: Avoid Unicode Subscripts/Superscripts
+
+**Do NOT use Unicode subscript/superscript characters** in chemical formulas. While mdtexpdf can render them, the `\ce{}` command produces better typography.
+
+| Incorrect (Unicode) | Correct (mhchem) |
+|---------------------|------------------|
+| `H₂O` | `$\ce{H2O}$` |
+| `CO₂` | `$\ce{CO2}$` |
+| `CH₃COOH` | `$\ce{CH3COOH}$` |
+| `H⁺` | `$\ce{H+}$` |
+| `OH⁻` | `$\ce{OH-}$` |
+| `Fe²⁺` | `$\ce{Fe^2+}$` |
+
+The mhchem package automatically handles subscripts for numbers and superscripts for charges, producing professional chemical typesetting.
+
+---
+
+### Unicode Support and Special Symbols
+
+mdtexpdf supports various Unicode characters, but for best results, use LaTeX commands when available.
+
+#### Supported Unicode Symbols (pdfLaTeX)
+
+**Greek Letters** - Use directly or via LaTeX:
+
+```markdown
+α, β, γ, δ, ε, ζ, η, θ, ι, κ, λ, μ, ν, ξ, π, ρ, σ, τ, υ, φ, χ, ψ, ω
+Γ, Δ, Θ, Λ, Ξ, Π, Σ, Υ, Φ, Ψ, Ω
+
+Or in math mode: $\alpha$, $\beta$, $\gamma$, etc.
+```
+
+**Mathematical Symbols** - Supported in text and math:
+
+```markdown
+∞ (infinity), ∫ (integral), ∑ (sum), ∏ (product), √ (sqrt)
+∂ (partial), ∇ (nabla), ∈ (in), ∉ (not in), ⊂ (subset)
+≠ (not equal), ≤ (leq), ≥ (geq), ≈ (approx), ≡ (equiv)
+```
+
+**Arrows** - Supported directly:
+
+```markdown
+→ (right arrow), ← (left arrow), ↔ (left-right arrow)
+⇒ (implies), ⇐ (implied by), ⇔ (iff)
+⇌ (equilibrium/reversible reaction)
+```
+
+**Subscripts and Superscripts** - Supported but LaTeX preferred:
+
+```markdown
+# These work but are not recommended:
+₀₁₂₃₄₅₆₇₈₉ (subscript digits)
+⁰¹²³⁴⁵⁶⁷⁸⁹ (superscript digits)
+⁺⁻ (superscript plus/minus)
+₊₋ (subscript plus/minus)
+
+# Preferred approach in math mode:
+$x_0$, $x_1$, $x^2$, $x^{-1}$
+```
+
+#### Best Practices for Special Content
+
+| Content Type | Recommended Approach |
+|--------------|---------------------|
+| Chemical formulas | `$\ce{H2O}$` (mhchem) |
+| Math expressions | `$x^2 + y^2$` (LaTeX math) |
+| Greek in text | Direct Unicode: α, β, γ |
+| Greek in math | `$\alpha$`, `$\beta$` |
+| Arrows in text | Direct Unicode: → |
+| Arrows in math | `$\rightarrow$` |
+| Subscript numbers | `$x_1$` not `x₁` |
+| Superscript numbers | `$x^2$` not `x²` |
+
+#### CJK (Chinese, Japanese, Korean) Support
+
+For documents containing CJK characters, mdtexpdf automatically switches to XeLaTeX with xeCJK support. No special configuration needed.
+
+```markdown
+中文文本 (Chinese)
+日本語テキスト (Japanese)
+한국어 텍스트 (Korean)
 ```
 
 ---
@@ -644,6 +817,15 @@ mdtexpdf check
 ```
 Inline: $x^2$
 Display: $$\frac{a}{b}$$
+```
+
+### Chemistry
+
+```
+Inline: $\ce{H2O}$, $\ce{CO2}$, $\ce{CH3COOH}$
+Ions: $\ce{H+}$, $\ce{OH-}$, $\ce{Fe^2+}$
+Reaction: $$\ce{2H2 + O2 -> 2H2O}$$
+Equilibrium: $$\ce{A <=> B}$$
 ```
 
 ### Lists

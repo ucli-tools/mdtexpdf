@@ -7,29 +7,21 @@
 - [Features](#features)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
-  - [Using the Makefile](#using-the-makefile)
-  - [Manual Installation](#manual-installation)
 - [Usage](#usage)
   - [Converting Markdown to PDF](#converting-markdown-to-pdf)
-    - [Non-Interactive Mode with Command-Line Arguments](#non-interactive-mode-with-command-line-arguments)
-    - [Header/Footer Policy Control](#headerfooter-policy-control)
-      - [Format Compatibility](#format-compatibility)
-    - [Complete Metadata Reference](#complete-metadata-reference)
-      - [Document Information](#document-information)
-      - [Document Structure](#document-structure)
-      - [Table of Contents](#table-of-contents)
-      - [Section Numbering](#section-numbering)
-      - [Headers and Footers](#headers-and-footers)
-      - [HTML Comment Format](#html-comment-format)
-      - [Complete Example](#complete-example)
-  - [Creating New Markdown Documents](#creating-new-markdown-documents)
-  - [LaTeX Math Support](#latex-math-support)
-  - [Customizing Templates](#customizing-templates)
+  - [Command-Line Options](#command-line-options)
+  - [Header/Footer Policy](#headerfooter-policy)
+  - [Metadata Reference](#metadata-reference)
+- [Professional Book Features](#professional-book-features)
+  - [Front Matter Pages](#front-matter-pages)
+  - [Cover System](#cover-system)
+  - [Authorship & Support](#authorship--support)
+  - [Drop Caps](#drop-caps)
+- [LaTeX Math & Chemistry](#latex-math--chemistry)
+- [Documentation](#documentation)
 - [Examples](#examples)
 - [Troubleshooting](#troubleshooting)
-- [Using Makefile](#using-makefile)
 - [License](#license)
-  - [🌐 Free and Open Source Software (FOSS)](#-free-and-open-source-software-foss)
 
 ## Introduction
 
@@ -37,54 +29,63 @@ mdtexpdf is a command-line tool designed to simplify the process of creating pro
 
 ## Repository Structure
 
-- `mdtexpdf.sh`: Main script for converting Markdown to PDF
-- `templates/`: Directory containing LaTeX templates
-  - `template.tex`: Default LaTeX template with template footer
-- `examples/`: Directory containing example Markdown files
-  - `document.md`: Basic Markdown document example
-  - `example.md`: Comprehensive example with various LaTeX math equations
-- `Makefile`: For easy installation and management
-- `.gitignore`: Configured to exclude generated PDFs and LaTeX temporary files
-- `LICENSE`: Apache 2.0 license
-- `CONTRIBUTING.md`: Guidelines for contributing to the project
+```
+mdtexpdf/
+├── mdtexpdf.sh              # Main conversion script
+├── Makefile                 # Installation automation
+├── metadata_template.yaml   # Metadata template for new documents
+├── long_equation_filter.lua # Equation line-breaking filter
+├── docs/
+│   ├── mdtexpdf_guide.md    # Comprehensive user guide
+│   ├── METADATA.md          # Complete metadata field reference
+│   ├── AUTHORSHIP.md        # Authorship verification guide
+│   ├── syntax.md            # Math and chemistry syntax reference
+│   └── tests/               # Test markdown files
+├── filters/
+│   ├── book_structure.lua   # Part/chapter/special page handling
+│   └── drop_caps_filter.lua # Decorative first letters
+└── examples/                # Example documents with PDFs
+```
 
 ## Features
 
-- **Markdown to PDF Conversion**: Convert Markdown files to beautifully formatted PDFs
-- **LaTeX Math Support**: Include inline and display math equations using LaTeX syntax
-- **Custom Templates**: Use and customize LaTeX templates for consistent document styling
-- **YAML Frontmatter**: Set document metadata like title, author, and date
-- **Book front page metadata**: Optional subtitle under the title and author email next to the author (book format only)
-- **Automatic Prerequisites Check**: Verify all required software and packages are installed
-- **Custom Footer**: Include copyright or other information in the document footer
-- **Header/Footer Policy Control**: Three-tier policy system for controlling headers and footers on different page types
+### Core Features
+- **Markdown to PDF Conversion**: Convert Markdown files to professionally formatted PDFs
+- **LaTeX Math Support**: Inline (`$...$`) and display (`$$...$$`) equations
+- **Chemical Equations**: Full mhchem support (`\ce{H2O}`, `\ce{CH3COOH <=> CH3COO- + H+}`)
 - **Code Highlighting**: Syntax highlighting for code blocks
-- **Tables and Figures**: Support for tables, images, and other Markdown elements
-- **Theorem Environments**: Use LaTeX theorem environments in your Markdown
-- **Chemical Equations**: Support for chemical formulas and equations
-- **CJK Character Support**: Full support for Chinese, Japanese, and Korean characters while preserving Western quote formatting
-- **Automatic Equation Line Breaking**: Long mathematical equations automatically wrap to fit the page width
-- **Section Numbering Control**: Option to disable section numbering for cleaner documents
-- **Easy Installation**: Simple install and uninstall process
-- **User-Friendly**: Colorized output and helpful error messages
+- **Tables and Figures**: Full support for Markdown tables and images
+- **YAML Frontmatter**: Comprehensive metadata configuration
+
+### Professional Book Features
+- **Front Matter Pages**: Half-title, copyright page, dedication, and epigraph
+- **Cover System**: Front and back cover images with text overlay
+- **Authorship & Support**: Embedded PGP key verification and donation wallet addresses
+- **Drop Caps**: Decorative first letters for chapter openings
+- **Chapter Formatting**: Chapters on recto pages, part pages, special sections
+
+### Typography & Formatting
+- **Header/Footer Policy**: Three-tier system (default, partial, all) for page headers/footers
+- **Unicode Support**: Subscripts (₀₁₂₃), superscripts (⁰¹²³⁺⁻), chemistry arrows (⇌)
+- **CJK Support**: Chinese, Japanese, and Korean characters
+- **Automatic Line Breaking**: Long equations wrap to fit page width
+- **Section Numbering Control**: Enable or disable numbered sections
+
+### Usability
+- **Automatic Prerequisites Check**: Verifies required software and packages
+- **Multiple PDF Engines**: pdfLaTeX, XeLaTeX, LuaLaTeX with auto-detection
+- **Easy Installation**: Simple Makefile-based install
 
 ## Prerequisites
 
-To use mdtexpdf, you need:
-
-- [Pandoc](https://pandoc.org/installing.html) - Required for Markdown to LaTeX conversion
-- A LaTeX distribution:
+- [Pandoc](https://pandoc.org/installing.html) - Markdown to LaTeX conversion
+- LaTeX distribution:
   - Linux: TexLive (`texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-science`)
   - macOS: MacTeX or BasicTeX
   - Windows: MiKTeX
-- Required LaTeX packages (automatically checked by the tool)
-- For CJK character support: Noto Sans CJK fonts (`fonts-noto-cjk` on Debian/Ubuntu)
+- For CJK support: Noto Sans CJK fonts (`fonts-noto-cjk` on Debian/Ubuntu)
 
 ## Installation
-
-### Using the Makefile
-
-If you have `make` installed, you can simply run:
 
 ```bash
 git clone https://github.com/ucli-tools/mdtexpdf.git
@@ -92,350 +93,195 @@ cd mdtexpdf
 make
 ```
 
-### Manual Installation
-
-Alternatively, you can install manually:
-
-```bash
-git clone https://github.com/ucli-tools/mdtexpdf.git
-cd mdtexpdf
-chmod +x mdtexpdf.sh
-./mdtexpdf.sh install
-```
-
-This will copy the script to `/usr/local/bin/mdtexpdf` and the template to `/usr/local/share/mdtexpdf/`, making it accessible system-wide. You'll need to enter your sudo password.
+This installs `mdtexpdf` to `/usr/local/bin/` for system-wide access.
 
 ## Usage
 
-After installation, you can use mdtexpdf with the following commands:
-
 ### Converting Markdown to PDF
 
-Convert a Markdown file to PDF:
-
 ```bash
-mdtexpdf convert document.md
+mdtexpdf convert document.md                    # Basic conversion
+mdtexpdf convert document.md output.pdf         # Specify output filename
+mdtexpdf convert -t "Title" -a "Author" doc.md  # With metadata
 ```
 
-The tool will automatically:
-- Check for all prerequisites
-- Find or create a template.tex file (prompting for customization if needed)
-- Convert the Markdown to a beautifully formatted PDF
+### Command-Line Options
 
-Specify an output filename:
+| Option | Description |
+|--------|-------------|
+| `-t, --title` | Document title |
+| `-a, --author` | Author name |
+| `-d, --date` | Document date |
+| `-f, --footer` | Custom footer text |
+| `--no-footer` | Disable footer |
+| `--no-numbers` | Disable section numbering |
+| `--header-footer-policy` | `default`, `partial`, or `all` |
 
-```bash
-mdtexpdf convert document.md output.pdf
-```
+### Header/Footer Policy
 
-You can run this command from any directory - the tool will intelligently search for templates in standard locations or create one if needed.
+- **`default`**: No headers/footers on title, part, or chapter pages
+- **`partial`**: Headers/footers on part/chapter pages, not title page
+- **`all`**: Headers/footers on all pages
 
-#### Non-Interactive Mode with Command-Line Arguments
+### Metadata Reference
 
-For automated workflows or batch processing, you can bypass the interactive prompts by providing command-line arguments:
+Configure documents using YAML frontmatter:
 
-```bash
-mdtexpdf convert -t "Document Title" -a "Author Name" -d "May 2, 2025" document.md
-```
-
-Available options:
-- `-t, --title TITLE`: Set the document title
-- `-a, --author AUTHOR`: Set the document author
-- `-d, --date DATE`: Set the document date
-- `-f, --footer TEXT`: Set custom footer text
-- `--no-footer`: Disable the footer completely
-- `--no-numbers`: Disable section numbering (1.1, 1.2, etc.)
-- `--header-footer-policy POLICY`: Set header/footer policy (`default`, `partial`, `all`)
-
-Example for automated testing or CI/CD pipelines:
-
-```bash
-mdtexpdf convert examples/example1.md -a "Test Author" -t "Test Document" -d "Today" --no-footer
-```
-
-To create a document without numbered sections:
-
-```bash
-mdtexpdf convert document.md -t "Clean Document" -a "Author Name" --no-numbers
-```
-
-Example with header/footer policy for a book-style document:
-
-```bash
-mdtexpdf convert book.md -t "My Book" -a "Author Name" --header-footer-policy all
-```
-
-When these arguments are provided, the tool will not prompt for any information and will use the specified values instead.
-
-#### Header/Footer Policy Control
-
-mdtexpdf provides a three-tier policy system for controlling when headers and footers appear on different page types:
-
-- **`default`** (default): No headers/footers on title, part, or chapter pages (original behavior)
-- **`partial`**: Headers/footers on part and chapter pages, but NOT on title page
-- **`all`**: Headers/footers on ALL pages including title, part, and chapter pages
-
-You can set the policy using the command-line option:
-
-```bash
-mdtexpdf convert --header-footer-policy all document.md
-```
-
-Or by adding it to your document's metadata:
-
-```markdown
-<!--
-title: "My Document"
+```yaml
+---
+title: "Document Title"
 author: "Author Name"
-header_footer_policy: "all"
--->
-```
-
-This is particularly useful for:
-- **Academic papers**: Use `default` for clean title pages
-- **Technical documentation**: Use `partial` for professional appearance
-- **Books and reports**: Use `all` for consistent branding throughout
-
-##### Format Compatibility
-
-The header/footer policy system now works seamlessly with both document formats:
-
-- **Article Format** (`format: "article"`): 
-  - Uses standard LaTeX `\maketitle` for clean, academic-style title formatting
-  - With `header_footer_policy: "all"`, provides professional headers/footers while maintaining article aesthetics
-  - Perfect for papers, articles, and technical documentation
-
-- **Book Format** (`format: "book"`):
-  - Uses custom full-page title layout with enhanced typography
-  - Supports optional subtitle (beneath title) and author email (next to author) on the front page; headers remain unchanged
-  - With `header_footer_policy: "all"`, creates book-style title pages with consistent branding
-  - Ideal for books, reports, and multi-chapter documents
-
-**Example: Professional Article with Headers/Footers**
-```yaml
----
-title: "Research Paper Title"
-author: "Author Name"
-format: "article"                    # Clean article formatting
-header_footer_policy: "all"         # Professional headers/footers
-pageof: true                         # Page X of Y numbering
-date_footer: true                    # Date in footer
----
-```
-
-This combination provides the best of both worlds: clean academic formatting with professional document presentation.
-
-#### Complete Metadata Reference
-
-mdtexpdf supports extensive metadata configuration through YAML frontmatter or HTML comments. Here's a comprehensive reference:
-
-##### Document Information
-```yaml
----
-# Basic document information
-title: "Document Title"              # Document title (overrides H1)
-author: "Author Name"                # Document author
-subtitle: "Optional subtitle"        # Book front page only; shown under title
-email: "author@example.com"          # Book front page only; shown next to author
-date: "2025-01-20"                   # Document date
-description: "Brief description"     # Document description (for metadata)
-language: "en"                       # Document language
----
-```
-
-##### Document Structure
-```yaml
----
-# Document format and organization
-format: "article"                   # "article" (default) or "book"
-section: "category"                 # Section/category for organization
-slug: "document-slug"               # URL-friendly identifier
----
-```
-
-##### Table of Contents
-```yaml
----
-# Table of contents control
-toc: true                           # Enable/disable TOC (true/false)
-toc_depth: 3                        # TOC depth (1-5, default: 2)
-                                    # 1=sections, 2=subsections, 3=subsubsections
----
-```
-
-##### Section Numbering
-```yaml
----
-# Section numbering control (choose one)
-section_numbers: false              # Disable section numbering
-no_numbers: true                    # Alternative way to disable numbering
----
-```
-
-##### Headers and Footers
-```yaml
----
-# Header/footer policy and content
-header_footer_policy: "all"         # "default", "partial", or "all"
-footer: "© 2025 Company. All rights reserved."  # Custom footer text
-no_footer: true                     # Disable all footers
-pageof: true                        # Enable "Page X of Y" format
-date_footer: true                   # Include date in footer
----
-```
-
-##### HTML Comment Format
-
-You can also use HTML comments instead of YAML frontmatter:
-
-```markdown
-<!--
-title: "My Document"
-author: "Author Name"
-format: "article"
-header_footer_policy: "all"
+subtitle: "Optional subtitle"           # Book format only
+date: "January 2026"
+format: "book"                          # "article" or "book"
 toc: true
-toc_depth: 2
-pageof: true
-date_footer: true
-footer: "© 2025 Organization. All rights reserved."
--->
-
-# Document Content Starts Here
+header_footer_policy: "all"
+footer: "© 2026 Author. All rights reserved."
+pageof: true                            # Page X of Y
+---
 ```
 
-##### Complete Example
+For complete metadata reference, see [docs/METADATA.md](docs/METADATA.md).
+
+## Professional Book Features
+
+mdtexpdf supports professional book publishing with front matter, covers, and authorship verification.
+
+### Front Matter Pages
+
+Create professional front matter with these metadata fields:
 
 ```yaml
 ---
-# Complete metadata example
-title: "Advanced Research Paper"
-author: "Dr. Jane Smith"
-date: "2025-01-20"
-description: "Comprehensive analysis of quantum computing applications"
-language: "en"
+format: "book"
+half_title: true                        # Title-only page before main title
+copyright_page: true                    # Copyright and publishing info
+dedication: "To those who inspire."     # Dedication page
+epigraph: "A meaningful quote..."       # Opening quote
+epigraph_source: "Author Name"          # Quote attribution
 
-# Document structure
-format: "article"                   # Clean article formatting
-section: "research"
-slug: "quantum-computing-analysis"
-
-# Table of contents
-toc: true                           # Include TOC
-toc_depth: 3                        # Show up to subsubsections
-
-# Section numbering
-section_numbers: true               # Enable numbered sections
-
-# Headers and footers
-header_footer_policy: "all"         # Professional headers/footers on all pages
-footer: "© 2025 Research Institute | institute.org"
-pageof: true                        # "Page 1 of 15" format
-date_footer: true                   # Include date in footer
+# Copyright page details
+publisher: "Publisher Name"
+copyright_year: 2026
+edition: "First Edition"
+printing: "First Printing, January 2026"
 ---
 ```
 
-**Note**: Command-line arguments take precedence over metadata. Use `--read-metadata` to apply document metadata automatically.
+### Cover System
 
-### Creating New Markdown Documents
+Add front and back cover images with text overlay:
 
-Create a new Markdown document with LaTeX template (interactive mode):
+```yaml
+---
+# Front cover (première de couverture)
+cover_image: "img/cover.jpg"            # Background image
+cover_title_color: "white"              # Title text color
+cover_subtitle_show: true               # Show subtitle on cover
+cover_author_position: "bottom"         # Author position: top, center, bottom
+cover_overlay_opacity: 0.3              # Dark overlay for readability (0-1)
 
-```bash
-mdtexpdf create document.md
+# Back cover (quatrième de couverture)
+back_cover_image: "img/back.jpg"
+back_cover_content: "quote"             # quote, summary, or custom
+back_cover_quote: "A compelling excerpt from the book..."
+back_cover_quote_source: "From Chapter 1"
+back_cover_author_bio: true
+back_cover_author_bio_text: "Author bio text here."
+---
 ```
 
-This will prompt you for:
-- Document title
-- Author name
-- Document date
-- Whether you want a footer (if a template doesn't exist)
-- Custom footer text or use the default "© All rights reserved [YEAR]"
+Cover images are auto-detected in `img/`, `images/`, or project root if not specified.
 
-You can also specify title and author directly:
+### Authorship & Support
 
-```bash
-mdtexpdf create document.md "My Document Title" "Author Name"
+Embed cryptographic authorship verification and donation addresses for an "open source book" that can prove authorship without relying on external services:
+
+```yaml
+---
+# Authorship verification (PGP/GPG key fingerprint)
+author_pubkey: "4A2B 8C3D E9F1 7A6B 2C4D 9E8F 1A3B 5C7D 8E9F 0A1B"
+author_pubkey_type: "PGP"
+
+# Support the author (multiple wallets)
+donation_wallets:
+  - type: "Bitcoin"
+    address: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+  - type: "Ethereum"
+    address: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F"
+  - type: "Monero"
+    address: "48daf1rG3hE1Txap..."
+---
 ```
 
-The tool will automatically create a template.tex file if one doesn't exist, prompting you for customization options like the footer text.
+This creates an "Authorship & Support" page after the copyright page. See [docs/AUTHORSHIP.md](docs/AUTHORSHIP.md) for the complete guide on setting up PGP keys.
 
-### LaTeX Math Support
+### Drop Caps
 
-mdtexpdf supports LaTeX math equations in your Markdown files:
+Enable decorative first letters for chapter openings:
 
-- **Inline equations**: Use `$E = mc^2$` or `\(F = ma\)`
-- **Display equations**: Use `$$\int_{a}^{b} f(x) \, dx$$` or `\begin{equation}...\end{equation}`
-- **Automatic line breaking**: Long display equations with text content will automatically wrap to fit the page width, preventing content from extending beyond the page margins in the PDF output. This is handled by custom LaTeX settings and a Lua filter that detects text-heavy equations.
+```yaml
+---
+drop_caps: true
+---
+```
 
-### Customizing Templates
+The first letter of each chapter becomes a large decorative capital.
 
-You can modify the LaTeX template (`template.tex`) to:
+## LaTeX Math & Chemistry
 
-- Add, remove, or change the footer text
-- Adjust page margins and layout
-- Add additional LaTeX packages
-- Customize the document style
+### Math Equations
 
-When creating a new document or converting an existing one, if no template is found, the tool will:
-1. Ask if you want to include a footer
-2. Let you specify custom footer text or use the default "© All rights reserved [YEAR]"
-3. Create a template with your preferences
+```markdown
+Inline: $E = mc^2$
+Display: $$\int_{a}^{b} f(x) \, dx$$
+```
+
+### Chemical Formulas
+
+Using mhchem package:
+```markdown
+Water: $\ce{H2O}$
+Reaction: $$\ce{2H2 + O2 -> 2H2O}$$
+Equilibrium: $$\ce{CH3COOH <=> CH3COO- + H+}$$
+```
+
+Unicode is also supported: H₂O, CO₂, Fe²⁺, ⇌
+
+For complete syntax reference, see [docs/syntax.md](docs/syntax.md).
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/mdtexpdf_guide.md](docs/mdtexpdf_guide.md) | Comprehensive user guide |
+| [docs/METADATA.md](docs/METADATA.md) | Complete metadata field reference |
+| [docs/AUTHORSHIP.md](docs/AUTHORSHIP.md) | Authorship verification guide |
+| [docs/syntax.md](docs/syntax.md) | Math and chemistry syntax reference |
 
 ## Examples
 
-The package includes example files to help you get started:
+The `examples/` directory contains sample documents demonstrating various features:
 
-- `document.md`: A basic Markdown document with YAML frontmatter
-- `example.md`: A comprehensive example with various LaTeX math equations
+- Basic Markdown with math equations
+- Code highlighting and tables
+- Chemical formulas
 
 ## Troubleshooting
 
-If you encounter errors:
+```bash
+mdtexpdf check    # Verify prerequisites
+```
 
-1. Check prerequisites: `mdtexpdf check`
-2. Ensure Pandoc is installed and in your PATH
-3. Verify you have a working LaTeX distribution
-4. Check for syntax errors in your Markdown or LaTeX equations
-5. For specific LaTeX packages, ensure they are installed with your LaTeX distribution
-6. If long equations still extend beyond page margins:
-   - Try breaking the equation manually using `\\` in appropriate places
-   - For text-heavy equations, use `\text{...}` for each text segment to help the automatic line breaking
-   - Consider using explicit environments like `\begin{multline*}...\end{multline*}` for very long equations
-
-## Using Makefile
-
-For development purposes, we provide basic Makefile commands:
-
-- Build (install the tool)
-  ```
-  make build
-  ```
-- Rebuild (uninstall and reinstall)
-  ```
-  make rebuild
-  ```
-- Delete (uninstall)
-  ```
-  make delete
-  ```
+Common issues:
+1. **Missing Pandoc**: Ensure Pandoc is installed and in PATH
+2. **LaTeX errors**: Verify LaTeX distribution is complete
+3. **Long equations**: Use `\\` for manual breaks or `\begin{multline*}...\end{multline*}`
+4. **CJK characters**: Install `fonts-noto-cjk` package
 
 ## License
 
-**This project is licensed under the Apache 2.0 License** - see the [LICENSE](LICENSE) file for details.
+Apache 2.0 License - see [LICENSE](LICENSE) for details.
 
-### 🌐 Free and Open Source Software (FOSS)
-
-This universal PDF conversion tool is part of the Universalis ecosystem's **dual licensing model**:
-
-- **🌐 This Tool (FOSS)**: Freely available under Apache 2.0 for anyone to use
-- **🔒 Particular Implementations**: Organizations may use this tool in their own projects with any licensing
-
-You are free to:
-- ✅ Use this tool for any purpose (commercial or non-commercial)
-- ✅ Modify and customize it for your needs
-- ✅ Distribute your modifications
-- ✅ Integrate it into proprietary workflows
-
-*Part of the Universalis Project - Where universal tools meet particular implementations*
+Free to use, modify, and distribute for any purpose.
 
