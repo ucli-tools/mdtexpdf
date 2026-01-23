@@ -701,8 +701,35 @@ Supplementary material.
 
 # Glossary
 
-Key terms and definitions.
+**Term One**: Definition of the first term goes here.
+
+**Term Two**: Definition of the second term with more detail.
+
+**Term Three**: Another definition explaining this concept.
+
+
+# Acknowledgments
+
+Recognition of contributors and sources.
+
+
+# About the Author
+
+Author biography and background.
 ```
+
+### Back Matter Formatting
+
+The back matter sections (Glossary, Acknowledgments, About the Author) use simple markdown patterns that render well:
+
+**Glossary entries** use bold terms followed by definitions:
+```markdown
+**Acetic acid**: The active component of vinegar. Chemical formula CH3COOH.
+
+**Data analysis**: The practice of dispersing substances into clouds to modify precipitation.
+```
+
+**Acknowledgments** and **About the Author** are regular prose sections that appear after the glossary.
 
 ---
 
