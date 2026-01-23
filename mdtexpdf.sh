@@ -2197,15 +2197,15 @@ EOF
     fi
 
     # Check for long equation filter
-    if [ -f "$(pwd)/long_equation_filter.lua" ]; then
-        LUA_FILTERS+=("$(pwd)/long_equation_filter.lua")
-        echo -e "${BLUE}Using Lua filter for long equation handling: $(pwd)/long_equation_filter.lua${NC}"
-    elif [ -f "$SCRIPT_DIR/long_equation_filter.lua" ]; then
-        LUA_FILTERS+=("$SCRIPT_DIR/long_equation_filter.lua")
-        echo -e "${BLUE}Using Lua filter for long equation handling: $SCRIPT_DIR/long_equation_filter.lua${NC}"
-    elif [ -f "/usr/local/share/mdtexpdf/long_equation_filter.lua" ]; then
-        LUA_FILTERS+=("/usr/local/share/mdtexpdf/long_equation_filter.lua")
-        echo -e "${BLUE}Using Lua filter for long equation handling: /usr/local/share/mdtexpdf/long_equation_filter.lua${NC}"
+    if [ -f "$(pwd)/filters/long_equation_filter.lua" ]; then
+        LUA_FILTERS+=("$(pwd)/filters/long_equation_filter.lua")
+        echo -e "${BLUE}Using Lua filter for long equation handling: $(pwd)/filters/long_equation_filter.lua${NC}"
+    elif [ -f "$SCRIPT_DIR/filters/long_equation_filter.lua" ]; then
+        LUA_FILTERS+=("$SCRIPT_DIR/filters/long_equation_filter.lua")
+        echo -e "${BLUE}Using Lua filter for long equation handling: $SCRIPT_DIR/filters/long_equation_filter.lua${NC}"
+    elif [ -f "/usr/local/share/mdtexpdf/filters/long_equation_filter.lua" ]; then
+        LUA_FILTERS+=("/usr/local/share/mdtexpdf/filters/long_equation_filter.lua")
+        echo -e "${BLUE}Using Lua filter for long equation handling: /usr/local/share/mdtexpdf/filters/long_equation_filter.lua${NC}"
     else
         echo -e "${YELLOW}Warning: long_equation_filter.lua not found. Long equations may not wrap properly.${NC}"
     fi
@@ -2740,13 +2740,15 @@ install() {
         fi
 
         # Copy long equation filter
-        if [ -f "$SCRIPT_DIR/long_equation_filter.lua" ]; then
-            sudo cp "$SCRIPT_DIR/long_equation_filter.lua" /usr/local/share/mdtexpdf/
-            sudo chmod 644 /usr/local/share/mdtexpdf/long_equation_filter.lua
+        # Install filters directory
+        sudo mkdir -p /usr/local/share/mdtexpdf/filters
+        if [ -f "$SCRIPT_DIR/filters/long_equation_filter.lua" ]; then
+            sudo cp "$SCRIPT_DIR/filters/long_equation_filter.lua" /usr/local/share/mdtexpdf/filters/
+            sudo chmod 644 /usr/local/share/mdtexpdf/filters/long_equation_filter.lua
             echo -e "${GREEN}✓ Installed long_equation_filter.lua for handling text-heavy equations${NC}"
-        elif [ -f "$(pwd)/long_equation_filter.lua" ]; then
-            sudo cp "$(pwd)/long_equation_filter.lua" /usr/local/share/mdtexpdf/
-            sudo chmod 644 /usr/local/share/mdtexpdf/long_equation_filter.lua
+        elif [ -f "$(pwd)/filters/long_equation_filter.lua" ]; then
+            sudo cp "$(pwd)/filters/long_equation_filter.lua" /usr/local/share/mdtexpdf/filters/
+            sudo chmod 644 /usr/local/share/mdtexpdf/filters/long_equation_filter.lua
             echo -e "${GREEN}✓ Installed long_equation_filter.lua for handling text-heavy equations${NC}"
         else
             echo -e "${YELLOW}Warning: long_equation_filter.lua not found. Long equations may not wrap properly.${NC}"

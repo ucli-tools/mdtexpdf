@@ -34,7 +34,6 @@ mdtexpdf/
 ├── mdtexpdf.sh              # Main conversion script
 ├── Makefile                 # Installation automation
 ├── metadata_template.yaml   # Metadata template for new documents
-├── long_equation_filter.lua # Equation line-breaking filter
 ├── docs/
 │   ├── mdtexpdf_guide.md    # Comprehensive user guide
 │   ├── METADATA.md          # Complete metadata field reference
@@ -42,8 +41,9 @@ mdtexpdf/
 │   ├── syntax.md            # Math and chemistry syntax reference
 │   └── tests/               # Test markdown files
 ├── filters/
-│   ├── book_structure.lua   # Part/chapter/special page handling
-│   └── drop_caps_filter.lua # Decorative first letters
+│   ├── book_structure.lua       # Part/chapter/special page handling
+│   ├── drop_caps_filter.lua     # Decorative first letters
+│   └── long_equation_filter.lua # Equation line-breaking
 └── examples/                # Example documents with PDFs
 ```
 
