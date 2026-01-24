@@ -2021,31 +2021,54 @@ convert() {
             local author_size=$((img_height / 20))
             local text_width=$((img_width * 85 / 100))  # 85% of image width for text wrapping
 
-            # Build ImageMagick command step by step
-            # 1. Start with base image and add dark overlay
-            local convert_cmd="convert \"$epub_cover_base\""
-            convert_cmd="$convert_cmd -fill \"rgba(0,0,0,$cover_overlay)\" -draw \"rectangle 0,0,$img_width,$img_height\""
+            # Build cover using composite approach with text wrapping
+            # 1. Create base with overlay
+            local temp_base=$(mktemp --suffix=.png)
+            /usr/bin/convert "$epub_cover_base" \
+                -fill "rgba(0,0,0,$cover_overlay)" -draw "rectangle 0,0,$img_width,$img_height" \
+                "$temp_base"
 
-            # 2. Add title (top area)
-            convert_cmd="$convert_cmd -gravity North -fill \"$cover_title_color\" -font DejaVu-Serif-Bold -pointsize $title_size"
-            convert_cmd="$convert_cmd -annotate +0+$((img_height / 8)) \"$cover_title\""
+            # 2. Create title image with word wrap
+            local temp_title=$(mktemp --suffix=.png)
+            /usr/bin/convert -background none -fill "$cover_title_color" \
+                -font DejaVu-Serif-Bold -pointsize $title_size \
+                -size ${text_width}x -gravity Center caption:"$cover_title" \
+                "$temp_title"
 
-            # 3. Add subtitle if present (smaller font, with margins)
+            # 3. Create subtitle image with word wrap (if present)
+            local temp_subtitle=""
             if [ -n "$cover_subtitle" ]; then
-                convert_cmd="$convert_cmd -gravity North -fill \"$cover_title_color\" -font DejaVu-Serif-Italic -pointsize $subtitle_size"
-                convert_cmd="$convert_cmd -size ${text_width}x -annotate +0+$((img_height / 8 + title_size + 30)) \"$cover_subtitle\""
+                temp_subtitle=$(mktemp --suffix=.png)
+                /usr/bin/convert -background none -fill "$cover_title_color" \
+                    -font DejaVu-Serif-Italic -pointsize $subtitle_size \
+                    -size ${text_width}x -gravity Center caption:"$cover_subtitle" \
+                    "$temp_subtitle"
             fi
 
-            # 4. Add author (bottom area)
-            convert_cmd="$convert_cmd -gravity South -fill \"$cover_title_color\" -font DejaVu-Serif -pointsize $author_size"
-            convert_cmd="$convert_cmd -annotate +0+$((img_height / 10)) \"$cover_author\""
+            # 4. Create author image
+            local temp_author=$(mktemp --suffix=.png)
+            /usr/bin/convert -background none -fill "$cover_title_color" \
+                -font DejaVu-Serif -pointsize $author_size \
+                -size ${text_width}x -gravity Center caption:"$cover_author" \
+                "$temp_author"
 
-            # 5. Output file
-            convert_cmd="$convert_cmd \"$epub_cover_generated\""
+            # 5. Composite all layers
+            local title_y=$((img_height / 8))
+            /usr/bin/convert "$temp_base" \
+                "$temp_title" -gravity North -geometry +0+${title_y} -composite \
+                "$temp_author" -gravity South -geometry +0+$((img_height / 10)) -composite \
+                "$epub_cover_generated"
 
-            # Execute (use full path to avoid conflicts)
-            convert_cmd="/usr/bin/${convert_cmd}"
-            eval $convert_cmd 2>&1
+            # 5b. Add subtitle if present (between title and center)
+            if [ -n "$temp_subtitle" ]; then
+                local subtitle_y=$((img_height / 8 + title_size + 40))
+                /usr/bin/convert "$epub_cover_generated" \
+                    "$temp_subtitle" -gravity North -geometry +0+${subtitle_y} -composite \
+                    "$epub_cover_generated"
+            fi
+
+            # Cleanup temp files
+            rm -f "$temp_base" "$temp_title" "$temp_subtitle" "$temp_author"
 
             if [ -f "$epub_cover_generated" ]; then
                 epub_cover="$epub_cover_generated"
