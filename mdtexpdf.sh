@@ -2017,8 +2017,9 @@ convert() {
 
             # Calculate font sizes relative to image height
             local title_size=$((img_height / 12))
-            local subtitle_size=$((img_height / 24))
+            local subtitle_size=$((img_height / 32))
             local author_size=$((img_height / 20))
+            local text_width=$((img_width * 85 / 100))  # 85% of image width for text wrapping
 
             # Build ImageMagick command step by step
             # 1. Start with base image and add dark overlay
@@ -2029,10 +2030,10 @@ convert() {
             convert_cmd="$convert_cmd -gravity North -fill \"$cover_title_color\" -font DejaVu-Serif-Bold -pointsize $title_size"
             convert_cmd="$convert_cmd -annotate +0+$((img_height / 8)) \"$cover_title\""
 
-            # 3. Add subtitle if present
+            # 3. Add subtitle if present (smaller font, with margins)
             if [ -n "$cover_subtitle" ]; then
                 convert_cmd="$convert_cmd -gravity North -fill \"$cover_title_color\" -font DejaVu-Serif-Italic -pointsize $subtitle_size"
-                convert_cmd="$convert_cmd -annotate +0+$((img_height / 8 + title_size + 20)) \"$cover_subtitle\""
+                convert_cmd="$convert_cmd -size ${text_width}x -annotate +0+$((img_height / 8 + title_size + 30)) \"$cover_subtitle\""
             fi
 
             # 4. Add author (bottom area)
