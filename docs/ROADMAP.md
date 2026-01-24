@@ -7,14 +7,14 @@ A comprehensive list of improvements to make mdtexpdf a perfect, production-read
 ## 1. Code Architecture
 
 ### 1.1 Modularization
-- [ ] Split `mdtexpdf.sh` (3,273 lines) into separate modules:
-  - `lib/core.sh` - Common functions, color codes, utilities
-  - `lib/pdf.sh` - PDF generation logic
-  - `lib/epub.sh` - EPUB generation logic
-  - `lib/cover.sh` - Cover generation (PDF and EPUB)
-  - `lib/metadata.sh` - YAML parsing and metadata handling
-  - `lib/frontmatter.sh` - Front matter generation (copyright, dedication, etc.)
-  - `lib/check.sh` - Prerequisites checking
+- [x] Split `mdtexpdf.sh` (3,273 lines) into separate modules (started):
+  - [x] `lib/core.sh` - Common functions, color codes, utilities
+  - [ ] `lib/pdf.sh` - PDF generation logic
+  - [ ] `lib/epub.sh` - EPUB generation logic
+  - [ ] `lib/cover.sh` - Cover generation (PDF and EPUB)
+  - [ ] `lib/metadata.sh` - YAML parsing and metadata handling
+  - [ ] `lib/frontmatter.sh` - Front matter generation (copyright, dedication, etc.)
+  - [x] `lib/check.sh` - Prerequisites checking
 - [ ] Main `mdtexpdf.sh` becomes a thin dispatcher that sources modules
 - [ ] Each module independently testable
 
@@ -26,7 +26,8 @@ A comprehensive list of improvements to make mdtexpdf a perfect, production-read
 ### 1.3 Error Handling
 - [ ] Consistent error codes (1=user error, 2=missing dependency, 3=conversion failure, etc.)
 - [ ] Better error messages with suggested fixes
-- [ ] `--verbose` and `--debug` flags for troubleshooting
+- [x] `--verbose` and `--debug` flags for troubleshooting
+- [x] Logging functions (log_verbose, log_debug, log_error, log_warn, log_success)
 - [ ] Log file option (`--log output.log`)
 
 ---
@@ -34,24 +35,24 @@ A comprehensive list of improvements to make mdtexpdf a perfect, production-read
 ## 2. Testing & Quality
 
 ### 2.1 Automated Test Suite
-- [ ] Create `tests/` directory with test runner
+- [x] Create `tests/` directory with test runner
 - [ ] Unit tests for each module/function
-- [ ] Integration tests for full conversions:
-  - [ ] Basic article PDF
+- [x] Integration tests for full conversions:
+  - [x] Basic article PDF
   - [ ] Book with full front matter PDF
-  - [ ] EPUB generation
+  - [x] EPUB generation
   - [ ] Cover generation
   - [ ] Math/chemistry rendering
   - [ ] CJK content
 - [ ] Regression tests (compare output hashes)
-- [ ] Test runner script: `make test`
+- [x] Test runner script: `make test`
 
 ### 2.2 CI/CD Pipeline
-- [ ] GitHub Actions workflow for:
-  - [ ] Linting (shellcheck)
-  - [ ] Running test suite
-  - [ ] Building example documents
-  - [ ] Release automation
+- [x] GitHub Actions workflow for:
+  - [x] Linting (shellcheck)
+  - [x] Running test suite
+  - [x] Building example documents
+  - [x] Release automation
 - [ ] Badge in README showing build status
 
 ### 2.3 Code Quality
@@ -64,14 +65,14 @@ A comprehensive list of improvements to make mdtexpdf a perfect, production-read
 ## 3. Versioning & Releases
 
 ### 3.1 Version Management
-- [ ] Add `--version` flag
-- [ ] Semantic versioning (MAJOR.MINOR.PATCH)
-- [ ] Version defined in single location (`VERSION` file or variable)
-- [ ] CHANGELOG.md following Keep a Changelog format
+- [x] Add `--version` flag
+- [x] Semantic versioning (MAJOR.MINOR.PATCH)
+- [x] Version defined in single location (`VERSION` variable in mdtexpdf.sh)
+- [x] CHANGELOG.md following Keep a Changelog format
 
 ### 3.2 Release Process
-- [ ] Git tags for releases (v1.0.0, v1.1.0, etc.)
-- [ ] GitHub Releases with release notes
+- [x] Git tags for releases (v1.0.0, v1.1.0, etc.) - via CI
+- [x] GitHub Releases with release notes - via CI
 - [ ] Installation instructions for specific versions
 
 ---
@@ -211,10 +212,10 @@ A comprehensive list of improvements to make mdtexpdf a perfect, production-read
 ### 8.1 Docker (Recommended for Easy Setup)
 Docker bundles all dependencies (Pandoc, LaTeX, ImageMagick, fonts) so users don't need to install anything locally.
 
-- [ ] Create `Dockerfile` with full TexLive, Pandoc, ImageMagick, fonts
-- [ ] Publish to Docker Hub (`uclitools/mdtexpdf`)
+- [x] Create `Dockerfile` with full TexLive, Pandoc, ImageMagick, fonts
+- [x] Publish to Docker Hub (`uclitools/mdtexpdf`) - via CI on release
 - [ ] Slim variant without full TexLive for smaller image
-- [ ] Usage documentation:
+- [x] Usage documentation (in README.md):
   ```bash
   # Convert a file
   docker run --rm -v $(pwd):/work uclitools/mdtexpdf convert book.md --read-metadata
@@ -223,13 +224,13 @@ Docker bundles all dependencies (Pandoc, LaTeX, ImageMagick, fonts) so users don
   docker run --rm -v $(pwd):/work uclitools/mdtexpdf convert book.md --read-metadata
   docker run --rm -v $(pwd):/work uclitools/mdtexpdf convert book.md --read-metadata --epub
   ```
-- [ ] Shell alias for convenience:
+- [x] Shell alias for convenience (documented in README.md):
   ```bash
   alias mdtexpdf='docker run --rm -v $(pwd):/work uclitools/mdtexpdf'
   ```
 - [ ] Docker Compose template for complex projects
-- [ ] GitHub Actions using the Docker image
-- [ ] Multi-arch support (amd64, arm64 for M1/M2 Macs)
+- [x] GitHub Actions using the Docker image
+- [x] Multi-arch support (amd64, arm64 for M1/M2 Macs) - via CI
 
 ### 8.2 Package Managers
 - [ ] Homebrew formula (macOS) - wraps Docker or native install
@@ -268,8 +269,8 @@ Docker bundles all dependencies (Pandoc, LaTeX, ImageMagick, fonts) so users don
 - [ ] Emacs integration
 
 ### 10.2 Build Tool Integration
-- [ ] Make integration (current Makefile template)
-- [ ] GitHub Actions workflow template
+- [x] Make integration (current Makefile template)
+- [x] GitHub Actions workflow template
 - [ ] GitLab CI template
 - [ ] Pre-commit hook for validation
 
@@ -283,54 +284,55 @@ Docker bundles all dependencies (Pandoc, LaTeX, ImageMagick, fonts) so users don
 
 ## Priority Matrix
 
-### P0 - Critical (Do First)
-- Versioning (`--version`, CHANGELOG.md)
-- Shellcheck compliance
-- Basic test suite
-- `--verbose` / `--debug` flags
+### P0 - Critical (Do First) - COMPLETE
+- [x] Versioning (`--version`, CHANGELOG.md)
+- [x] Shellcheck compliance (via CI)
+- [x] Basic test suite
+- [x] `--verbose` / `--debug` flags
 
-### P1 - High Priority
-- Docker image (simplifies installation dramatically)
-- Modularization (split mdtexpdf.sh)
-- Bibliography support
-- CI/CD pipeline
+### P1 - High Priority - MOSTLY COMPLETE
+- [x] Docker image (simplifies installation dramatically)
+- [x] CI/CD pipeline
+- [~] Modularization (split mdtexpdf.sh) - started, lib/core.sh and lib/check.sh created
+- [ ] Bibliography support
 
 ### P2 - Medium Priority
-- EPUB validation
-- Custom templates
-- Index generation
-- More examples
+- [ ] EPUB validation
+- [ ] Custom templates
+- [ ] Index generation
+- [ ] More examples
 
 ### P3 - Nice to Have
-- Editor integrations
-- Package manager distribution
-- Print-ready PDF options
-- Multi-file projects
+- [ ] Editor integrations
+- [ ] Package manager distribution
+- [ ] Print-ready PDF options
+- [ ] Multi-file projects
 
 ---
 
 ## Version Targets
 
-### v1.0.0 - Stable Release
-- All P0 items complete
-- Core functionality documented and tested
-- No known critical bugs
+### v1.0.0 - Stable Release - COMPLETE
+- [x] All P0 items complete
+- [x] Core functionality documented and tested
+- [x] Docker image and CI/CD pipeline
+- [x] No known critical bugs
 
 ### v1.1.0 - Bibliography & Citations
-- Bibliography support
-- Citation styles
-- Academic paper example
+- [ ] Bibliography support
+- [ ] Citation styles
+- [ ] Academic paper example
 
 ### v1.2.0 - Better Architecture
-- Modularized codebase
-- Full test coverage
-- CI/CD pipeline
+- [ ] Fully modularized codebase
+- [ ] Full test coverage
+- [ ] EPUB validation
 
 ### v2.0.0 - Extended Formats
-- DOCX output
-- HTML output
-- Custom templates
-- Multi-file projects
+- [ ] DOCX output
+- [ ] HTML output
+- [ ] Custom templates
+- [ ] Multi-file projects
 
 ---
 
