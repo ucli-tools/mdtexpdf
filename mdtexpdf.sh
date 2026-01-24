@@ -1245,10 +1245,12 @@ preprocess_markdown() {
     # Remove duplicate title H1 heading if it matches YAML frontmatter title
     if [ -n "$META_TITLE" ]; then
         # Get the first H1 heading from the content (after YAML frontmatter)
-        local first_h1=$(awk '/^---$/{if(!yaml) yaml=1; else {yaml=0; next}} yaml{next} /^# /{print substr($0,3); exit}' "$temp_file")
+        local first_h1
+        first_h1=$(awk '/^---$/{if(!yaml) yaml=1; else {yaml=0; next}} yaml{next} /^# /{print substr($0,3); exit}' "$temp_file")
 
         # Compare with metadata title (remove quotes for comparison)
-        local meta_title_clean=$(echo "$META_TITLE" | sed 's/^["\x27]*//; s/["\x27]*$//')
+        local meta_title_clean
+        meta_title_clean=$(echo "$META_TITLE" | sed 's/^["\x27]*//; s/["\x27]*$//')
 
         if [ "$first_h1" = "$meta_title_clean" ] || [[ "$first_h1" == "$meta_title_clean"* ]]; then
             echo -e "${YELLOW}Removing duplicate title H1 heading: '$first_h1'${NC}"
@@ -1337,8 +1339,10 @@ parse_html_metadata() {
         if [ "$in_comment" = true ]; then
             # Check if line contains key: value format
             if echo "$line" | grep -q ":"; then
-                local key=$(echo "$line" | sed -n 's/^[[:space:]]*\([^:]*\):[[:space:]]*.*$/\1/p')
-                local value=$(echo "$line" | sed -n 's/^[[:space:]]*[^:]*:[[:space:]]*"\?\([^"]*\)"\?[[:space:]]*$/\1/p')
+                local key
+                local value
+                key=$(echo "$line" | sed -n 's/^[[:space:]]*\([^:]*\):[[:space:]]*.*$/\1/p')
+                value=$(echo "$line" | sed -n 's/^[[:space:]]*[^:]*:[[:space:]]*"\?\([^"]*\)"\?[[:space:]]*$/\1/p')
 
                 # If value extraction with quotes failed, try without quotes
                 if [ -z "$value" ]; then
@@ -1499,7 +1503,8 @@ parse_yaml_metadata() {
     fi
 
     # Create temporary YAML file for parsing
-    local temp_yaml=$(mktemp)
+    local temp_yaml
+    temp_yaml=$(mktemp)
     echo "$yaml_content" > "$temp_yaml"
 
     # Parse YAML using yq and extract metadata fields
@@ -1523,21 +1528,27 @@ parse_yaml_metadata() {
     META_HEADER_FOOTER_POLICY=$(yq eval '.header_footer_policy // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
 
     # Boolean flags (convert true/false to appropriate values)
-    local section_numbers_val=$(yq eval '.section_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
-    local no_numbers_val=$(yq eval '.no_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    local section_numbers_val
+    local no_numbers_val
+    section_numbers_val=$(yq eval '.section_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    no_numbers_val=$(yq eval '.no_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$section_numbers_val" = "false" ] && META_NO_NUMBERS="true"
     [ "$no_numbers_val" = "true" ] && META_NO_NUMBERS="true"
 
-    local no_footer_val=$(yq eval '.no_footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    local no_footer_val
+    no_footer_val=$(yq eval '.no_footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$no_footer_val" = "true" ] && META_NO_FOOTER="true"
 
-    local pageof_val=$(yq eval '.pageof // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    local pageof_val
+    pageof_val=$(yq eval '.pageof // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$pageof_val" = "true" ] && META_PAGEOF="true"
 
-    local date_footer_val=$(yq eval '.date_footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    local date_footer_val
+    date_footer_val=$(yq eval '.date_footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$date_footer_val" = "true" ] && META_DATE_FOOTER="true"
 
-    local no_date_val=$(yq eval '.no_date // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    local no_date_val
+    no_date_val=$(yq eval '.no_date // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$no_date_val" = "true" ] && META_NO_DATE="true"
 
     # Audio-specific metadata (for future compatibility)
@@ -1590,11 +1601,14 @@ parse_yaml_metadata() {
 
     # Parse donation_wallets list - build LaTeX-formatted string
     META_DONATION_WALLETS=""
-    local wallet_count=$(yq eval '.donation_wallets | length' "$temp_yaml" 2>/dev/null)
+    local wallet_count
+    wallet_count=$(yq eval '.donation_wallets | length' "$temp_yaml" 2>/dev/null)
     if [ -n "$wallet_count" ] && [ "$wallet_count" != "0" ] && [ "$wallet_count" != "null" ]; then
         for i in $(seq 0 $((wallet_count - 1))); do
-            local wallet_type=$(yq eval ".donation_wallets[$i].type" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
-            local wallet_address=$(yq eval ".donation_wallets[$i].address" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+            local wallet_type
+            local wallet_address
+            wallet_type=$(yq eval ".donation_wallets[$i].type" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+            wallet_address=$(yq eval ".donation_wallets[$i].address" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
             if [ -n "$wallet_type" ] && [ -n "$wallet_address" ]; then
                 # Build LaTeX string - single backslash in output needs \\ in bash
                 META_DONATION_WALLETS="${META_DONATION_WALLETS}${wallet_type}: {\\small\\texttt{${wallet_address}}}\\\\[0.3cm] "
@@ -2033,7 +2047,8 @@ convert() {
             epub_cover_base="$META_COVER_IMAGE"
         else
             # Try to auto-detect cover image
-            local input_dir=$(dirname "$INPUT_FILE")
+            local input_dir
+            input_dir=$(dirname "$INPUT_FILE")
             for ext in jpg jpeg png; do
                 for dir in "$input_dir/img" "$input_dir/images" "$input_dir"; do
                     if [ -f "$dir/cover.$ext" ]; then
@@ -2048,7 +2063,8 @@ convert() {
         local epub_cover=""
         if [ -n "$epub_cover_base" ] && command -v convert &> /dev/null; then
             # Make paths absolute
-            local input_dir=$(dirname "$INPUT_FILE")
+            local input_dir
+            input_dir=$(dirname "$INPUT_FILE")
             if [[ ! "$epub_cover_base" = /* ]]; then
                 epub_cover_base="$input_dir/$epub_cover_base"
             fi
@@ -2062,8 +2078,10 @@ convert() {
             echo -e "${YELLOW}Generating EPUB cover with text overlay...${NC}"
 
             # Get image dimensions
-            local img_width=$(identify -format "%w" "$epub_cover_base" 2>/dev/null)
-            local img_height=$(identify -format "%h" "$epub_cover_base" 2>/dev/null)
+            local img_width
+            local img_height
+            img_width=$(identify -format "%w" "$epub_cover_base" 2>/dev/null)
+            img_height=$(identify -format "%h" "$epub_cover_base" 2>/dev/null)
 
             # Calculate font sizes relative to image height
             local title_size=$((img_height / 12))
@@ -2073,13 +2091,15 @@ convert() {
 
             # Build cover using composite approach with text wrapping
             # 1. Create base with overlay
-            local temp_base=$(mktemp --suffix=.png)
+            local temp_base
+            temp_base=$(mktemp --suffix=.png)
             /usr/bin/convert "$epub_cover_base" \
                 -fill "rgba(0,0,0,$cover_overlay)" -draw "rectangle 0,0,$img_width,$img_height" \
                 "$temp_base"
 
             # 2. Create title image with word wrap
-            local temp_title=$(mktemp --suffix=.png)
+            local temp_title
+            temp_title=$(mktemp --suffix=.png)
             /usr/bin/convert -background none -fill "$cover_title_color" \
                 -font DejaVu-Serif-Bold -pointsize $title_size \
                 -size ${text_width}x -gravity Center caption:"$cover_title" \
@@ -2098,7 +2118,8 @@ convert() {
             fi
 
             # 4. Create author image
-            local temp_author=$(mktemp --suffix=.png)
+            local temp_author
+            temp_author=$(mktemp --suffix=.png)
             /usr/bin/convert -background none -fill "$cover_title_color" \
                 -font DejaVu-Serif -pointsize $author_size \
                 -size ${text_width}x -gravity Center caption:"$cover_author" \
@@ -2221,14 +2242,18 @@ convert() {
             epub_frontmatter_md="$epub_frontmatter_md\n\n# Authorship & Support {.unnumbered .unlisted}\n\n**Authorship Verification**\n\n${META_AUTHOR_PUBKEY_TYPE:-PGP}: \`$META_AUTHOR_PUBKEY\`\n"
 
             # For EPUB, re-parse donation wallets directly from YAML instead of using LaTeX-formatted version
-            local temp_yaml=$(mktemp)
+            local temp_yaml
+            temp_yaml=$(mktemp)
             sed -n '/^---$/,/^---$/p' "$INPUT_FILE" | tail -n +2 | head -n -1 > "$temp_yaml"
-            local wallet_count=$(yq eval '.donation_wallets | length' "$temp_yaml" 2>/dev/null)
+            local wallet_count
+            wallet_count=$(yq eval '.donation_wallets | length' "$temp_yaml" 2>/dev/null)
             if [ -n "$wallet_count" ] && [ "$wallet_count" != "0" ] && [ "$wallet_count" != "null" ]; then
                 epub_frontmatter_md="$epub_frontmatter_md\n**Support the Author**\n\n"
                 for i in $(seq 0 $((wallet_count - 1))); do
-                    local wallet_type=$(yq eval ".donation_wallets[$i].type" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
-                    local wallet_address=$(yq eval ".donation_wallets[$i].address" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+                    local wallet_type
+                    local wallet_address
+                    wallet_type=$(yq eval ".donation_wallets[$i].type" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+                    wallet_address=$(yq eval ".donation_wallets[$i].address" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
                     if [ -n "$wallet_type" ] && [ -n "$wallet_address" ]; then
                         epub_frontmatter_md="$epub_frontmatter_md${wallet_type}: \`${wallet_address}\`\n\n"
                     fi
@@ -2256,11 +2281,13 @@ convert() {
         # Insert front matter into temp file after YAML frontmatter ends
         if [ "$has_frontmatter" = true ] && [ -n "$epub_frontmatter_md" ]; then
             # Find the line number of the closing --- of YAML frontmatter
-            local yaml_end_line=$(awk '/^---$/{n++; if(n==2) {print NR; exit}}' "$epub_temp_input")
+            local yaml_end_line
+            yaml_end_line=$(awk '/^---$/{n++; if(n==2) {print NR; exit}}' "$epub_temp_input")
             if [ -n "$yaml_end_line" ]; then
                 # Insert front matter markdown after YAML frontmatter
                 # Each section already has its own h1 with .unlisted for separate pages
-                local temp_with_frontmatter=$(mktemp)
+                local temp_with_frontmatter
+                temp_with_frontmatter=$(mktemp)
                 head -n "$yaml_end_line" "$epub_temp_input" > "$temp_with_frontmatter"
                 echo -e "$epub_frontmatter_md" >> "$temp_with_frontmatter"
                 tail -n +$((yaml_end_line + 1)) "$epub_temp_input" >> "$temp_with_frontmatter"
@@ -2282,7 +2309,7 @@ convert() {
 
         # Execute
         echo -e "${BLUE}Running: $EPUB_CMD${NC}"
-        eval $EPUB_CMD
+        eval "$EPUB_CMD"
         local epub_result=$?
 
         # Cleanup temp files
@@ -2367,7 +2394,7 @@ convert() {
             CREATE_TEMPLATE="y"
             echo -e "${BLUE}Using command-line arguments, automatically creating template...${NC}"
         else
-            read CREATE_TEMPLATE
+            read -r CREATE_TEMPLATE
             CREATE_TEMPLATE=${CREATE_TEMPLATE:-"y"}
         fi
 
@@ -2390,7 +2417,7 @@ convert() {
                 # If a first-level heading was found, use it as the default title
                 echo -e "${BLUE}Found title in document: '$FIRST_HEADING'${NC}"
                 echo -e "${GREEN}Enter document title (press Enter to use the found title) [${FIRST_HEADING}]:${NC}"
-                read USER_TITLE
+                read -r USER_TITLE
 
                 if [ -z "$USER_TITLE" ]; then
                     # User pressed Enter, use the found title
@@ -2405,7 +2432,7 @@ convert() {
                 # Otherwise use filename as default
                 DEFAULT_TITLE=$(basename "$INPUT_FILE" .md | sed 's/_/ /g' | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')
                 echo -e "${GREEN}Enter document title [${DEFAULT_TITLE}]:${NC}"
-                read TITLE
+                read -r TITLE
                 TITLE=${TITLE:-"$DEFAULT_TITLE"}
             fi
 
@@ -2415,7 +2442,7 @@ convert() {
                 echo -e "${GREEN}Using author from command-line argument: '$AUTHOR'${NC}"
             else
                 echo -e "${GREEN}Enter author name [$(whoami)]:${NC}"
-                read AUTHOR
+                read -r AUTHOR
                 AUTHOR=${AUTHOR:-"$(whoami)"}
             fi
 
@@ -2428,7 +2455,7 @@ convert() {
                 echo -e "${GREEN}Using date from command-line argument: '$DOC_DATE'${NC}"
             else
                 echo -e "${GREEN}Enter document date [$(date +"%B %d, %Y")]:${NC}"
-                read DOC_DATE
+                read -r DOC_DATE
                 DOC_DATE=${DOC_DATE:-"$(date +"%B %d, %Y")"}
             fi
 
@@ -2441,12 +2468,12 @@ convert() {
                 echo -e "${GREEN}Using footer text from command-line argument: '$FOOTER_TEXT'${NC}"
             else
                 echo -e "${GREEN}Do you want to add a footer to your document? (y/n) [y]:${NC}"
-                read ADD_FOOTER
+                read -r ADD_FOOTER
                 ADD_FOOTER=${ADD_FOOTER:-"y"}
 
                 if [[ $ADD_FOOTER =~ ^[Yy]$ ]]; then
                     echo -e "${GREEN}Enter footer text (press Enter for default ' All rights reserved $(date +"%Y")'):${NC}"
-                    read FOOTER_TEXT
+                    read -r FOOTER_TEXT
                     FOOTER_TEXT=${FOOTER_TEXT:-" All rights reserved $(date +"%Y")"}
                 else
                     FOOTER_TEXT=""
@@ -2772,7 +2799,8 @@ EOF
 
     # === COVER SYSTEM VARIABLES ===
     # Get input file directory for auto-detection
-    local INPUT_DIR=$(dirname "$INPUT_FILE")
+    local INPUT_DIR
+    INPUT_DIR=$(dirname "$INPUT_FILE")
 
     # Front cover image (with auto-detection fallback)
     local COVER_IMAGE_PATH="$META_COVER_IMAGE"
@@ -2886,12 +2914,13 @@ EOF
         BOOK_FEATURE_VARS+=("--variable=donation_wallets=$META_DONATION_WALLETS")
     fi
 
-    pandoc "$INPUT_FILE" \
+    # shellcheck disable=SC2086 # Word splitting is intentional for PANDOC_OPTS/FILTER_OPTION/TOC_OPTION/SECTION_NUMBERING_OPTION
+    if pandoc "$INPUT_FILE" \
         --from markdown \
         --to pdf \
         --output "$OUTPUT_FILE" \
         --template="$TEMPLATE_PATH" \
-        --pdf-engine=$PDF_ENGINE \
+        --pdf-engine="$PDF_ENGINE" \
         $PANDOC_OPTS \
         $FILTER_OPTION \
         --variable=geometry:margin=1in \
@@ -2902,10 +2931,7 @@ EOF
         "${FOOTER_VARS[@]}" \
         "${HEADER_FOOTER_VARS[@]}" \
         "${BOOK_FEATURE_VARS[@]}" \
-        --standalone
-
-    # Check if conversion was successful
-    if [ $? -eq 0 ]; then
+        --standalone; then
         echo -e "${GREEN}Success! PDF created as $OUTPUT_FILE${NC}"
 
         # Additional message for CJK documents
@@ -2961,7 +2987,7 @@ create() {
     # Interactive mode - ask for document details
     if [ -z "$2" ]; then
         echo -e "${GREEN}Enter document title:${NC}"
-        read TITLE
+        read -r TITLE
         TITLE=${TITLE:-"My Document"}
     else
         TITLE="$2"
@@ -2969,24 +2995,24 @@ create() {
 
     if [ -z "$3" ]; then
         echo -e "${GREEN}Enter author name:${NC}"
-        read AUTHOR
+        read -r AUTHOR
         AUTHOR=${AUTHOR:-"$(whoami)"}
     else
         AUTHOR="$3"
     fi
 
     echo -e "${GREEN}Enter document date [$(date +"%B %d, %Y")]:${NC}"
-    read DOC_DATE
+    read -r DOC_DATE
     DOC_DATE=${DOC_DATE:-"$(date +"%B %d, %Y")"}
 
     # Always ask about footer preferences
     echo -e "${GREEN}Do you want to add a footer to your document? (y/n) [y]:${NC}"
-    read ADD_FOOTER
+    read -r ADD_FOOTER
     ADD_FOOTER=${ADD_FOOTER:-"y"}
 
     if [[ $ADD_FOOTER =~ ^[Yy]$ ]]; then
         echo -e "${GREEN}Enter footer text (press Enter for default '© All rights reserved $(date +"%Y")'):${NC}"
-        read FOOTER_TEXT
+        read -r FOOTER_TEXT
         FOOTER_TEXT=${FOOTER_TEXT:-"© All rights reserved $(date +"%Y")"}
     else
         FOOTER_TEXT=""
@@ -3063,7 +3089,8 @@ def hello_world():
 ---
 EOF
 
-    if [ $? -eq 0 ]; then
+    local create_result=$?
+    if [ $create_result -eq 0 ]; then
         echo -e "${GREEN}Success! Markdown document created as $OUTPUT_FILE${NC}"
         echo -e "You can now edit this file and convert it to PDF using:"
         echo -e "${BLUE}mdtexpdf convert $OUTPUT_FILE${NC}"

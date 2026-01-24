@@ -8,28 +8,28 @@ A comprehensive list of improvements to make mdtexpdf a perfect, production-read
 
 We take a quality-first approach, completing each phase thoroughly before moving to the next.
 
-### Phase A: Quick Wins (< 1 hour each)
-- [ ] A1. Add CI badge to README showing build status
-- [ ] A2. Consistent error codes (1=user error, 2=missing dependency, 3=conversion failure)
-- [ ] A3. Improve `--help` output for all commands and flags
-- [ ] A4. Document existing uninstall command
+### Phase A: Quick Wins (< 1 hour each) ✓ COMPLETE
+- [x] A1. Add CI badge to README showing build status
+- [x] A2. Consistent error codes (1=user error, 2=missing dependency, 3=conversion failure)
+- [x] A3. Improve `--help` output for all commands and flags
+- [x] A4. Document existing uninstall command
 
 ### Phase B: Testing & Quality (2-4 hours)
-- [ ] B1. Shellcheck compliance - fix all warnings locally
-- [ ] B2. More integration tests:
-  - [ ] Book with full front matter PDF
-  - [ ] Cover generation
-  - [ ] Math/chemistry rendering
-  - [ ] CJK content
+- [x] B1. Shellcheck compliance - fix all warnings locally
+- [x] B2. More integration tests:
+  - [x] Book with full front matter PDF
+  - [ ] Cover generation (needs cover image fixture)
+  - [x] Math/chemistry rendering
+  - [x] CJK content (skips if xeCJK not installed)
 - [ ] B3. Regression tests (compare output hashes)
 - [ ] B4. Unit tests for modules
-- [ ] B5. Create CONTRIBUTING.md with code style guide
+- [x] B5. Create CONTRIBUTING.md with code style guide
 
 ### Phase C: Documentation (3-5 hours)
-- [ ] C1. Troubleshooting guide with common errors
-- [ ] C2. FAQ section
-- [ ] C3. Quick start tutorial (5 minutes to first PDF)
-- [ ] C4. Book project tutorial (complete workflow)
+- [x] C1. Troubleshooting guide with common errors
+- [x] C2. FAQ section
+- [x] C3. Quick start tutorial (5 minutes to first PDF)
+- [x] C4. Book project tutorial (complete workflow)
 - [ ] C5. More examples:
   - [ ] Academic paper with citations
   - [ ] Novel/fiction book
@@ -76,7 +76,7 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] Started modularization (`lib/core.sh`, `lib/check.sh`)
 
 ### In Progress
-- Phase A: Quick Wins
+- Phase C: Documentation (C1-C4 complete; C5 examples remaining)
 
 ---
 
@@ -116,10 +116,10 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] Integration tests:
   - [x] Basic article PDF
   - [x] EPUB generation
-  - [ ] Book with full front matter PDF
+  - [x] Book with full front matter PDF
   - [ ] Cover generation
-  - [ ] Math/chemistry rendering
-  - [ ] CJK content
+  - [x] Math/chemistry rendering
+  - [x] CJK content (skips if xeCJK not available)
 - [ ] Unit tests for each module
 - [ ] Regression tests (compare output hashes)
 - [x] Test runner script: `make test`
@@ -133,8 +133,8 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [ ] Badge in README showing build status
 
 #### 2.3 Code Quality
-- [ ] Pass shellcheck with no warnings
-- [ ] CONTRIBUTING.md with code style guide
+- [x] Pass shellcheck with no warnings
+- [x] CONTRIBUTING.md with code style guide
 - [ ] Function documentation (comments explaining purpose, args, return)
 
 ---

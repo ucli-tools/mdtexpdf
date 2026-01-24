@@ -277,6 +277,197 @@ EOF
     fi
 }
 
+# Book with full front matter test
+test_book_frontmatter() {
+    test_start "PDF book with front matter"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    if ! command -v pdflatex &> /dev/null && ! command -v xelatex &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: LaTeX not installed"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_book.md"
+    local test_pdf="$TEST_OUTPUT/test_book.pdf"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "Test Book"
+subtitle: "A Complete Example"
+author: "Test Author"
+date: "2026-01-24"
+format: "book"
+toc: true
+half_title: true
+copyright_page: true
+copyright_year: 2026
+copyright_holder: "Test Publisher"
+publisher: "Test Publishing House"
+dedication: "To all testers everywhere."
+epigraph: "Testing is the path to quality."
+epigraph_source: "Ancient Proverb"
+---
+
+# Part One
+
+## Chapter 1: Introduction
+
+This is the first chapter of our test book.
+
+## Chapter 2: Development
+
+This is the second chapter.
+
+# Part Two
+
+## Chapter 3: Conclusion
+
+The final chapter.
+EOF
+
+    rm -f "$test_pdf"
+
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF file not created"
+        fi
+    else
+        test_fail "Book conversion failed"
+    fi
+}
+
+# Math and chemistry rendering test
+test_math_chemistry() {
+    test_start "Math and chemistry rendering"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    if ! command -v pdflatex &> /dev/null && ! command -v xelatex &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: LaTeX not installed"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_math.md"
+    local test_pdf="$TEST_OUTPUT/test_math.pdf"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "Math and Chemistry Test"
+author: "Test Author"
+date: "2026-01-24"
+---
+
+# Mathematics
+
+## Inline Math
+
+The equation $E = mc^2$ is famous.
+
+## Display Math
+
+Maxwell's equations:
+
+$$\nabla \cdot \mathbf{E} = \frac{\rho}{\epsilon_0}$$
+
+$$\nabla \cdot \mathbf{B} = 0$$
+
+## Complex Equations
+
+$$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
+
+# Chemistry
+
+Water is \ce{H2O}.
+
+Carbon dioxide: \ce{CO2}
+
+Photosynthesis: \ce{6CO2 + 6H2O -> C6H12O6 + 6O2}
+EOF
+
+    rm -f "$test_pdf"
+
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF file not created"
+        fi
+    else
+        test_fail "Math/chemistry conversion failed"
+    fi
+}
+
+# CJK content test
+test_cjk_content() {
+    test_start "CJK (Chinese/Japanese/Korean) content"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    if ! command -v xelatex &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: XeLaTeX not installed (required for CJK)"
+        return
+    fi
+
+    # Check if xeCJK package is available
+    if ! kpsewhich xeCJK.sty &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: xeCJK package not installed (required for CJK)"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_cjk.md"
+    local test_pdf="$TEST_OUTPUT/test_cjk.pdf"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "CJK Test Document"
+author: "测试作者"
+date: "2026-01-24"
+---
+
+# 中文测试 (Chinese Test)
+
+这是一段中文文本。
+
+# 日本語テスト (Japanese Test)
+
+これは日本語のテキストです。
+
+# 한국어 테스트 (Korean Test)
+
+이것은 한국어 텍스트입니다.
+
+# Mixed Content
+
+English and 中文 can be mixed together.
+
+日本語 with English works too.
+EOF
+
+    rm -f "$test_pdf"
+
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF file not created"
+        fi
+    else
+        test_fail "CJK conversion failed"
+    fi
+}
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -297,6 +488,9 @@ test_unknown_command
 test_no_command
 test_pdf_conversion
 test_epub_conversion
+test_book_frontmatter
+test_math_chemistry
+test_cjk_content
 
 # Summary
 echo -e "\n${YELLOW}═══════════════════════════════════════════${NC}"
