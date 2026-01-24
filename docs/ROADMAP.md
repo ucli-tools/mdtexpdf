@@ -4,124 +4,201 @@ A comprehensive list of improvements to make mdtexpdf a perfect, production-read
 
 ---
 
-## 1. Code Architecture
+## Implementation Plan
 
-### 1.1 Modularization
-- [x] Split `mdtexpdf.sh` (3,273 lines) into separate modules (started):
-  - [x] `lib/core.sh` - Common functions, color codes, utilities
-  - [ ] `lib/pdf.sh` - PDF generation logic
-  - [ ] `lib/epub.sh` - EPUB generation logic
-  - [ ] `lib/cover.sh` - Cover generation (PDF and EPUB)
-  - [ ] `lib/metadata.sh` - YAML parsing and metadata handling
-  - [ ] `lib/frontmatter.sh` - Front matter generation (copyright, dedication, etc.)
-  - [x] `lib/check.sh` - Prerequisites checking
-- [ ] Main `mdtexpdf.sh` becomes a thin dispatcher that sources modules
+We take a quality-first approach, completing each phase thoroughly before moving to the next.
+
+### Phase A: Quick Wins (< 1 hour each)
+- [ ] A1. Add CI badge to README showing build status
+- [ ] A2. Consistent error codes (1=user error, 2=missing dependency, 3=conversion failure)
+- [ ] A3. Improve `--help` output for all commands and flags
+- [ ] A4. Document existing uninstall command
+
+### Phase B: Testing & Quality (2-4 hours)
+- [ ] B1. Shellcheck compliance - fix all warnings locally
+- [ ] B2. More integration tests:
+  - [ ] Book with full front matter PDF
+  - [ ] Cover generation
+  - [ ] Math/chemistry rendering
+  - [ ] CJK content
+- [ ] B3. Regression tests (compare output hashes)
+- [ ] B4. Unit tests for modules
+- [ ] B5. Create CONTRIBUTING.md with code style guide
+
+### Phase C: Documentation (3-5 hours)
+- [ ] C1. Troubleshooting guide with common errors
+- [ ] C2. FAQ section
+- [ ] C3. Quick start tutorial (5 minutes to first PDF)
+- [ ] C4. Book project tutorial (complete workflow)
+- [ ] C5. More examples:
+  - [ ] Academic paper with citations
+  - [ ] Novel/fiction book
+  - [ ] Technical documentation
+  - [ ] Cookbook with images
+  - [ ] Multi-language document
+
+### Phase D: Modularization (6-10 hours)
+- [ ] D1. Extract `lib/pdf.sh` - PDF generation logic
+- [ ] D2. Extract `lib/epub.sh` - EPUB generation logic
+- [ ] D3. Extract `lib/metadata.sh` - YAML parsing and handling
+- [ ] D4. Extract `lib/cover.sh` - Cover generation (PDF and EPUB)
+- [ ] D5. Extract `lib/frontmatter.sh` - Front matter generation
+- [ ] D6. Make main `mdtexpdf.sh` a thin dispatcher that sources modules
+- [ ] D7. Make each module independently testable
+
+### Phase E: New Features (4-8 hours each)
+- [ ] E1. Bibliography & Citations support
+- [ ] E2. Index Generation
+- [ ] E3. Custom Templates (LaTeX and EPUB CSS)
+- [ ] E4. EPUB Validation (epubcheck integration)
+- [ ] E5. Multi-file Projects support
+
+### Phase F: Future Enhancements (deferred)
+- Editor integrations (VS Code, Vim, Emacs)
+- Package manager distribution (Homebrew, APT, AUR)
+- Print-ready PDF options (bleed, CMYK, PDF/X)
+- Performance optimizations (caching, incremental builds)
+- Additional output formats (DOCX, HTML)
+
+---
+
+## Current Status
+
+### Completed
+- [x] Core PDF generation
+- [x] EPUB3 generation with cover and front matter
+- [x] `--version`, `--verbose`, `--debug` flags
+- [x] CHANGELOG.md
+- [x] Basic test suite (11 tests)
+- [x] CI/CD pipeline (GitHub Actions)
+- [x] Docker image with all dependencies
+- [x] Makefile template for book projects
+- [x] Started modularization (`lib/core.sh`, `lib/check.sh`)
+
+### In Progress
+- Phase A: Quick Wins
+
+---
+
+## Detailed Feature List
+
+### 1. Code Architecture
+
+#### 1.1 Modularization
+- [x] `lib/core.sh` - Common functions, color codes, utilities
+- [x] `lib/check.sh` - Prerequisites checking
+- [ ] `lib/pdf.sh` - PDF generation logic
+- [ ] `lib/epub.sh` - EPUB generation logic
+- [ ] `lib/cover.sh` - Cover generation (PDF and EPUB)
+- [ ] `lib/metadata.sh` - YAML parsing and metadata handling
+- [ ] `lib/frontmatter.sh` - Front matter generation
+- [ ] Main `mdtexpdf.sh` becomes thin dispatcher
 - [ ] Each module independently testable
 
-### 1.2 Configuration
+#### 1.2 Configuration
 - [ ] Support `~/.mdtexpdf/config.yaml` for user defaults
-- [ ] Support `.mdtexpdf.yaml` in project directory for project-specific settings
+- [ ] Support `.mdtexpdf.yaml` in project directory
 - [ ] Environment variable overrides (`MDTEXPDF_DEFAULT_FORMAT`, etc.)
 
-### 1.3 Error Handling
-- [ ] Consistent error codes (1=user error, 2=missing dependency, 3=conversion failure, etc.)
+#### 1.3 Error Handling
+- [ ] Consistent error codes (1=user error, 2=missing dependency, 3=conversion failure)
 - [ ] Better error messages with suggested fixes
-- [x] `--verbose` and `--debug` flags for troubleshooting
+- [x] `--verbose` and `--debug` flags
 - [x] Logging functions (log_verbose, log_debug, log_error, log_warn, log_success)
 - [ ] Log file option (`--log output.log`)
 
 ---
 
-## 2. Testing & Quality
+### 2. Testing & Quality
 
-### 2.1 Automated Test Suite
-- [x] Create `tests/` directory with test runner
-- [ ] Unit tests for each module/function
-- [x] Integration tests for full conversions:
+#### 2.1 Automated Test Suite
+- [x] `tests/` directory with test runner
+- [x] Integration tests:
   - [x] Basic article PDF
-  - [ ] Book with full front matter PDF
   - [x] EPUB generation
+  - [ ] Book with full front matter PDF
   - [ ] Cover generation
   - [ ] Math/chemistry rendering
   - [ ] CJK content
+- [ ] Unit tests for each module
 - [ ] Regression tests (compare output hashes)
 - [x] Test runner script: `make test`
 
-### 2.2 CI/CD Pipeline
-- [x] GitHub Actions workflow for:
+#### 2.2 CI/CD Pipeline
+- [x] GitHub Actions workflow:
   - [x] Linting (shellcheck)
   - [x] Running test suite
   - [x] Building example documents
   - [x] Release automation
 - [ ] Badge in README showing build status
 
-### 2.3 Code Quality
+#### 2.3 Code Quality
 - [ ] Pass shellcheck with no warnings
-- [ ] Consistent code style (document in CONTRIBUTING.md)
+- [ ] CONTRIBUTING.md with code style guide
 - [ ] Function documentation (comments explaining purpose, args, return)
 
 ---
 
-## 3. Versioning & Releases
+### 3. Versioning & Releases
 
-### 3.1 Version Management
-- [x] Add `--version` flag
+#### 3.1 Version Management
+- [x] `--version` flag
 - [x] Semantic versioning (MAJOR.MINOR.PATCH)
-- [x] Version defined in single location (`VERSION` variable in mdtexpdf.sh)
-- [x] CHANGELOG.md following Keep a Changelog format
+- [x] Version in single location (`VERSION` variable)
+- [x] CHANGELOG.md (Keep a Changelog format)
 
-### 3.2 Release Process
-- [x] Git tags for releases (v1.0.0, v1.1.0, etc.) - via CI
-- [x] GitHub Releases with release notes - via CI
+#### 3.2 Release Process
+- [x] Git tags for releases (via CI)
+- [x] GitHub Releases with notes (via CI)
 - [ ] Installation instructions for specific versions
 
 ---
 
-## 4. New Features
+### 4. New Features
 
-### 4.1 Bibliography & Citations
+#### 4.1 Bibliography & Citations
 - [ ] Support for `.bib` files (BibTeX/BibLaTeX)
-- [ ] Citation styles (APA, MLA, Chicago, IEEE, etc.)
-- [ ] Metadata field: `bibliography: "references.bib"`
-- [ ] Metadata field: `citation_style: "apa"`
+- [ ] Citation styles (APA, MLA, Chicago, IEEE)
+- [ ] Metadata: `bibliography: "references.bib"`
+- [ ] Metadata: `citation_style: "apa"`
 - [ ] Auto-generate References/Bibliography section
 - [ ] Works in both PDF and EPUB
 
-### 4.2 Index Generation
+#### 4.2 Index Generation
 - [ ] Markup for index entries: `{.index}` or `\index{term}`
-- [ ] Auto-generate Index section at end of book
+- [ ] Auto-generate Index section
 - [ ] Sub-entries and cross-references
-- [ ] Metadata field: `index: true`
+- [ ] Metadata: `index: true`
 
-### 4.3 Cross-References
+#### 4.3 Cross-References
 - [ ] Figure/table numbering and references
 - [ ] Chapter/section references (`see Chapter 3`)
 - [ ] Clickable links in PDF and EPUB
 
-### 4.4 Glossary Enhancement
+#### 4.4 Glossary Enhancement
 - [ ] Structured glossary format in YAML or markdown
 - [ ] Auto-link glossary terms in text
 - [ ] Glossary as appendix with proper formatting
 
-### 4.5 Custom Templates
+#### 4.5 Custom Templates
 - [ ] User-provided LaTeX templates (`--template custom.tex`)
 - [ ] User-provided EPUB CSS (`--epub-css custom.css`)
 - [ ] Template variables documentation
 - [ ] Example templates in `templates/`
 
-### 4.6 Multiple Output Formats
-- [ ] DOCX output (Word) - complete the experimental branch
+#### 4.6 Multiple Output Formats
+- [ ] DOCX output (Word)
 - [ ] HTML output (single page or multi-page)
 - [ ] Plain text output
-- [ ] Markdown cleanup/normalization output
+- [ ] Markdown cleanup/normalization
 
-### 4.7 Multi-File Projects
-- [ ] Support for `includes:` metadata to combine multiple .md files
+#### 4.7 Multi-File Projects
+- [ ] `includes:` metadata to combine .md files
 - [ ] Chapter-per-file organization
-- [ ] Shared metadata file for multi-file projects
+- [ ] Shared metadata file
 - [ ] Build order configuration
 
-### 4.8 Image Handling
+#### 4.8 Image Handling
 - [ ] Auto-resize images to fit page
 - [ ] Image compression for EPUB
 - [ ] SVG support
@@ -130,210 +207,173 @@ A comprehensive list of improvements to make mdtexpdf a perfect, production-read
 
 ---
 
-## 5. EPUB Improvements
+### 5. EPUB Improvements
 
-### 5.1 Math in EPUB
-- [ ] MathML output option for better e-reader support
+#### 5.1 Math in EPUB
+- [ ] MathML output option
 - [ ] SVG rendering of equations as fallback
-- [ ] Document which e-readers support what
+- [ ] Document e-reader compatibility
 
-### 5.2 EPUB Validation
-- [ ] Run epubcheck automatically after generation
+#### 5.2 EPUB Validation
+- [ ] Run epubcheck automatically
 - [ ] Report and fix common issues
 - [ ] `--validate` flag
 
-### 5.3 EPUB Metadata
-- [ ] Full EPUB3 metadata support (series, collection, etc.)
+#### 5.3 EPUB Metadata
+- [ ] Full EPUB3 metadata (series, collection)
 - [ ] ISBN embedding
 - [ ] Rights/license metadata
 - [ ] Reading order for complex layouts
 
-### 5.4 EPUB Styling
+#### 5.4 EPUB Styling
 - [ ] Built-in CSS themes (default, serif, sans, high-contrast)
 - [ ] Custom CSS injection
 - [ ] Font embedding option
 - [ ] Responsive typography
 
-### 5.5 Cover Improvements
-- [ ] Multiple cover templates (centered, top-aligned, minimal)
-- [ ] Back cover for EPUB (as final page)
-- [ ] Spine image generation for print
-- [ ] Cover without ImageMagick (pure Pandoc/CSS solution)
+#### 5.5 Cover Improvements
+- [ ] Multiple cover templates
+- [ ] Back cover for EPUB
+- [ ] Spine image generation
+- [ ] Cover without ImageMagick (pure CSS)
 
 ---
 
-## 6. PDF Improvements
+### 6. PDF Improvements
 
-### 6.1 Print-Ready Output
-- [ ] Bleed and trim marks option
-- [ ] CMYK color output option
-- [ ] PDF/X compliance for print shops
+#### 6.1 Print-Ready Output
+- [ ] Bleed and trim marks
+- [ ] CMYK color output
+- [ ] PDF/X compliance
 - [ ] Crop marks and registration marks
 
-### 6.2 Layout Options
-- [ ] Two-column layout option
+#### 6.2 Layout Options
+- [ ] Two-column layout
 - [ ] Custom margins per section
-- [ ] Landscape pages for wide tables/figures
-- [ ] Page size presets (A4, Letter, 6x9, etc.)
+- [ ] Landscape pages for wide content
+- [ ] Page size presets (A4, Letter, 6x9)
 
-### 6.3 Typography
+#### 6.3 Typography
 - [ ] Font selection metadata (serif, sans, mono)
 - [ ] Custom font embedding
-- [ ] Microtypography options (protrusion, expansion)
-- [ ] Widow/orphan control settings
+- [ ] Microtypography options
+- [ ] Widow/orphan control
 
 ---
 
-## 7. Documentation
+### 7. Documentation
 
-### 7.1 Documentation Completeness
+#### 7.1 Documentation Completeness
 - [ ] Man page (`man mdtexpdf`)
-- [ ] `--help` output for all commands and flags
-- [ ] Troubleshooting guide with common errors
+- [ ] `--help` output for all commands
+- [ ] Troubleshooting guide
 - [ ] FAQ section
 
-### 7.2 Tutorials
-- [ ] Quick start tutorial (5 minutes to first PDF)
-- [ ] Book project tutorial (complete workflow)
-- [ ] Migration guide from other tools (Pandoc direct, LaTeX, etc.)
+#### 7.2 Tutorials
+- [ ] Quick start (5 minutes to first PDF)
+- [ ] Book project tutorial
+- [ ] Migration guide from other tools
 
-### 7.3 Examples
-- [ ] Example: Academic paper with citations
-- [ ] Example: Technical documentation
-- [ ] Example: Novel/fiction book
-- [ ] Example: Cookbook/recipe book with images
-- [ ] Example: Multi-language document
-- [ ] Each example with source and rendered PDF/EPUB
+#### 7.3 Examples
+- [ ] Academic paper with citations
+- [ ] Technical documentation
+- [ ] Novel/fiction book
+- [ ] Cookbook with images
+- [ ] Multi-language document
+- [ ] Each with source and rendered PDF/EPUB
 
 ---
 
-## 8. Installation & Distribution
+### 8. Installation & Distribution
 
-### 8.1 Docker (Recommended for Easy Setup)
-Docker bundles all dependencies (Pandoc, LaTeX, ImageMagick, fonts) so users don't need to install anything locally.
+#### 8.1 Docker
+- [x] Dockerfile with full dependencies
+- [x] Docker Hub publishing (via CI)
+- [x] Usage documentation in README
+- [x] Multi-arch support (amd64, arm64)
+- [ ] Slim variant without full TexLive
+- [ ] Docker Compose template
 
-- [x] Create `Dockerfile` with full TexLive, Pandoc, ImageMagick, fonts
-- [x] Publish to Docker Hub (`uclitools/mdtexpdf`) - via CI on release
-- [ ] Slim variant without full TexLive for smaller image
-- [x] Usage documentation (in README.md):
-  ```bash
-  # Convert a file
-  docker run --rm -v $(pwd):/work uclitools/mdtexpdf convert book.md --read-metadata
-  
-  # Build PDF and EPUB
-  docker run --rm -v $(pwd):/work uclitools/mdtexpdf convert book.md --read-metadata
-  docker run --rm -v $(pwd):/work uclitools/mdtexpdf convert book.md --read-metadata --epub
-  ```
-- [x] Shell alias for convenience (documented in README.md):
-  ```bash
-  alias mdtexpdf='docker run --rm -v $(pwd):/work uclitools/mdtexpdf'
-  ```
-- [ ] Docker Compose template for complex projects
-- [x] GitHub Actions using the Docker image
-- [x] Multi-arch support (amd64, arm64 for M1/M2 Macs) - via CI
-
-### 8.2 Package Managers
-- [ ] Homebrew formula (macOS) - wraps Docker or native install
+#### 8.2 Package Managers
+- [ ] Homebrew formula (macOS)
 - [ ] APT package (Debian/Ubuntu)
 - [ ] AUR package (Arch Linux)
-- [ ] npm/pip wrapper for cross-platform install
+- [ ] npm/pip wrapper
 
-### 8.3 Native Installation
-- [ ] `install.sh` script for one-line installation
-- [ ] Dependency checker and installer (`mdtexpdf setup`)
-- [ ] Version upgrade command (`mdtexpdf upgrade`)
-- [ ] Uninstall command (`mdtexpdf uninstall` or `make uninstall`)
+#### 8.3 Native Installation
+- [ ] `install.sh` one-line installation
+- [ ] `mdtexpdf setup` dependency installer
+- [ ] `mdtexpdf upgrade` version upgrade
+- [ ] Document uninstall command
 
 ---
 
-## 9. Performance
+### 9. Performance
 
-### 9.1 Speed Optimization
-- [ ] Cache LaTeX preamble compilation
-- [ ] Incremental builds (only rebuild changed chapters)
-- [ ] Parallel processing for multi-file projects
-- [ ] Benchmark suite to track performance
+#### 9.1 Speed Optimization
+- [ ] Cache LaTeX preamble
+- [ ] Incremental builds
+- [ ] Parallel processing
+- [ ] Benchmark suite
 
-### 9.2 Resource Usage
-- [ ] Memory usage optimization for large documents
+#### 9.2 Resource Usage
+- [ ] Memory optimization
 - [ ] Temp file cleanup on all exit paths
 - [ ] Progress indicator for long conversions
 
 ---
 
-## 10. Integrations
+### 10. Integrations
 
-### 10.1 Editor Integration
+#### 10.1 Editor Integration
 - [ ] VS Code extension with preview
 - [ ] Vim/Neovim plugin
 - [ ] Emacs integration
 
-### 10.2 Build Tool Integration
-- [x] Make integration (current Makefile template)
+#### 10.2 Build Tool Integration
+- [x] Make integration (Makefile template)
 - [x] GitHub Actions workflow template
 - [ ] GitLab CI template
-- [ ] Pre-commit hook for validation
+- [ ] Pre-commit hook
 
-### 10.3 External Services
-- [ ] Publish to Kindle Direct Publishing (KDP) format check
-- [ ] Publish to Apple Books format check
+#### 10.3 External Services
+- [ ] Kindle Direct Publishing (KDP) format check
+- [ ] Apple Books format check
 - [ ] ISBN barcode generation
 - [ ] DOI support for academic papers
 
 ---
 
-## Priority Matrix
-
-### P0 - Critical (Do First) - COMPLETE
-- [x] Versioning (`--version`, CHANGELOG.md)
-- [x] Shellcheck compliance (via CI)
-- [x] Basic test suite
-- [x] `--verbose` / `--debug` flags
-
-### P1 - High Priority - MOSTLY COMPLETE
-- [x] Docker image (simplifies installation dramatically)
-- [x] CI/CD pipeline
-- [~] Modularization (split mdtexpdf.sh) - started, lib/core.sh and lib/check.sh created
-- [ ] Bibliography support
-
-### P2 - Medium Priority
-- [ ] EPUB validation
-- [ ] Custom templates
-- [ ] Index generation
-- [ ] More examples
-
-### P3 - Nice to Have
-- [ ] Editor integrations
-- [ ] Package manager distribution
-- [ ] Print-ready PDF options
-- [ ] Multi-file projects
-
----
-
 ## Version Targets
 
-### v1.0.0 - Stable Release - COMPLETE
-- [x] All P0 items complete
-- [x] Core functionality documented and tested
-- [x] Docker image and CI/CD pipeline
-- [x] No known critical bugs
+### v1.0.0 - Stable Release
+- [x] All Phase A-B items complete
+- [x] Core PDF/EPUB functionality
+- [x] Docker and CI/CD
+- [ ] Shellcheck passes
+- [ ] Comprehensive tests
 
-### v1.1.0 - Bibliography & Citations
+### v1.1.0 - Documentation & Examples
+- [ ] Phase C complete
+- [ ] All tutorials written
+- [ ] Example documents
+
+### v1.2.0 - Modular Architecture
+- [ ] Phase D complete
+- [ ] Full modularization
+- [ ] Unit tests for all modules
+
+### v1.3.0 - Bibliography & Index
+- [ ] Phase E1-E2 complete
 - [ ] Bibliography support
-- [ ] Citation styles
-- [ ] Academic paper example
+- [ ] Index generation
 
-### v1.2.0 - Better Architecture
-- [ ] Fully modularized codebase
-- [ ] Full test coverage
-- [ ] EPUB validation
-
-### v2.0.0 - Extended Formats
-- [ ] DOCX output
-- [ ] HTML output
+### v2.0.0 - Extended Features
+- [ ] Phase E3-E5 complete
 - [ ] Custom templates
 - [ ] Multi-file projects
+- [ ] EPUB validation
 
 ---
 
-*This roadmap is a living document. Items may be reprioritized based on user feedback and project needs.*
+*Quality over speed. Each phase completed thoroughly before moving on.*
