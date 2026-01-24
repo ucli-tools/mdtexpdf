@@ -1703,6 +1703,7 @@ convert() {
     ARG_READ_METADATA=false # New variable for metadata reading
     ARG_FORMAT="" # New variable for document format
     ARG_HEADER_FOOTER_POLICY="default" # New variable for header/footer policy (default, partial, all)
+    ARG_EPUB=false # Output format: EPUB instead of PDF
 
     # Parse command-line arguments
     while [[ $# -gt 0 ]]; do
@@ -1797,6 +1798,10 @@ convert() {
                 ARG_READ_METADATA=true
                 shift
                 ;;
+            --epub)
+                ARG_EPUB=true
+                shift
+                ;;
             --format)
                 ARG_FORMAT="$2"
                 shift 2
@@ -1845,6 +1850,7 @@ convert() {
                     echo -e "  --read-metadata       Read metadata from HTML comments in markdown file"
                     echo -e "  --format FORMAT       Set document format (article or book)"
                     echo -e "  --header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default"
+                    echo -e "  --epub                Output EPUB format instead of PDF"
                     return 1
                 fi
                 shift
@@ -1878,6 +1884,7 @@ convert() {
         echo -e "  --read-metadata       Read metadata from HTML comments in markdown file"
         echo -e "  --format FORMAT       Set document format (article or book)"
         echo -e "  --header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default"
+        echo -e "  --epub                Output EPUB format instead of PDF"
         return 1
     fi
 
@@ -1892,8 +1899,8 @@ convert() {
         return 1
     fi
 
-    # Parse metadata from YAML frontmatter if --read-metadata flag is set
-    if [ "$ARG_READ_METADATA" = true ]; then
+    # Parse metadata from YAML frontmatter if --read-metadata flag is set or EPUB output
+    if [ "$ARG_READ_METADATA" = true ] || [ "$ARG_EPUB" = true ]; then
         parse_yaml_metadata "$INPUT_FILE"
         apply_metadata_args "$ARG_READ_METADATA"
     fi
@@ -1938,10 +1945,171 @@ convert() {
 
     # If output file is not specified, derive from input file
     if [ -z "$OUTPUT_FILE" ]; then
-        OUTPUT_FILE="${INPUT_FILE%.md}.pdf"
+        if [ "$ARG_EPUB" = true ]; then
+            OUTPUT_FILE="${INPUT_FILE%.md}.epub"
+        else
+            OUTPUT_FILE="${INPUT_FILE%.md}.pdf"
+        fi
     fi
 
+    # ============== EPUB OUTPUT ==============
+    if [ "$ARG_EPUB" = true ]; then
+        echo -e "${YELLOW}Converting $INPUT_FILE to EPUB...${NC}"
 
+        # Build EPUB options
+        EPUB_OPTS=""
+
+        # Table of contents
+        if [ "$ARG_TOC" = true ] || [ "$META_TOC" = "true" ]; then
+            EPUB_OPTS="$EPUB_OPTS --toc"
+            local toc_depth="${ARG_TOC_DEPTH:-${META_TOC_DEPTH:-2}}"
+            EPUB_OPTS="$EPUB_OPTS --toc-depth=$toc_depth"
+        fi
+
+        # Metadata
+        local epub_title="${ARG_TITLE:-$META_TITLE}"
+        local epub_author="${ARG_AUTHOR:-$META_AUTHOR}"
+        local epub_date="${ARG_DATE:-$META_DATE}"
+        local epub_description="$META_DESCRIPTION"
+        local epub_language="${META_LANGUAGE:-en}"
+
+        # Cover image
+        local epub_cover=""
+        if [ -n "$META_COVER_IMAGE" ] && [ -f "$META_COVER_IMAGE" ]; then
+            epub_cover="$META_COVER_IMAGE"
+        else
+            # Try to auto-detect cover image
+            local input_dir=$(dirname "$INPUT_FILE")
+            for ext in jpg jpeg png; do
+                for dir in "$input_dir/img" "$input_dir/images" "$input_dir"; do
+                    if [ -f "$dir/cover.$ext" ]; then
+                        epub_cover="$dir/cover.$ext"
+                        break 2
+                    fi
+                done
+            done
+        fi
+
+        # Create temporary file for EPUB preprocessing
+        local epub_temp_input="${INPUT_FILE%.md}_epub_temp.md"
+        cp "$INPUT_FILE" "$epub_temp_input"
+
+        # Preprocess chemistry notation: convert \ce{X} to Unicode/plain text
+        # Common chemistry conversions for EPUB readability
+        sed -i 's/\\ce{H2O}/H₂O/g' "$epub_temp_input"
+        sed -i 's/\\ce{CO2}/CO₂/g' "$epub_temp_input"
+        sed -i 's/\\ce{O2}/O₂/g' "$epub_temp_input"
+        sed -i 's/\\ce{H2}/H₂/g' "$epub_temp_input"
+        sed -i 's/\\ce{N2}/N₂/g' "$epub_temp_input"
+        sed -i 's/\\ce{H+}/H⁺/g' "$epub_temp_input"
+        sed -i 's/\\ce{OH-}/OH⁻/g' "$epub_temp_input"
+        sed -i 's/\\ce{O2-}/O₂⁻/g' "$epub_temp_input"
+        sed -i 's/\\ce{CO3-}/CO₃⁻/g' "$epub_temp_input"
+        sed -i 's/\\ce{H3O+}/H₃O⁺/g' "$epub_temp_input"
+        sed -i 's/\\ce{CH3COOH}/CH₃COOH/g' "$epub_temp_input"
+        sed -i 's/\\ce{CH3COO-}/CH₃COO⁻/g' "$epub_temp_input"
+        sed -i 's/\\ce{Ca(OH)2}/Ca(OH)₂/g' "$epub_temp_input"
+        sed -i 's/\\ce{CaCO3}/CaCO₃/g' "$epub_temp_input"
+        sed -i 's/\\ce{Al2O3}/Al₂O₃/g' "$epub_temp_input"
+        sed -i 's/\\ce{AgI}/AgI/g' "$epub_temp_input"
+        # Generic pattern: convert remaining \ce{...} by just removing \ce{ and }
+        sed -i 's/\\ce{\([^}]*\)}/\1/g' "$epub_temp_input"
+        # Convert arrows
+        sed -i 's/→/→/g' "$epub_temp_input"
+        sed -i 's/⇌/⇌/g' "$epub_temp_input"
+        sed -i 's/->/→/g' "$epub_temp_input"
+        sed -i 's/<=>/⇌/g' "$epub_temp_input"
+
+        # Generate front matter as MARKDOWN and insert into temp file after YAML frontmatter
+        # This ensures it appears ONCE at the start, not before every chapter
+        local epub_frontmatter_md=""
+
+        # Dedication
+        if [ -n "$META_DEDICATION" ]; then
+            epub_frontmatter_md="$epub_frontmatter_md\n\n::: {.dedication}\n*$META_DEDICATION*\n:::\n"
+        fi
+
+        # Epigraph
+        if [ -n "$META_EPIGRAPH" ]; then
+            epub_frontmatter_md="$epub_frontmatter_md\n\n::: {.epigraph}\n> $META_EPIGRAPH"
+            if [ -n "$META_EPIGRAPH_SOURCE" ]; then
+                epub_frontmatter_md="$epub_frontmatter_md\n>\n> — $META_EPIGRAPH_SOURCE"
+            fi
+            epub_frontmatter_md="$epub_frontmatter_md\n:::\n"
+        fi
+
+        # Authorship & Support
+        if [ -n "$META_AUTHOR_PUBKEY" ]; then
+            epub_frontmatter_md="$epub_frontmatter_md\n\n## Authorship & Support\n\n### Authorship Verification\n\n${META_AUTHOR_PUBKEY_TYPE:-PGP}: \`$META_AUTHOR_PUBKEY\`\n"
+
+            # For EPUB, re-parse donation wallets directly from YAML instead of using LaTeX-formatted version
+            local temp_yaml=$(mktemp)
+            sed -n '/^---$/,/^---$/p' "$INPUT_FILE" | tail -n +2 | head -n -1 > "$temp_yaml"
+            local wallet_count=$(yq eval '.donation_wallets | length' "$temp_yaml" 2>/dev/null)
+            if [ -n "$wallet_count" ] && [ "$wallet_count" != "0" ] && [ "$wallet_count" != "null" ]; then
+                epub_frontmatter_md="$epub_frontmatter_md\n### Support the Author\n\n"
+                for i in $(seq 0 $((wallet_count - 1))); do
+                    local wallet_type=$(yq eval ".donation_wallets[$i].type" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+                    local wallet_address=$(yq eval ".donation_wallets[$i].address" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+                    if [ -n "$wallet_type" ] && [ -n "$wallet_address" ]; then
+                        epub_frontmatter_md="$epub_frontmatter_md${wallet_type}: \`${wallet_address}\`\n\n"
+                    fi
+                done
+            fi
+            rm -f "$temp_yaml"
+        fi
+
+        # Insert front matter into temp file after YAML frontmatter ends
+        if [ -n "$epub_frontmatter_md" ]; then
+            # Find the line number of the closing --- of YAML frontmatter
+            local yaml_end_line=$(awk '/^---$/{n++; if(n==2) {print NR; exit}}' "$epub_temp_input")
+            if [ -n "$yaml_end_line" ]; then
+                # Insert front matter markdown after YAML frontmatter
+                local temp_with_frontmatter=$(mktemp)
+                head -n "$yaml_end_line" "$epub_temp_input" > "$temp_with_frontmatter"
+                echo -e "$epub_frontmatter_md" >> "$temp_with_frontmatter"
+                tail -n +$((yaml_end_line + 1)) "$epub_temp_input" >> "$temp_with_frontmatter"
+                mv "$temp_with_frontmatter" "$epub_temp_input"
+            fi
+        fi
+
+        # Build pandoc command
+        EPUB_CMD="pandoc \"$epub_temp_input\" --from markdown --to epub3 --output \"$OUTPUT_FILE\""
+
+        [ -n "$epub_title" ] && EPUB_CMD="$EPUB_CMD --metadata title=\"$epub_title\""
+        [ -n "$epub_author" ] && EPUB_CMD="$EPUB_CMD --metadata author=\"$epub_author\""
+        [ -n "$epub_date" ] && EPUB_CMD="$EPUB_CMD --metadata date=\"$epub_date\""
+        [ -n "$epub_description" ] && EPUB_CMD="$EPUB_CMD --metadata description=\"$epub_description\""
+        [ -n "$epub_language" ] && EPUB_CMD="$EPUB_CMD --metadata lang=\"$epub_language\""
+        [ -n "$epub_cover" ] && EPUB_CMD="$EPUB_CMD --epub-cover-image=\"$epub_cover\""
+
+        EPUB_CMD="$EPUB_CMD $EPUB_OPTS --standalone"
+
+        # Execute
+        echo -e "${BLUE}Running: $EPUB_CMD${NC}"
+        eval $EPUB_CMD
+        local epub_result=$?
+
+        # Cleanup temp files
+        rm -f "$epub_temp_input"
+
+        if [ $epub_result -eq 0 ]; then
+            echo -e "${GREEN}Success! EPUB created as $OUTPUT_FILE${NC}"
+
+            # Restore backup
+            if [ -f "$BACKUP_FILE" ]; then
+                mv "$BACKUP_FILE" "$INPUT_FILE"
+            fi
+            return 0
+        else
+            echo -e "${RED}Error: EPUB conversion failed.${NC}"
+            if [ -f "$BACKUP_FILE" ]; then
+                mv "$BACKUP_FILE" "$INPUT_FILE"
+            fi
+            return 1
+        fi
+    fi
+    # ============== END EPUB OUTPUT ==============
 
     # Preprocess the markdown file for better LaTeX compatibility
     preprocess_markdown "$INPUT_FILE"
