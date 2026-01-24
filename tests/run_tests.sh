@@ -468,6 +468,282 @@ EOF
     fi
 }
 
+# PDF with page X of Y footer format
+test_pdf_pageof() {
+    test_start "PDF with page X of Y format"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    if ! command -v pdflatex &> /dev/null && ! command -v xelatex &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: LaTeX not installed"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_pageof.md"
+    local test_pdf="$TEST_OUTPUT/test_pageof.pdf"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "Page Of Test"
+author: "Test Author"
+date: "2026-01-24"
+---
+
+# Chapter 1
+
+First page content.
+
+# Chapter 2
+
+Second page content.
+EOF
+
+    rm -f "$test_pdf"
+
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata -f "Test Footer" --pageof 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF file not created"
+        fi
+    else
+        test_fail "Page X of Y conversion failed"
+    fi
+}
+
+# PDF with date in footer
+test_pdf_date_footer() {
+    test_start "PDF with date in footer"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    if ! command -v pdflatex &> /dev/null && ! command -v xelatex &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: LaTeX not installed"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_date_footer.md"
+    local test_pdf="$TEST_OUTPUT/test_date_footer.pdf"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "Date Footer Test"
+author: "Test Author"
+date: "2026-01-24"
+---
+
+# Content
+
+Testing date footer feature.
+EOF
+
+    rm -f "$test_pdf"
+
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata -f "Test Footer" --date-footer "YYYY-MM-DD" 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF file not created"
+        fi
+    else
+        test_fail "Date footer conversion failed"
+    fi
+}
+
+# PDF without section numbers
+test_pdf_no_numbers() {
+    test_start "PDF without section numbers"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    if ! command -v pdflatex &> /dev/null && ! command -v xelatex &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: LaTeX not installed"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_no_numbers.md"
+    local test_pdf="$TEST_OUTPUT/test_no_numbers.pdf"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "No Numbers Test"
+author: "Test Author"
+date: "2026-01-24"
+---
+
+# Chapter One
+
+## Section A
+
+### Subsection i
+
+Content without section numbers.
+EOF
+
+    rm -f "$test_pdf"
+
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata -f "Test Footer" --no-numbers 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF file not created"
+        fi
+    else
+        test_fail "No numbers conversion failed"
+    fi
+}
+
+# PDF with TOC via CLI flag
+test_pdf_toc_cli() {
+    test_start "PDF with TOC via CLI flag"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    if ! command -v pdflatex &> /dev/null && ! command -v xelatex &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: LaTeX not installed"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_toc_cli.md"
+    local test_pdf="$TEST_OUTPUT/test_toc_cli.pdf"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "TOC CLI Test"
+author: "Test Author"
+date: "2026-01-24"
+---
+
+# Chapter 1
+
+First chapter.
+
+## Section 1.1
+
+Subsection content.
+
+# Chapter 2
+
+Second chapter.
+
+## Section 2.1
+
+More content.
+EOF
+
+    rm -f "$test_pdf"
+
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata -f "Test Footer" --toc --toc-depth 3 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF file not created"
+        fi
+    else
+        test_fail "TOC CLI conversion failed"
+    fi
+}
+
+# PDF with header-footer-policy all
+test_pdf_header_footer_policy() {
+    test_start "PDF with header-footer-policy all"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    if ! command -v pdflatex &> /dev/null && ! command -v xelatex &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: LaTeX not installed"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_hf_policy.md"
+    local test_pdf="$TEST_OUTPUT/test_hf_policy.pdf"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "Header Footer Policy Test"
+author: "Test Author"
+date: "2026-01-24"
+format: "book"
+half_title: true
+copyright_page: true
+dedication: "To testers"
+---
+
+# Chapter 1
+
+Content with headers and footers on all pages.
+EOF
+
+    rm -f "$test_pdf"
+
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata -f "Test Footer" --header-footer-policy all 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF file not created"
+        fi
+    else
+        test_fail "Header-footer-policy conversion failed"
+    fi
+}
+
+# PDF with no footer (explicitly disabled)
+test_pdf_no_footer() {
+    test_start "PDF with footer disabled"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    if ! command -v pdflatex &> /dev/null && ! command -v xelatex &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: LaTeX not installed"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_no_footer.md"
+    local test_pdf="$TEST_OUTPUT/test_no_footer.pdf"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "No Footer Test"
+author: "Test Author"
+date: "2026-01-24"
+---
+
+# Content
+
+Document with no footer.
+EOF
+
+    rm -f "$test_pdf"
+
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata --no-footer 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF file not created"
+        fi
+    else
+        test_fail "No footer conversion failed"
+    fi
+}
+
 # EPUB book with front matter test
 test_epub_book_frontmatter() {
     test_start "EPUB book with front matter"
@@ -759,6 +1035,14 @@ test_pdf_conversion
 test_book_frontmatter
 test_math_chemistry
 test_cjk_content
+
+echo -e "\n${YELLOW}--- PDF Feature Tests ---${NC}\n"
+test_pdf_pageof
+test_pdf_date_footer
+test_pdf_no_numbers
+test_pdf_toc_cli
+test_pdf_header_footer_policy
+test_pdf_no_footer
 
 echo -e "\n${YELLOW}--- EPUB Tests ---${NC}\n"
 test_epub_conversion
