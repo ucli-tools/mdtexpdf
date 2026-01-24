@@ -2023,37 +2023,22 @@ convert() {
 
         # Generate front matter as MARKDOWN and insert into temp file after YAML frontmatter
         # This ensures it appears ONCE at the start, not before every chapter
-        # Use .unlisted class to exclude from TOC
+        # Order matches PDF: Authorship & Support → Dedication → Epigraph → (TOC handled by pandoc)
         local epub_frontmatter_md=""
         local has_frontmatter=false
 
-        # Dedication
-        if [ -n "$META_DEDICATION" ]; then
-            has_frontmatter=true
-            epub_frontmatter_md="$epub_frontmatter_md\n\n::: {.dedication}\n*$META_DEDICATION*\n:::\n"
-        fi
-
-        # Epigraph
-        if [ -n "$META_EPIGRAPH" ]; then
-            has_frontmatter=true
-            epub_frontmatter_md="$epub_frontmatter_md\n\n::: {.epigraph}\n> $META_EPIGRAPH"
-            if [ -n "$META_EPIGRAPH_SOURCE" ]; then
-                epub_frontmatter_md="$epub_frontmatter_md\n>\n> — $META_EPIGRAPH_SOURCE"
-            fi
-            epub_frontmatter_md="$epub_frontmatter_md\n:::\n"
-        fi
-
-        # Authorship & Support (using div to exclude from TOC)
+        # 1. Authorship & Support (first, matching PDF order)
+        # Each section gets its own h1 heading with .unlisted to create separate chapter/page
         if [ -n "$META_AUTHOR_PUBKEY" ]; then
             has_frontmatter=true
-            epub_frontmatter_md="$epub_frontmatter_md\n\n::: {.authorship}\n**Authorship & Support**\n\n*Authorship Verification*\n\n${META_AUTHOR_PUBKEY_TYPE:-PGP}: \`$META_AUTHOR_PUBKEY\`\n"
+            epub_frontmatter_md="$epub_frontmatter_md\n\n# Authorship & Support {.unnumbered .unlisted}\n\n**Authorship Verification**\n\n${META_AUTHOR_PUBKEY_TYPE:-PGP}: \`$META_AUTHOR_PUBKEY\`\n"
 
             # For EPUB, re-parse donation wallets directly from YAML instead of using LaTeX-formatted version
             local temp_yaml=$(mktemp)
             sed -n '/^---$/,/^---$/p' "$INPUT_FILE" | tail -n +2 | head -n -1 > "$temp_yaml"
             local wallet_count=$(yq eval '.donation_wallets | length' "$temp_yaml" 2>/dev/null)
             if [ -n "$wallet_count" ] && [ "$wallet_count" != "0" ] && [ "$wallet_count" != "null" ]; then
-                epub_frontmatter_md="$epub_frontmatter_md\n*Support the Author*\n\n"
+                epub_frontmatter_md="$epub_frontmatter_md\n**Support the Author**\n\n"
                 for i in $(seq 0 $((wallet_count - 1))); do
                     local wallet_type=$(yq eval ".donation_wallets[$i].type" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
                     local wallet_address=$(yq eval ".donation_wallets[$i].address" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
@@ -2063,7 +2048,22 @@ convert() {
                 done
             fi
             rm -f "$temp_yaml"
-            epub_frontmatter_md="$epub_frontmatter_md:::\n"
+        fi
+
+        # 2. Dedication (own page)
+        if [ -n "$META_DEDICATION" ]; then
+            has_frontmatter=true
+            epub_frontmatter_md="$epub_frontmatter_md\n\n# ​ {.unnumbered .unlisted .dedication-page}\n\n::: {.dedication}\n*$META_DEDICATION*\n:::\n"
+        fi
+
+        # 3. Epigraph (own page)
+        if [ -n "$META_EPIGRAPH" ]; then
+            has_frontmatter=true
+            epub_frontmatter_md="$epub_frontmatter_md\n\n# ​ {.unnumbered .unlisted .epigraph-page}\n\n::: {.epigraph}\n> $META_EPIGRAPH"
+            if [ -n "$META_EPIGRAPH_SOURCE" ]; then
+                epub_frontmatter_md="$epub_frontmatter_md\n>\n> — $META_EPIGRAPH_SOURCE"
+            fi
+            epub_frontmatter_md="$epub_frontmatter_md\n:::\n"
         fi
 
         # Insert front matter into temp file after YAML frontmatter ends
@@ -2072,10 +2072,9 @@ convert() {
             local yaml_end_line=$(awk '/^---$/{n++; if(n==2) {print NR; exit}}' "$epub_temp_input")
             if [ -n "$yaml_end_line" ]; then
                 # Insert front matter markdown after YAML frontmatter
-                # Wrap in unlisted section so it doesn't appear in TOC
+                # Each section already has its own h1 with .unlisted for separate pages
                 local temp_with_frontmatter=$(mktemp)
                 head -n "$yaml_end_line" "$epub_temp_input" > "$temp_with_frontmatter"
-                echo -e "\n# Front Matter {.unnumbered .unlisted}\n" >> "$temp_with_frontmatter"
                 echo -e "$epub_frontmatter_md" >> "$temp_with_frontmatter"
                 tail -n +$((yaml_end_line + 1)) "$epub_temp_input" >> "$temp_with_frontmatter"
                 mv "$temp_with_frontmatter" "$epub_temp_input"
