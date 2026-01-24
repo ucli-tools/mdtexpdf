@@ -381,10 +381,15 @@ For complete syntax reference, see [docs/syntax.md](docs/syntax.md).
 
 | Document | Description |
 |----------|-------------|
+| [docs/QUICKSTART.md](docs/QUICKSTART.md) | Get started in 5 minutes |
+| [docs/BOOK_TUTORIAL.md](docs/BOOK_TUTORIAL.md) | Full book project guide |
+| [docs/EPUB_GUIDE.md](docs/EPUB_GUIDE.md) | Complete EPUB generation guide |
 | [docs/mdtexpdf_guide.md](docs/mdtexpdf_guide.md) | Comprehensive user guide |
 | [docs/METADATA.md](docs/METADATA.md) | Complete metadata field reference |
 | [docs/AUTHORSHIP.md](docs/AUTHORSHIP.md) | Authorship verification guide |
 | [docs/syntax.md](docs/syntax.md) | Math and chemistry syntax reference |
+| [docs/FAQ.md](docs/FAQ.md) | Frequently asked questions |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and solutions |
 
 ## Examples
 

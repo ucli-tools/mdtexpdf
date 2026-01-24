@@ -189,6 +189,8 @@ cover_image: "img/cover.jpg"
 
 ## EPUB Generation Issues
 
+For comprehensive EPUB documentation, see the [EPUB Guide](EPUB_GUIDE.md).
+
 ### "EPUB file is empty or corrupted"
 
 **Solutions**:
@@ -196,6 +198,7 @@ cover_image: "img/cover.jpg"
 1. Validate markdown structure
 2. Ensure pandoc version is 2.0+
 3. Check for special characters in filenames
+4. Validate with epubcheck: `epubcheck mybook.epub`
 
 ### Cover image not appearing in EPUB
 
@@ -203,7 +206,8 @@ cover_image: "img/cover.jpg"
 
 1. Ensure image exists at specified path
 2. Use supported format (JPG, PNG)
-3. Check image dimensions (minimum 600x800 recommended)
+3. Check image dimensions (minimum 625x1000, recommended 1600x2400)
+4. Verify file size is under 5MB
 
 ```yaml
 cover_image: "img/cover.jpg"  # Relative to markdown file
@@ -218,6 +222,15 @@ toc: true
 toc_depth: 2
 ```
 
+### Math equations not rendering in EPUB
+
+**Cause**: EPUB has limited LaTeX math support.
+
+**Solutions**:
+1. Simple math converts to Unicode: `$x^2$` → x², `$H_2O$` → H₂O
+2. For complex equations, use PDF format instead
+3. Or convert equations to images
+
 ### Chemistry formulas not rendering in EPUB
 
 **Cause**: EPUB doesn't support LaTeX math natively.
@@ -227,6 +240,22 @@ toc_depth: 2
 - `\ce{CO2}` becomes `CO₂`
 
 For complex formulas, consider using images.
+
+### EPUB not opening on Kindle
+
+**Cause**: Kindle uses a proprietary format.
+
+**Solutions**:
+1. Upload EPUB to Kindle Direct Publishing (converts automatically)
+2. Or use Calibre to convert: `ebook-convert book.epub book.mobi`
+3. Or send via Amazon's Send to Kindle service
+
+### Characters displaying incorrectly in EPUB
+
+**Solutions**:
+1. Ensure markdown file is saved as UTF-8
+2. Add `lang: "en"` (or appropriate code) to metadata
+3. Test in Calibre viewer to isolate the issue
 
 ---
 

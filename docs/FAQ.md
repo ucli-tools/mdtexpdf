@@ -73,6 +73,23 @@ mdtexpdf convert document.md
 mdtexpdf convert document.md --epub
 ```
 
+### Should I use PDF or EPUB?
+
+**Use PDF for:**
+- Print publication
+- Academic submissions
+- Documents with complex math or precise layouts
+- Archival purposes
+
+**Use EPUB for:**
+- E-readers (Kindle, Kobo)
+- Mobile reading
+- Online distribution
+- Accessibility needs
+- Multilingual documents
+
+**Tip**: Generate both with a Makefile for maximum flexibility.
+
 ### How do I add a table of contents?
 
 Add to your YAML frontmatter:
@@ -116,6 +133,59 @@ Or:
 
 ```bash
 mdtexpdf convert document.md --no-numbers
+```
+
+---
+
+## EPUB-Specific Questions
+
+### What cover size should I use for EPUB?
+
+Recommended: **1600 x 2400 pixels** (2:3 ratio). This works across all platforms:
+- Amazon Kindle: 1600 x 2560 ideal
+- Apple Books: 1400 x 1873 minimum
+- Kobo: 1072 x 1448 minimum
+
+### Do math equations work in EPUB?
+
+Simple math is converted to Unicode:
+- `$x^2$` → x²
+- `$H_2O$` → H₂O
+
+Complex LaTeX equations have limited support. For academic papers with heavy math, PDF is recommended.
+
+### How do I validate my EPUB?
+
+Use epubcheck:
+```bash
+epubcheck mybook.epub
+```
+
+Or test in Calibre's ebook-viewer for visual verification.
+
+### Can I publish my EPUB on Amazon Kindle?
+
+Yes, Amazon accepts EPUB files and converts them to Kindle format. Upload to Kindle Direct Publishing (KDP).
+
+### Why is my EPUB smaller than the PDF?
+
+EPUBs don't embed fonts like PDFs do. They rely on the e-reader's built-in fonts, resulting in smaller file sizes.
+
+### How do I add metadata for e-book stores?
+
+```yaml
+---
+title: "My Book"
+author: "Author Name"
+lang: "en"
+publisher: "Publisher Name"
+rights: "© 2026 Author Name"
+identifier:
+  - scheme: ISBN
+    text: "978-0-000000-00-0"
+subject: "Fiction / Literary"
+description: "Book description for store listing."
+---
 ```
 
 ---

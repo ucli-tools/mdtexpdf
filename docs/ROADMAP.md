@@ -25,17 +25,17 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [ ] B4. Unit tests for modules
 - [x] B5. Create CONTRIBUTING.md with code style guide
 
-### Phase C: Documentation (3-5 hours)
+### Phase C: Documentation (3-5 hours) ✓ COMPLETE
 - [x] C1. Troubleshooting guide with common errors
 - [x] C2. FAQ section
 - [x] C3. Quick start tutorial (5 minutes to first PDF)
 - [x] C4. Book project tutorial (complete workflow)
-- [ ] C5. More examples:
-  - [ ] Academic paper with citations
-  - [ ] Novel/fiction book
-  - [ ] Technical documentation
-  - [ ] Cookbook with images
-  - [ ] Multi-language document
+- [x] C5. More examples:
+  - [x] Academic paper with citations
+  - [x] Novel/fiction book
+  - [x] Technical documentation
+  - [x] Cookbook with images
+  - [x] Multi-language document
 
 ### Phase D: Modularization (6-10 hours)
 - [ ] D1. Extract `lib/pdf.sh` - PDF generation logic
@@ -76,7 +76,7 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] Started modularization (`lib/core.sh`, `lib/check.sh`)
 
 ### In Progress
-- Phase C: Documentation (C1-C4 complete; C5 examples remaining)
+- Phase D: Modularization (next up)
 
 ---
 
