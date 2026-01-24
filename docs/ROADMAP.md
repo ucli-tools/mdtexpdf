@@ -208,22 +208,40 @@ A comprehensive list of improvements to make mdtexpdf a perfect, production-read
 
 ## 8. Installation & Distribution
 
-### 8.1 Package Managers
-- [ ] Homebrew formula (macOS)
+### 8.1 Docker (Recommended for Easy Setup)
+Docker bundles all dependencies (Pandoc, LaTeX, ImageMagick, fonts) so users don't need to install anything locally.
+
+- [ ] Create `Dockerfile` with full TexLive, Pandoc, ImageMagick, fonts
+- [ ] Publish to Docker Hub (`uclitools/mdtexpdf`)
+- [ ] Slim variant without full TexLive for smaller image
+- [ ] Usage documentation:
+  ```bash
+  # Convert a file
+  docker run --rm -v $(pwd):/work uclitools/mdtexpdf convert book.md --read-metadata
+  
+  # Build PDF and EPUB
+  docker run --rm -v $(pwd):/work uclitools/mdtexpdf convert book.md --read-metadata
+  docker run --rm -v $(pwd):/work uclitools/mdtexpdf convert book.md --read-metadata --epub
+  ```
+- [ ] Shell alias for convenience:
+  ```bash
+  alias mdtexpdf='docker run --rm -v $(pwd):/work uclitools/mdtexpdf'
+  ```
+- [ ] Docker Compose template for complex projects
+- [ ] GitHub Actions using the Docker image
+- [ ] Multi-arch support (amd64, arm64 for M1/M2 Macs)
+
+### 8.2 Package Managers
+- [ ] Homebrew formula (macOS) - wraps Docker or native install
 - [ ] APT package (Debian/Ubuntu)
 - [ ] AUR package (Arch Linux)
 - [ ] npm/pip wrapper for cross-platform install
 
-### 8.2 Docker
-- [ ] Official Docker image with all dependencies
-- [ ] Docker usage documentation
-- [ ] Docker Compose for complex workflows
-
-### 8.3 Installation Improvements
+### 8.3 Native Installation
 - [ ] `install.sh` script for one-line installation
-- [ ] Dependency installer (`mdtexpdf setup`)
+- [ ] Dependency checker and installer (`mdtexpdf setup`)
 - [ ] Version upgrade command (`mdtexpdf upgrade`)
-- [ ] Uninstall command
+- [ ] Uninstall command (`mdtexpdf uninstall` or `make uninstall`)
 
 ---
 
@@ -272,15 +290,15 @@ A comprehensive list of improvements to make mdtexpdf a perfect, production-read
 - `--verbose` / `--debug` flags
 
 ### P1 - High Priority
+- Docker image (simplifies installation dramatically)
 - Modularization (split mdtexpdf.sh)
 - Bibliography support
-- EPUB validation
 - CI/CD pipeline
 
 ### P2 - Medium Priority
+- EPUB validation
 - Custom templates
 - Index generation
-- Docker image
 - More examples
 
 ### P3 - Nice to Have
