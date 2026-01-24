@@ -2036,12 +2036,14 @@ convert() {
                 "$temp_title"
 
             # 3. Create subtitle image with word wrap (if present)
+            # Use narrower width (60%) to encourage 2-line wrapping like PDF
+            local subtitle_width=$((img_width * 60 / 100))
             local temp_subtitle=""
             if [ -n "$cover_subtitle" ]; then
                 temp_subtitle=$(mktemp --suffix=.png)
                 /usr/bin/convert -background none -fill "$cover_title_color" \
                     -font DejaVu-Serif-Italic -pointsize $subtitle_size \
-                    -size ${text_width}x -gravity Center caption:"$cover_subtitle" \
+                    -size ${subtitle_width}x -gravity Center caption:"$cover_subtitle" \
                     "$temp_subtitle"
             fi
 
