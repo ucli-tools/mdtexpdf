@@ -1,0 +1,5 @@
+# Test output files
+output/
+*.pdf
+*.epub
+*.bak
