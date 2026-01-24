@@ -2296,7 +2296,8 @@ convert() {
         fi
 
         # Build pandoc command
-        EPUB_CMD="pandoc \"$epub_temp_input\" --from markdown --to epub3 --output \"$OUTPUT_FILE\" --epub-title-page=false"
+        # --mathml enables proper rendering of LaTeX math equations in EPUB
+        EPUB_CMD="pandoc \"$epub_temp_input\" --from markdown --to epub3 --output \"$OUTPUT_FILE\" --epub-title-page=false --mathml"
 
         [ -n "$epub_title" ] && EPUB_CMD="$EPUB_CMD --metadata title=\"$epub_title\""
         [ -n "$epub_author" ] && EPUB_CMD="$EPUB_CMD --metadata author=\"$epub_author\""

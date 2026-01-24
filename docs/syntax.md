@@ -2,6 +2,8 @@
 
 This guide provides an overview of how to use LaTeX mathematical notation within your Markdown files when using the `mdtexpdf.sh` script. The script leverages Pandoc and a LaTeX backend, so standard LaTeX math syntax is generally supported.
 
+> **Note**: The same math syntax works for both PDF and EPUB output. For PDF, LaTeX renders math natively. For EPUB, math is automatically converted to MathML, which modern e-readers support.
+
 ## Understanding Equation Numbering
 
 How your equations are numbered in the final PDF depends on the LaTeX environment you use in your Markdown source.

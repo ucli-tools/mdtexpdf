@@ -468,6 +468,273 @@ EOF
     fi
 }
 
+# EPUB book with front matter test
+test_epub_book_frontmatter() {
+    test_start "EPUB book with front matter"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_epub_book.md"
+    local test_epub="$TEST_OUTPUT/test_epub_book.epub"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "Test EPUB Book"
+subtitle: "A Complete Example"
+author: "Test Author"
+date: "2026-01-24"
+lang: "en"
+format: "book"
+toc: true
+toc_depth: 2
+copyright_page: true
+copyright_year: 2026
+copyright_holder: "Test Publisher"
+publisher: "Test Publishing House"
+dedication: "To all testers everywhere."
+epigraph: "Testing is the path to quality."
+epigraph_source: "Ancient Proverb"
+---
+
+# Part One: Getting Started
+
+## Chapter 1: Introduction
+
+This is the first chapter of our test book. It contains regular prose text to verify basic formatting works correctly.
+
+## Chapter 2: Development
+
+This is the second chapter with more content.
+
+### Section 2.1
+
+A subsection to test TOC depth.
+
+# Part Two: Advanced Topics
+
+## Chapter 3: Conclusion
+
+The final chapter wraps everything up.
+EOF
+
+    rm -f "$test_epub"
+
+    if "$MDTEXPDF" convert "$test_md" --read-metadata --epub 2>&1; then
+        if assert_file_exists "$test_epub"; then
+            test_pass
+        else
+            test_fail "EPUB file not created"
+        fi
+    else
+        test_fail "EPUB book conversion failed"
+    fi
+}
+
+# EPUB math content test
+test_epub_math() {
+    test_start "EPUB with math content"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_epub_math.md"
+    local test_epub="$TEST_OUTPUT/test_epub_math.epub"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "Math in EPUB Test"
+author: "Test Author"
+date: "2026-01-24"
+lang: "en"
+---
+
+# Mathematics
+
+## Inline Math
+
+The famous equation $E = mc^2$ changed physics.
+
+The quadratic formula is $x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}$.
+
+## Display Math
+
+Maxwell's first equation:
+
+$$\nabla \cdot \mathbf{E} = \frac{\rho}{\epsilon_0}$$
+
+The Gaussian integral:
+
+$$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
+
+## Simple Expressions
+
+- Superscripts: $x^2$, $x^3$, $x^n$
+- Subscripts: $x_1$, $x_2$, $x_n$
+- Greek letters: $\alpha$, $\beta$, $\gamma$, $\pi$
+EOF
+
+    rm -f "$test_epub"
+
+    if "$MDTEXPDF" convert "$test_md" --read-metadata --epub 2>&1; then
+        if assert_file_exists "$test_epub"; then
+            test_pass
+        else
+            test_fail "EPUB file not created"
+        fi
+    else
+        test_fail "EPUB math conversion failed"
+    fi
+}
+
+# EPUB CJK content test
+test_epub_cjk() {
+    test_start "EPUB with CJK (Chinese/Japanese/Korean) content"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_epub_cjk.md"
+    local test_epub="$TEST_OUTPUT/test_epub_cjk.epub"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "CJK EPUB Test"
+subtitle: "多语言电子书测试"
+author: "测试作者"
+date: "2026-01-24"
+lang: "zh"
+---
+
+# 中文内容 (Chinese Content)
+
+这是一段简体中文文本。中文在EPUB格式中应该能够正确显示。
+
+繁體中文也應該可以正常顯示。
+
+## 常用词汇
+
+- 你好 (Hello)
+- 谢谢 (Thank you)
+- 再见 (Goodbye)
+
+# 日本語コンテンツ (Japanese Content)
+
+これは日本語のテキストです。
+
+## ひらがなとカタカナ
+
+- ひらがな: あいうえお
+- カタカナ: アイウエオ
+- 漢字: 日本語
+
+# 한국어 콘텐츠 (Korean Content)
+
+이것은 한국어 텍스트입니다.
+
+## 한글
+
+- 안녕하세요 (Hello)
+- 감사합니다 (Thank you)
+- 안녕히 가세요 (Goodbye)
+
+# Mixed Content
+
+English, 中文, 日本語, and 한국어 can all appear together in one document.
+
+This tests that the EPUB reader can handle multiple scripts in a single file.
+EOF
+
+    rm -f "$test_epub"
+
+    if "$MDTEXPDF" convert "$test_md" --read-metadata --epub 2>&1; then
+        if assert_file_exists "$test_epub"; then
+            test_pass
+        else
+            test_fail "EPUB file not created"
+        fi
+    else
+        test_fail "EPUB CJK conversion failed"
+    fi
+}
+
+# EPUB with code blocks test
+test_epub_code() {
+    test_start "EPUB with code blocks"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_epub_code.md"
+    local test_epub="$TEST_OUTPUT/test_epub_code.epub"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "Code in EPUB Test"
+author: "Test Author"
+date: "2026-01-24"
+lang: "en"
+---
+
+# Code Examples
+
+## Python
+
+```python
+def hello_world():
+    """A simple greeting function."""
+    print("Hello, World!")
+
+if __name__ == "__main__":
+    hello_world()
+```
+
+## JavaScript
+
+```javascript
+function factorial(n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+
+console.log(factorial(5)); // 120
+```
+
+## Bash
+
+```bash
+#!/bin/bash
+for i in {1..5}; do
+    echo "Count: $i"
+done
+```
+
+## Inline Code
+
+Use `print()` in Python or `console.log()` in JavaScript.
+EOF
+
+    rm -f "$test_epub"
+
+    if "$MDTEXPDF" convert "$test_md" --read-metadata --epub 2>&1; then
+        if assert_file_exists "$test_epub"; then
+            test_pass
+        else
+            test_fail "EPUB file not created"
+        fi
+    else
+        test_fail "EPUB code conversion failed"
+    fi
+}
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -486,11 +753,19 @@ test_debug_flag
 test_check_command
 test_unknown_command
 test_no_command
+
+echo -e "\n${YELLOW}--- PDF Tests ---${NC}\n"
 test_pdf_conversion
-test_epub_conversion
 test_book_frontmatter
 test_math_chemistry
 test_cjk_content
+
+echo -e "\n${YELLOW}--- EPUB Tests ---${NC}\n"
+test_epub_conversion
+test_epub_book_frontmatter
+test_epub_math
+test_epub_cjk
+test_epub_code
 
 # Summary
 echo -e "\n${YELLOW}═══════════════════════════════════════════${NC}"
