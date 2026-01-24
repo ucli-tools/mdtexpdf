@@ -4,13 +4,24 @@
 
 mdtexpdf uses YAML frontmatter for document metadata. This standardized format is shared with mdaudiobook for unified metadata handling across both tools.
 
+## Output Formats
+
+mdtexpdf can generate two output formats from the same source:
+
+| Format | Command | Notes |
+|--------|---------|-------|
+| PDF | `mdtexpdf convert doc.md --read-metadata` | Full LaTeX support |
+| EPUB | `mdtexpdf convert doc.md --read-metadata --epub` | EPUB3 ebook |
+
+Most metadata fields apply to both formats. See the field reference tables for format-specific notes.
+
 ## Template Structure
 
 The metadata is organized into four distinct sections:
 
-1. **Common Metadata** - Used by both mdtexpdf and mdaudiobook
-2. **PDF-Specific Metadata** - Used only by mdtexpdf
-3. **Professional Book Features** - Book format front/back matter options
+1. **Common Metadata** - Used by both mdtexpdf and mdaudiobook (PDF and EPUB)
+2. **PDF-Specific Metadata** - Used only by mdtexpdf PDF output
+3. **Professional Book Features** - Book format front/back matter (PDF and EPUB)
 4. **Audio-Specific Metadata** - Used only by mdaudiobook (ignored by mdtexpdf)
 
 ## Complete Template
@@ -207,6 +218,13 @@ narrator: "AI Narrator"             # Narrator name for metadata
 - `img/cover.{jpg,jpeg,png,pdf}`
 - `images/cover.{jpg,jpeg,png,pdf}`
 - `cover.{jpg,jpeg,png,pdf}`
+
+**EPUB Cover Generation**: When generating EPUB with `--epub`, if ImageMagick is installed, mdtexpdf creates a cover image with text overlay (title, subtitle, author) using the cover settings above. The generated cover uses:
+- Semi-transparent dark overlay for text readability
+- Centered title with automatic text wrapping
+- Subtitle at 60% width for two-line display
+- Author name at bottom
+- DejaVu Serif fonts (Bold for title, Italic for subtitle)
 
 #### Back Cover
 

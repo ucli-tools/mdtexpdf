@@ -820,6 +820,164 @@ mdtexpdf check
 
 ---
 
+## EPUB Generation
+
+mdtexpdf can generate EPUB3 ebooks using the same markdown source as PDF output.
+
+### Basic Usage
+
+```bash
+# Generate EPUB
+mdtexpdf convert document.md --epub
+
+# With metadata from YAML frontmatter
+mdtexpdf convert document.md --read-metadata --epub
+```
+
+### EPUB Features
+
+The EPUB output includes:
+
+- **Cover with Text Overlay**: Automatically generated from your cover image with title, subtitle, and author
+- **Title Page**: Custom title page (no publisher info)
+- **Copyright Page**: Full copyright information
+- **Dedication**: Separate page for dedication
+- **Epigraph**: Separate page for opening quote
+- **Table of Contents**: Automatic TOC named "Contents"
+- **Chapter Structure**: Each chapter as a separate section
+
+### Cover Generation
+
+If ImageMagick is installed, mdtexpdf generates an EPUB cover with text overlay:
+
+```yaml
+---
+cover_image: "img/cover.jpg"          # Background image
+cover_title_color: "white"            # Title text color (default: white)
+cover_subtitle_show: true             # Include subtitle on cover
+cover_overlay_opacity: 0.3            # Dark overlay for readability (0-1)
+---
+```
+
+The cover generator:
+- Adds a semi-transparent overlay for text readability
+- Centers title and subtitle with automatic text wrapping
+- Places author name at the bottom
+- Uses DejaVu Serif fonts (Bold for title, Italic for subtitle)
+
+**Install ImageMagick:**
+
+```bash
+# Debian/Ubuntu
+sudo apt install imagemagick
+
+# macOS
+brew install imagemagick
+```
+
+If ImageMagick is not available, the original cover image is used without text overlay.
+
+### Front Matter Order
+
+EPUB front matter appears in this order (matching PDF):
+
+1. Cover (generated or original image)
+2. Title Page
+3. Copyright Page
+4. Authorship & Support (if `author_pubkey` is set)
+5. Dedication (if set)
+6. Epigraph (if set)
+7. Table of Contents
+8. Book content
+
+### Metadata for EPUB
+
+All standard metadata fields work for EPUB:
+
+```yaml
+---
+title: "Book Title"
+subtitle: "Subtitle"
+author: "Author Name"
+date: "January 2026"
+description: "Book description"       # Used as EPUB description
+language: "en"                        # EPUB language code
+
+# Front matter
+copyright_page: true
+dedication: "To the readers."
+epigraph: "A meaningful quote."
+epigraph_source: "Quote Author"
+
+# Copyright details
+publisher: "Publisher Name"
+copyright_year: 2026
+edition: "First Edition"
+
+# Cover
+cover_image: "img/cover.jpg"
+cover_title_color: "white"
+cover_overlay_opacity: 0.3
+
+# TOC
+toc: true
+toc_depth: 2
+---
+```
+
+### Building Both Formats
+
+Use a Makefile to build PDF and EPUB together:
+
+```makefile
+.PHONY: all build build-epub clean
+
+MDTEXPDF := mdtexpdf
+
+# Default: build both formats
+all: clean build build-epub
+	@echo "Built PDF and EPUB"
+
+# Build PDF
+build:
+	@dir_name=$$(basename $$(pwd)); \
+	$(MDTEXPDF) convert "$$dir_name.md" --read-metadata
+
+# Build EPUB  
+build-epub:
+	@dir_name=$$(basename $$(pwd)); \
+	$(MDTEXPDF) convert "$$dir_name.md" --read-metadata --epub
+
+# Clean generated files
+clean:
+	@dir_name=$$(basename $$(pwd)); \
+	rm -f "$$dir_name.pdf" "$$dir_name.epub"
+```
+
+Run with:
+
+```bash
+make          # Builds both PDF and EPUB
+make build    # PDF only
+make build-epub  # EPUB only
+make clean    # Remove generated files
+```
+
+### Differences from PDF
+
+| Feature | PDF | EPUB |
+|---------|-----|------|
+| LaTeX math | Full support | Basic (converted to images or MathML) |
+| Chemical formulas | Full mhchem | Limited |
+| Drop caps | Supported | Not supported |
+| Headers/footers | Supported | Not applicable |
+| Page numbers | Supported | E-reader dependent |
+| Cover | First page of document | Separate cover image |
+
+For best results, keep complex LaTeX to a minimum in documents intended for EPUB.
+
+---
+
 ## Quick Reference Card
 
 ### Headings

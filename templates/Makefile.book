@@ -1,0 +1,41 @@
+# mdtexpdf Book Project Makefile Template
+# ========================================
+# Copy this file to your book project directory as 'Makefile'
+# Assumes your markdown file matches the directory name (e.g., my_book/my_book.md)
+
+.PHONY: all build build-epub clean
+
+# Path to mdtexpdf (use local dev version if available, otherwise installed)
+MDTEXPDF := $(shell if [ -f "../mdtexpdf/mdtexpdf.sh" ]; then echo "../mdtexpdf/mdtexpdf.sh"; else echo "mdtexpdf"; fi)
+
+# Default target: clean and build both PDF and EPUB
+all: clean build build-epub
+	@echo "Built PDF and EPUB for $$(basename $$(pwd))"
+
+# Build PDF
+build:
+	@dir_name=$$(basename $$(pwd)); \
+	target_file="$$dir_name.md"; \
+	if [ -f "$$target_file" ]; then \
+		echo "Building PDF: $$target_file"; \
+		$(MDTEXPDF) convert "$$target_file" --read-metadata; \
+	else \
+		echo "No target file $$target_file found in $$(pwd)"; \
+	fi
+
+# Build EPUB
+build-epub:
+	@dir_name=$$(basename $$(pwd)); \
+	target_file="$$dir_name.md"; \
+	if [ -f "$$target_file" ]; then \
+		echo "Building EPUB: $$target_file"; \
+		$(MDTEXPDF) convert "$$target_file" --read-metadata --epub; \
+	else \
+		echo "No target file $$target_file found in $$(pwd)"; \
+	fi
+
+# Clean generated files
+clean:
+	@dir_name=$$(basename $$(pwd)); \
+	rm -f "$$dir_name.pdf" "$$dir_name.epub" "$$dir_name"_epub_cover.png
+	@echo "Cleaned generated files"

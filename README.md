@@ -34,6 +34,8 @@ mdtexpdf/
 ├── mdtexpdf.sh              # Main conversion script
 ├── Makefile                 # Installation automation
 ├── metadata_template.yaml   # Metadata template for new documents
+├── templates/
+│   └── Makefile.book        # Makefile template for book projects
 ├── docs/
 │   ├── mdtexpdf_guide.md    # Comprehensive user guide
 │   ├── METADATA.md          # Complete metadata field reference
@@ -51,6 +53,7 @@ mdtexpdf/
 
 ### Core Features
 - **Markdown to PDF Conversion**: Convert Markdown files to professionally formatted PDFs
+- **Markdown to EPUB Conversion**: Generate EPUB3 ebooks with cover, front matter, and TOC
 - **LaTeX Math Support**: Inline (`$...$`) and display (`$$...$$`) equations
 - **Chemical Equations**: Full mhchem support (`\ce{H2O}`, `\ce{CH3COOH <=> CH3COO- + H+}`)
 - **Code Highlighting**: Syntax highlighting for code blocks
@@ -116,6 +119,7 @@ mdtexpdf convert -t "Title" -a "Author" doc.md  # With metadata
 | `--no-footer` | Disable footer |
 | `--no-numbers` | Disable section numbering |
 | `--header-footer-policy` | `default`, `partial`, or `all` |
+| `--epub` | Output EPUB format instead of PDF |
 
 ### Header/Footer Policy
 
@@ -227,6 +231,76 @@ drop_caps: true
 ```
 
 The first letter of each chapter becomes a large decorative capital.
+
+## EPUB Generation
+
+mdtexpdf can generate EPUB3 ebooks alongside PDFs using the same source file.
+
+### Basic EPUB Conversion
+
+```bash
+mdtexpdf convert document.md --epub              # Generate EPUB
+mdtexpdf convert document.md --read-metadata --epub  # With YAML metadata
+```
+
+### EPUB Features
+
+- **Automatic Cover Generation**: If ImageMagick is installed, generates cover with title/subtitle/author overlay
+- **Front Matter**: Title page, copyright, dedication, and epigraph as separate pages
+- **Table of Contents**: Automatic TOC generation with customizable depth
+- **Same Metadata**: Uses the same YAML frontmatter as PDF output
+
+### Cover Generation
+
+EPUB covers are automatically generated from your cover image with text overlay:
+
+```yaml
+---
+cover_image: "img/cover.jpg"          # Background image
+cover_title_color: "white"            # Title text color
+cover_subtitle_show: true             # Include subtitle
+cover_overlay_opacity: 0.3            # Dark overlay for readability
+---
+```
+
+Requires ImageMagick (`convert` command). Install with:
+```bash
+sudo apt install imagemagick    # Debian/Ubuntu
+brew install imagemagick        # macOS
+```
+
+### Project Makefile
+
+For book projects, use a Makefile to build both formats:
+
+```makefile
+.PHONY: all build build-epub clean
+
+MDTEXPDF := mdtexpdf
+
+# Default: build PDF and EPUB
+all: clean build build-epub
+	@echo "Built PDF and EPUB"
+
+# Build PDF
+build:
+	@dir_name=$$(basename $$(pwd)); \
+	$(MDTEXPDF) convert "$$dir_name.md" --read-metadata
+
+# Build EPUB
+build-epub:
+	@dir_name=$$(basename $$(pwd)); \
+	$(MDTEXPDF) convert "$$dir_name.md" --read-metadata --epub
+
+# Clean generated files
+clean:
+	@dir_name=$$(basename $$(pwd)); \
+	rm -f "$$dir_name.pdf" "$$dir_name.epub"
+```
+
+This assumes your markdown file matches the directory name (e.g., `my_book/my_book.md`).
+
+A ready-to-use Makefile template is available at `templates/Makefile.book`.
 
 ## LaTeX Math & Chemistry
 
