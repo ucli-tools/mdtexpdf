@@ -1,5 +1,9 @@
 <h1> Markdown to PDF with LaTeX (mdtexpdf) </h1>
 
+[![CI](https://github.com/ucli-tools/mdtexpdf/actions/workflows/ci.yml/badge.svg)](https://github.com/ucli-tools/mdtexpdf/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/ucli-tools/mdtexpdf/releases)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
+
 <h2> Table of Contents</h2>
 
 - [Introduction](#introduction)
@@ -123,6 +127,18 @@ make
 ```
 
 This installs `mdtexpdf` to `/usr/local/bin/` for system-wide access.
+
+### Uninstalling
+
+```bash
+mdtexpdf uninstall
+```
+
+Or manually:
+```bash
+sudo rm /usr/local/bin/mdtexpdf
+sudo rm -rf /usr/local/share/mdtexpdf
+```
 
 ## Usage
 

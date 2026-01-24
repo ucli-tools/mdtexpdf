@@ -5,6 +5,22 @@
 # =============================================================================
 VERSION="1.0.0"
 
+# =============================================================================
+# Exit Codes
+# =============================================================================
+# 0 = Success
+# 1 = User error (invalid arguments, missing input file)
+# 2 = Missing dependency (pandoc, latex, etc.)
+# 3 = Conversion failure (pandoc or latex error)
+# 4 = File system error (cannot read/write files)
+# 5 = Configuration error (invalid metadata, bad YAML)
+EXIT_SUCCESS=0
+EXIT_USER_ERROR=1
+EXIT_MISSING_DEP=2
+EXIT_CONVERSION_FAIL=3
+EXIT_FILE_ERROR=4
+EXIT_CONFIG_ERROR=5
+
 # Verbosity levels
 VERBOSE=false
 DEBUG=false
@@ -3178,8 +3194,8 @@ install() {
         echo -e "Use ${BLUE}mdtexpdf help${NC} to see the commands."
         echo
     else
-        echo -e "${RED}Error: Failed to obtain sudo privileges. Installation aborted.${NC}"
-        exit 1
+        log_error "Failed to obtain sudo privileges. Installation aborted."
+        exit $EXIT_USER_ERROR
     fi
 }
 
@@ -3197,8 +3213,8 @@ uninstall() {
         echo -e "${PURPLE}mdtexpdf has been uninstalled successfully.${NC}"
         echo
     else
-        echo -e "${RED}Error: Failed to obtain sudo privileges. Uninstallation aborted.${NC}"
-        exit 1
+        log_error "Failed to obtain sudo privileges. Uninstallation aborted."
+        exit $EXIT_USER_ERROR
     fi
 }
 
@@ -3270,12 +3286,31 @@ help() {
     echo -e "                  ${BLUE}Display this help information${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf help\n"
 
+    echo -e "  ${GREEN}version${NC}"
+    echo -e "                  ${BLUE}Display version information${NC}"
+    echo -e "                  ${BLUE}Example:${NC} mdtexpdf version\n"
+
+    echo -e "${PURPLE}Exit Codes:${NC}"
+    echo -e "  0 - Success"
+    echo -e "  1 - User error (invalid arguments, missing input)"
+    echo -e "  2 - Missing dependency (pandoc, latex, etc.)"
+    echo -e "  3 - Conversion failure"
+    echo -e "  4 - File system error"
+    echo -e "  5 - Configuration error\n"
+
     echo -e "${PURPLE}Prerequisites:${NC}"
     echo -e "  - Pandoc: Document conversion tool"
     echo -e "  - LaTeX: PDF generation engine (pdflatex, xelatex, or lualatex)"
-    echo -e "  - LaTeX Packages: Various packages for formatting and math support\n"
+    echo -e "  - LaTeX Packages: Various packages for formatting and math support"
+    echo -e "  - ImageMagick (optional): For EPUB cover generation with text overlay\n"
 
-    echo -e "${PURPLE}For more information, see the README.md file.${NC}\n"
+    echo -e "${PURPLE}Documentation:${NC}"
+    echo -e "  README.md          - Overview and quick start"
+    echo -e "  docs/METADATA.md   - Complete metadata field reference"
+    echo -e "  docs/AUTHORSHIP.md - Cryptographic authorship guide"
+    echo -e "  docs/ROADMAP.md    - Planned features\n"
+
+    echo -e "${PURPLE}For more information:${NC} https://github.com/ucli-tools/mdtexpdf\n"
 }
 
 # Parse global flags first
@@ -3327,13 +3362,13 @@ case "$1" in
         ;;
     *)
         if [ -z "$1" ]; then
-            echo -e "${RED}Error: No command specified.${NC}"
+            log_error "No command specified."
         else
-            echo -e "${RED}Error: Unknown command '$1'.${NC}"
+            log_error "Unknown command '$1'."
         fi
         echo -e "Use ${BLUE}mdtexpdf help${NC} to see the commands."
-        exit 1
+        exit $EXIT_USER_ERROR
         ;;
 esac
 
-exit $?
+exit $EXIT_SUCCESS
