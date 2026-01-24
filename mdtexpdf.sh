@@ -1977,21 +1977,86 @@ convert() {
         local epub_description="$META_DESCRIPTION"
         local epub_language="${META_LANGUAGE:-en}"
 
-        # Cover image
-        local epub_cover=""
+        # Cover image - find base image first
+        local epub_cover_base=""
         if [ -n "$META_COVER_IMAGE" ] && [ -f "$META_COVER_IMAGE" ]; then
-            epub_cover="$META_COVER_IMAGE"
+            epub_cover_base="$META_COVER_IMAGE"
         else
             # Try to auto-detect cover image
             local input_dir=$(dirname "$INPUT_FILE")
             for ext in jpg jpeg png; do
                 for dir in "$input_dir/img" "$input_dir/images" "$input_dir"; do
                     if [ -f "$dir/cover.$ext" ]; then
-                        epub_cover="$dir/cover.$ext"
+                        epub_cover_base="$dir/cover.$ext"
                         break 2
                     fi
                 done
             done
+        fi
+
+        # Generate cover with text overlay using ImageMagick (matching PDF style)
+        local epub_cover=""
+        if [ -n "$epub_cover_base" ] && command -v convert &> /dev/null; then
+            # Make paths absolute
+            local input_dir=$(dirname "$INPUT_FILE")
+            if [[ ! "$epub_cover_base" = /* ]]; then
+                epub_cover_base="$input_dir/$epub_cover_base"
+            fi
+            local epub_cover_generated="${INPUT_FILE%.md}_epub_cover.png"
+            local cover_title="${ARG_TITLE:-$META_TITLE}"
+            local cover_subtitle="${META_SUBTITLE:-}"
+            local cover_author="${ARG_AUTHOR:-$META_AUTHOR}"
+            local cover_overlay="${META_COVER_OVERLAY_OPACITY:-0.3}"
+            local cover_title_color="${META_COVER_TITLE_COLOR:-white}"
+
+            echo -e "${YELLOW}Generating EPUB cover with text overlay...${NC}"
+
+            # Get image dimensions
+            local img_width=$(identify -format "%w" "$epub_cover_base" 2>/dev/null)
+            local img_height=$(identify -format "%h" "$epub_cover_base" 2>/dev/null)
+
+            # Calculate font sizes relative to image height
+            local title_size=$((img_height / 12))
+            local subtitle_size=$((img_height / 24))
+            local author_size=$((img_height / 20))
+
+            # Build ImageMagick command step by step
+            # 1. Start with base image and add dark overlay
+            local convert_cmd="convert \"$epub_cover_base\""
+            convert_cmd="$convert_cmd -fill \"rgba(0,0,0,$cover_overlay)\" -draw \"rectangle 0,0,$img_width,$img_height\""
+
+            # 2. Add title (top area)
+            convert_cmd="$convert_cmd -gravity North -fill \"$cover_title_color\" -font DejaVu-Serif-Bold -pointsize $title_size"
+            convert_cmd="$convert_cmd -annotate +0+$((img_height / 8)) \"$cover_title\""
+
+            # 3. Add subtitle if present
+            if [ -n "$cover_subtitle" ]; then
+                convert_cmd="$convert_cmd -gravity North -fill \"$cover_title_color\" -font DejaVu-Serif-Italic -pointsize $subtitle_size"
+                convert_cmd="$convert_cmd -annotate +0+$((img_height / 8 + title_size + 20)) \"$cover_subtitle\""
+            fi
+
+            # 4. Add author (bottom area)
+            convert_cmd="$convert_cmd -gravity South -fill \"$cover_title_color\" -font DejaVu-Serif -pointsize $author_size"
+            convert_cmd="$convert_cmd -annotate +0+$((img_height / 10)) \"$cover_author\""
+
+            # 5. Output file
+            convert_cmd="$convert_cmd \"$epub_cover_generated\""
+
+            # Execute (use full path to avoid conflicts)
+            convert_cmd="/usr/bin/${convert_cmd}"
+            eval $convert_cmd 2>&1
+
+            if [ -f "$epub_cover_generated" ]; then
+                epub_cover="$epub_cover_generated"
+                echo -e "${GREEN}Cover generated: $epub_cover_generated${NC}"
+            else
+                # Fallback to base image if generation fails
+                epub_cover="$epub_cover_base"
+                echo -e "${YELLOW}Cover generation failed, using base image${NC}"
+            fi
+        elif [ -n "$epub_cover_base" ]; then
+            # No ImageMagick, use base image
+            epub_cover="$epub_cover_base"
         fi
 
         # Create temporary file for EPUB preprocessing
@@ -2146,6 +2211,7 @@ convert() {
 
         # Cleanup temp files
         rm -f "$epub_temp_input"
+        [ -n "$epub_cover_generated" ] && rm -f "$epub_cover_generated"
 
         if [ $epub_result -eq 0 ]; then
             echo -e "${GREEN}Success! EPUB created as $OUTPUT_FILE${NC}"
