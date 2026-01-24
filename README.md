@@ -32,21 +32,29 @@ mdtexpdf is a command-line tool designed to simplify the process of creating pro
 ```
 mdtexpdf/
 ├── mdtexpdf.sh              # Main conversion script
-├── Makefile                 # Installation automation
+├── Makefile                 # Build, test, and Docker automation
+├── Dockerfile               # Docker image definition
+├── CHANGELOG.md             # Version history
 ├── metadata_template.yaml   # Metadata template for new documents
 ├── templates/
 │   └── Makefile.book        # Makefile template for book projects
+├── lib/                     # Modular components
+│   ├── core.sh              # Common utilities and logging
+│   └── check.sh             # Prerequisites verification
+├── tests/
+│   └── run_tests.sh         # Automated test suite
 ├── docs/
 │   ├── mdtexpdf_guide.md    # Comprehensive user guide
 │   ├── METADATA.md          # Complete metadata field reference
 │   ├── AUTHORSHIP.md        # Authorship verification guide
-│   ├── syntax.md            # Math and chemistry syntax reference
-│   └── tests/               # Test markdown files
+│   ├── ROADMAP.md           # Planned features and improvements
+│   └── syntax.md            # Math and chemistry syntax reference
 ├── filters/
 │   ├── book_structure.lua       # Part/chapter/special page handling
 │   ├── drop_caps_filter.lua     # Decorative first letters
 │   └── long_equation_filter.lua # Equation line-breaking
-└── examples/                # Example documents with PDFs
+├── examples/                # Example documents with PDFs
+└── .github/workflows/       # CI/CD automation
 ```
 
 ## Features
@@ -90,6 +98,24 @@ mdtexpdf/
 
 ## Installation
 
+### Option 1: Docker (Recommended - No Dependencies)
+
+The easiest way to use mdtexpdf is via Docker, which includes all dependencies:
+
+```bash
+# Run directly with Docker
+docker run --rm -v $(pwd):/work uclitools/mdtexpdf convert book.md --read-metadata
+
+# Or create an alias for convenience
+alias mdtexpdf='docker run --rm -v $(pwd):/work uclitools/mdtexpdf'
+mdtexpdf convert book.md --read-metadata
+mdtexpdf convert book.md --read-metadata --epub
+```
+
+### Option 2: Native Installation
+
+Requires Pandoc and LaTeX to be installed first (see Prerequisites).
+
 ```bash
 git clone https://github.com/ucli-tools/mdtexpdf.git
 cd mdtexpdf
@@ -109,6 +135,17 @@ mdtexpdf convert -t "Title" -a "Author" doc.md  # With metadata
 ```
 
 ### Command-Line Options
+
+**Global Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--version`, `-V` | Show version number |
+| `--verbose`, `-v` | Enable verbose output |
+| `--debug` | Enable debug output (includes verbose) |
+| `--help`, `-h` | Show help information |
+
+**Convert Options:**
 
 | Option | Description |
 |--------|-------------|

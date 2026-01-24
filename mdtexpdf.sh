@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# =============================================================================
+# mdtexpdf - Markdown to PDF/EPUB converter using LaTeX
+# =============================================================================
+VERSION="1.0.0"
+
+# Verbosity levels
+VERBOSE=false
+DEBUG=false
+
 # ANSI color codes
 BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
@@ -7,6 +16,31 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+
+# Logging functions
+log_verbose() {
+    if [ "$VERBOSE" = true ] || [ "$DEBUG" = true ]; then
+        echo -e "${BLUE}[INFO]${NC} $*"
+    fi
+}
+
+log_debug() {
+    if [ "$DEBUG" = true ]; then
+        echo -e "${PURPLE}[DEBUG]${NC} $*"
+    fi
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $*" >&2
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $*"
+}
+
+log_success() {
+    echo -e "${GREEN}[OK]${NC} $*"
+}
 
 # Default TOC depth (3 = subsubsection level)
 DEFAULT_TOC_DEPTH=2
@@ -3171,14 +3205,20 @@ uninstall() {
 # Function to display help information
 help() {
     echo -e "\n${YELLOW}═══════════════════════════════════════════${NC}"
-    echo -e "${YELLOW}         mdtexpdf - Markdown to PDF         ${NC}"
+    echo -e "${YELLOW}      mdtexpdf - Markdown to PDF/EPUB       ${NC}"
+    echo -e "${YELLOW}              Version $VERSION              ${NC}"
     echo -e "${YELLOW}═══════════════════════════════════════════${NC}\n"
 
-    echo -e "${PURPLE}Description:${NC} mdtexpdf is a tool for converting Markdown documents to PDF using LaTeX templates."
+    echo -e "${PURPLE}Description:${NC} mdtexpdf is a tool for converting Markdown documents to PDF and EPUB using LaTeX."
     echo -e "${PURPLE}             It supports LaTeX math equations, custom templates, and more.${NC}"
-    echo -e "${PURPLE}Usage:${NC}       mdtexpdf <command> [arguments]"
+    echo -e "${PURPLE}Usage:${NC}       mdtexpdf [global-options] <command> [arguments]"
     echo -e "${PURPLE}License:${NC}     Apache 2.0"
     echo -e "${PURPLE}Code:${NC}        https://github.com/ucli-tools/mdtexpdf\n"
+
+    echo -e "${PURPLE}Global Options:${NC}"
+    echo -e "  ${GREEN}--version, -V${NC}     Show version number"
+    echo -e "  ${GREEN}--verbose, -v${NC}     Enable verbose output"
+    echo -e "  ${GREEN}--debug${NC}           Enable debug output (includes verbose)\n"
 
     echo -e "${PURPLE}Commands:${NC}"
     echo -e "  ${GREEN}convert [options] <input.md> [output.pdf]${NC}"
@@ -3205,7 +3245,8 @@ help() {
     echo -e "                    ${BLUE}--read-metadata       Read metadata from HTML comments in markdown file${NC}"
     echo -e "                    ${BLUE}--format FORMAT       Set document format (article or book)${NC}"
     echo -e "                    ${BLUE}--header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default${NC}"
-  echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
+    echo -e "                    ${BLUE}--epub                Output EPUB format instead of PDF${NC}"
+    echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert -a \"John Doe\" -t \"My Document\" --toc --toc-depth 3 document.md output.pdf\n"
 
     echo -e "  ${GREEN}create <output.md> [title] [author]${NC}"
@@ -3237,6 +3278,28 @@ help() {
     echo -e "${PURPLE}For more information, see the README.md file.${NC}\n"
 }
 
+# Parse global flags first
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --version|-V)
+            echo "mdtexpdf version $VERSION"
+            exit 0
+            ;;
+        --verbose|-v)
+            VERBOSE=true
+            shift
+            ;;
+        --debug)
+            DEBUG=true
+            VERBOSE=true
+            shift
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
 # Main script execution
 case "$1" in
     convert)
@@ -3256,8 +3319,11 @@ case "$1" in
     uninstall)
         uninstall
         ;;
-    help)
+    help|--help|-h)
         help
+        ;;
+    version)
+        echo "mdtexpdf version $VERSION"
         ;;
     *)
         if [ -z "$1" ]; then

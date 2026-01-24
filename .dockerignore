@@ -1,0 +1,27 @@
+# Git
+.git
+.gitignore
+
+# Documentation (not needed in image)
+docs/
+examples/
+*.md
+!README.md
+
+# Tests
+tests/
+
+# Templates (users provide their own)
+templates/
+
+# IDE
+.vscode/
+.idea/
+
+# Temp files
+*.bak
+*.log
+*.aux
+*.pdf
+*.epub
+template.tex
