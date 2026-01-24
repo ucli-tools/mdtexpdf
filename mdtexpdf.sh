@@ -1753,6 +1753,135 @@ apply_metadata_args() {
     fi
 }
 
+# Function to fix EPUB spine order (move TOC after front matter)
+# In standard book conventions, the TOC should come after title, copyright, dedication, epigraph
+fix_epub_spine_order() {
+    local epub_file="$1"
+
+    if [ ! -f "$epub_file" ]; then
+        echo -e "${YELLOW}Warning: EPUB file not found for spine reordering${NC}"
+        return 1
+    fi
+
+    # Convert to absolute path for later use after cd
+    local epub_file_abs
+    epub_file_abs=$(realpath "$epub_file")
+
+    echo -e "${BLUE}Reordering EPUB spine (moving TOC after front matter)...${NC}"
+
+    # Create temp directory for extraction
+    local temp_dir
+    temp_dir=$(mktemp -d)
+    local original_dir
+    original_dir=$(pwd)
+
+    # Extract EPUB
+    unzip -q "$epub_file_abs" -d "$temp_dir" 2>/dev/null
+    if [ $? -ne 0 ]; then
+        echo -e "${YELLOW}Warning: Could not extract EPUB for spine reordering${NC}"
+        rm -rf "$temp_dir"
+        return 1
+    fi
+
+    local content_opf="$temp_dir/EPUB/content.opf"
+    if [ ! -f "$content_opf" ]; then
+        echo -e "${YELLOW}Warning: content.opf not found in EPUB${NC}"
+        rm -rf "$temp_dir"
+        return 1
+    fi
+
+    # Count how many front matter chapters we have (title-page, copyright-page, dedication-page, epigraph-page)
+    # These are marked with specific classes in our generated XHTML files
+    local frontmatter_count=0
+    for xhtml_file in "$temp_dir"/EPUB/text/ch*.xhtml; do
+        if [ -f "$xhtml_file" ]; then
+            # Check if this chapter is a front matter page (has specific classes)
+            if grep -q 'class=".*\(title-page\|copyright-page\|dedication-page\|epigraph-page\)' "$xhtml_file" 2>/dev/null; then
+                frontmatter_count=$((frontmatter_count + 1))
+            else
+                # Stop counting when we hit non-frontmatter content
+                break
+            fi
+        fi
+    done
+
+    if [ "$frontmatter_count" -eq 0 ]; then
+        echo -e "${BLUE}No front matter pages detected, keeping default spine order${NC}"
+        rm -rf "$temp_dir"
+        return 0
+    fi
+
+    echo -e "${BLUE}Found $frontmatter_count front matter pages${NC}"
+
+    # Use sed/awk to reorder the spine in content.opf
+    # We need to move <itemref idref="nav" /> to come after the front matter itemrefs
+
+    # Check if nav is in the spine
+    if ! grep -q '<itemref idref="nav"' "$content_opf"; then
+        echo -e "${BLUE}No nav item in spine, nothing to reorder${NC}"
+        rm -rf "$temp_dir"
+        return 0
+    fi
+
+    # Create a modified content.opf
+    # Strategy: Extract spine section, reorder it, put it back
+    local temp_opf
+    temp_opf=$(mktemp)
+
+    # Use awk to reorder: move nav itemref after the first N chapter itemrefs (where N = frontmatter_count)
+    awk -v fm_count="$frontmatter_count" '
+    BEGIN { in_spine = 0; nav_line = ""; ch_count = 0; buffer = "" }
+    /<spine/ { in_spine = 1 }
+    /<\/spine>/ { in_spine = 0 }
+    {
+        if (in_spine) {
+            if (match($0, /<itemref idref="nav"/)) {
+                # Store nav line, do not print yet
+                nav_line = $0
+            } else if (match($0, /<itemref idref="ch[0-9]+_xhtml"/)) {
+                ch_count++
+                print $0
+                # After printing fm_count chapters, insert the nav line
+                if (ch_count == fm_count && nav_line != "") {
+                    print nav_line
+                    nav_line = ""
+                }
+            } else {
+                print $0
+            }
+        } else {
+            print $0
+        }
+    }
+    END {
+        # If nav was never inserted (fm_count > total chapters), append it
+        if (nav_line != "") {
+            # This should not happen in normal cases
+        }
+    }
+    ' "$content_opf" > "$temp_opf"
+
+    # Replace original content.opf
+    mv "$temp_opf" "$content_opf"
+
+    # Repackage EPUB (must maintain proper structure)
+    # EPUB requires mimetype to be first and uncompressed
+    rm -f "$epub_file_abs"
+    cd "$temp_dir" || return 1
+
+    # Create new EPUB with proper structure (using absolute path)
+    zip -X0 "$epub_file_abs" mimetype 2>/dev/null
+    zip -Xr9D "$epub_file_abs" META-INF EPUB 2>/dev/null
+
+    cd "$original_dir" || return 1
+
+    # Cleanup
+    rm -rf "$temp_dir"
+
+    echo -e "${GREEN}EPUB spine reordered: TOC now appears after front matter${NC}"
+    return 0
+}
+
 # Function to convert markdown to PDF
 convert() {
     # Initialize variables for command-line arguments
@@ -2319,6 +2448,9 @@ convert() {
 
         if [ $epub_result -eq 0 ]; then
             echo -e "${GREEN}Success! EPUB created as $OUTPUT_FILE${NC}"
+
+            # Fix spine order: move TOC after front matter pages
+            fix_epub_spine_order "$OUTPUT_FILE"
 
             # Restore backup
             if [ -f "$BACKUP_FILE" ]; then
