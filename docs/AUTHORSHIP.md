@@ -150,17 +150,46 @@ donation_wallets:
 
 ## Signing Your Book
 
-For maximum verification, sign the PDF itself:
+For maximum verification, sign your book files with detached signatures. This proves the files haven't been tampered with since you signed them.
 
-### Create a Detached Signature
+### Sign Both PDF and EPUB
 
 ```bash
 # Sign the PDF (creates book.pdf.asc)
 gpg --detach-sign --armor book.pdf
 
-# Or with a specific key
+# Sign the EPUB (creates book.epub.asc)
+gpg --detach-sign --armor book.epub
+
+# If you have multiple keys, specify which one to use:
 gpg --detach-sign --armor --local-user your@email.com book.pdf
+gpg --detach-sign --armor --local-user your@email.com book.epub
 ```
+
+### Export Your Public Key for Distribution
+
+```bash
+# Export your public key so readers can verify
+gpg --armor --export your@email.com > author_publickey.asc
+```
+
+### What to Distribute
+
+Your complete distribution package should include:
+
+```
+your_book/
+├── book.pdf              # The PDF
+├── book.pdf.asc          # PDF signature
+├── book.epub             # The EPUB
+├── book.epub.asc         # EPUB signature
+└── author_publickey.asc  # Your public key for verification
+```
+
+Readers need all of these to verify your authorship:
+- The book files (PDF/EPUB)
+- The corresponding signature files (.asc)
+- Your public key (to verify the signatures)
 
 ### Verify a Signature
 
@@ -171,16 +200,98 @@ Anyone can verify your authorship:
 gpg --keyserver keys.openpgp.org --recv-keys AB12CD34EF567890123456789OABCDEF12345678
 
 # Or import from a file
-gpg --import publickey.asc
+gpg --import author_publickey.asc
 
-# Verify the signature
+# Verify the PDF signature
 gpg --verify book.pdf.asc book.pdf
+
+# Verify the EPUB signature
+gpg --verify book.epub.asc book.epub
 
 # Successful output:
 # gpg: Signature made Thu 23 Jan 2026 12:00:00 PM UTC
 # gpg: using EDDSA key AB12CD34EF567890123456789OABCDEF12345678
 # gpg: Good signature from "Your Name <your@email.com>" [ultimate]
 ```
+
+### Complete Signing Workflow
+
+Here's the full workflow from key creation to signed distribution:
+
+```bash
+# 1. Generate your key (once)
+gpg --quick-generate-key "Your Name <your@email.com>" ed25519 cert never
+
+# 2. Get your fingerprint (add to book metadata)
+gpg --list-keys --fingerprint your@email.com
+
+# 3. Build your book with mdtexpdf
+mdtexpdf convert book.md --read-metadata
+mdtexpdf convert book.md --read-metadata --epub
+
+# 4. Sign both formats
+gpg --detach-sign --armor book.pdf
+gpg --detach-sign --armor book.epub
+
+# 5. Export public key for distribution
+gpg --armor --export your@email.com > author_publickey.asc
+
+# 6. Distribute all files together
+```
+
+## Pseudonymous Authorship
+
+You can create a key under a pen name for anonymous or pseudonymous publishing. The key doesn't need to contain your real identity - it just needs to be something you control.
+
+### Creating a Pseudonymous Key
+
+```bash
+# Create a key with your pen name
+gpg --quick-generate-key "Pen Name (Your motto or message) <penname@your.book>" ed25519 cert never
+
+# Example:
+gpg --quick-generate-key "A. Nonymous (Truth needs no name) <author@anonymous.pub>" ed25519 cert never
+```
+
+The identity string can include:
+- **Name**: Your pen name or pseudonym
+- **Comment**: A motto, message, or identifier (in parentheses)
+- **Email**: A fictional email that identifies the work
+
+### Pseudonymous Workflow
+
+```bash
+# 1. Generate pseudonymous key
+gpg --quick-generate-key "Pen Name (Your message) <penname@book.title>" ed25519 cert never
+
+# 2. Get fingerprint and add to book metadata
+gpg --list-keys --fingerprint penname@book.title
+
+# 3. Build and sign
+mdtexpdf convert book.md --read-metadata
+mdtexpdf convert book.md --read-metadata --epub
+gpg --detach-sign --armor --local-user penname@book.title book.pdf
+gpg --detach-sign --armor --local-user penname@book.title book.epub
+
+# 4. Export the pseudonymous public key
+gpg --armor --export penname@book.title > author_publickey.asc
+
+# 5. Backup your private key securely
+gpg --armor --export-secret-keys penname@book.title > private_key_backup.asc
+# Store this backup safely - it's the only proof you're the author!
+```
+
+### Proving Authorship Later
+
+At any future time, you can prove you're the author by signing a new message:
+
+```bash
+# Sign a dated statement
+echo "I am the author of [Book Title]. Today is $(date)." | \
+  gpg --sign --armor --local-user penname@book.title
+```
+
+Anyone can verify this signature against the public key in your book. This provides cryptographic proof of authorship without revealing your real identity.
 
 ## Complete Example
 
