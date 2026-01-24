@@ -223,7 +223,7 @@ EOF
 
     rm -f "$test_pdf"
 
-    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata 2>&1; then
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata -f "Test Footer" 2>&1; then
         if assert_file_exists "$test_pdf"; then
             test_pass
         else
@@ -331,7 +331,7 @@ EOF
 
     rm -f "$test_pdf"
 
-    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata 2>&1; then
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata -f "Test Footer" 2>&1; then
         if assert_file_exists "$test_pdf"; then
             test_pass
         else
@@ -395,7 +395,7 @@ EOF
 
     rm -f "$test_pdf"
 
-    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata 2>&1; then
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata -f "Test Footer" 2>&1; then
         if assert_file_exists "$test_pdf"; then
             test_pass
         else
@@ -457,7 +457,7 @@ EOF
 
     rm -f "$test_pdf"
 
-    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata 2>&1; then
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata -f "Test Footer" 2>&1; then
         if assert_file_exists "$test_pdf"; then
             test_pass
         else
