@@ -1249,6 +1249,7 @@ parse_html_metadata() {
 
     # Initialize metadata variables
     META_TITLE=""
+    META_SUBTITLE=""
     META_AUTHOR=""
     META_DATE=""
     META_DESCRIPTION=""
@@ -1390,6 +1391,7 @@ parse_yaml_metadata() {
 
     # Initialize metadata variables
     META_TITLE=""
+    META_SUBTITLE=""
     META_AUTHOR=""
     META_DATE=""
     META_DESCRIPTION=""
@@ -1453,6 +1455,7 @@ parse_yaml_metadata() {
     # Parse YAML using yq and extract metadata fields
     # Core metadata (Dublin Core standard)
     META_TITLE=$(yq eval '.title // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_SUBTITLE=$(yq eval '.subtitle // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_AUTHOR=$(yq eval '.author // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_DATE=$(yq eval '.date // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_DESCRIPTION=$(yq eval '.description // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
@@ -2023,11 +2026,54 @@ convert() {
 
         # Generate front matter as MARKDOWN and insert into temp file after YAML frontmatter
         # This ensures it appears ONCE at the start, not before every chapter
-        # Order matches PDF: Authorship & Support → Dedication → Epigraph → (TOC handled by pandoc)
+        # Order matches PDF: Copyright → Authorship & Support → Dedication → Epigraph → (TOC handled by pandoc)
         local epub_frontmatter_md=""
         local has_frontmatter=false
 
-        # 1. Authorship & Support (first, matching PDF order)
+        # 0. Custom title page (simpler than pandoc's default - no publisher)
+        local epub_title="${ARG_TITLE:-$META_TITLE}"
+        local epub_subtitle="${META_SUBTITLE:-}"
+        local epub_author="${ARG_AUTHOR:-$META_AUTHOR}"
+        local epub_date="${ARG_DATE:-$META_DATE}"
+        if [ -n "$epub_title" ]; then
+            has_frontmatter=true
+            epub_frontmatter_md="$epub_frontmatter_md\n\n# ​ {.unnumbered .unlisted .title-page}\n\n"
+            epub_frontmatter_md="$epub_frontmatter_md::: {.titlepage}\n"
+            epub_frontmatter_md="$epub_frontmatter_md## $epub_title {.unnumbered .unlisted}\n\n"
+            [ -n "$epub_subtitle" ] && epub_frontmatter_md="$epub_frontmatter_md*$epub_subtitle*\n\n"
+            [ -n "$epub_author" ] && epub_frontmatter_md="$epub_frontmatter_md$epub_author\n\n"
+            [ -n "$epub_date" ] && epub_frontmatter_md="$epub_frontmatter_md$epub_date\n"
+            epub_frontmatter_md="$epub_frontmatter_md:::\n"
+        fi
+
+        # 1. Copyright page (matching PDF)
+        if [ "$META_COPYRIGHT_PAGE" = "true" ] || [ "$META_COPYRIGHT_PAGE" = "True" ] || [ "$META_COPYRIGHT_PAGE" = "TRUE" ]; then
+            has_frontmatter=true
+            local epub_title="${ARG_TITLE:-$META_TITLE}"
+            local epub_subtitle="${META_SUBTITLE:-}"
+            local epub_author="${ARG_AUTHOR:-$META_AUTHOR}"
+            local epub_publisher="${META_PUBLISHER:-}"
+            local epub_copyright_year="${META_COPYRIGHT_YEAR:-$(date +%Y)}"
+            local epub_copyright_holder="${META_COPYRIGHT_HOLDER:-${epub_publisher:-$epub_author}}"
+            local epub_edition="${META_EDITION:-}"
+            local epub_edition_date="${META_EDITION_DATE:-}"
+            local epub_printing="${META_PRINTING:-}"
+
+            epub_frontmatter_md="$epub_frontmatter_md\n\n# ​ {.unnumbered .unlisted .copyright-page}\n\n"
+            epub_frontmatter_md="$epub_frontmatter_md::: {.copyright}\n"
+            epub_frontmatter_md="$epub_frontmatter_md**$epub_title**\n\n"
+            [ -n "$epub_subtitle" ] && epub_frontmatter_md="$epub_frontmatter_md*$epub_subtitle*\n\n"
+            epub_frontmatter_md="$epub_frontmatter_md by $epub_author\n\n"
+            epub_frontmatter_md="$epub_frontmatter_md---\n\n"
+            epub_frontmatter_md="$epub_frontmatter_md Copyright © $epub_copyright_year $epub_copyright_holder\n\n"
+            epub_frontmatter_md="$epub_frontmatter_md All rights reserved.\n\n"
+            [ -n "$epub_publisher" ] && epub_frontmatter_md="$epub_frontmatter_md Published by $epub_publisher\n\n"
+            [ -n "$epub_edition" ] && [ -n "$epub_edition_date" ] && epub_frontmatter_md="$epub_frontmatter_md $epub_edition — $epub_edition_date\n\n"
+            [ -n "$epub_printing" ] && epub_frontmatter_md="$epub_frontmatter_md $epub_printing\n\n"
+            epub_frontmatter_md="$epub_frontmatter_md:::\n"
+        fi
+
+        # 2. Authorship & Support
         # Each section gets its own h1 heading with .unlisted to create separate chapter/page
         if [ -n "$META_AUTHOR_PUBKEY" ]; then
             has_frontmatter=true
@@ -2050,13 +2096,13 @@ convert() {
             rm -f "$temp_yaml"
         fi
 
-        # 2. Dedication (own page)
+        # 3. Dedication (own page)
         if [ -n "$META_DEDICATION" ]; then
             has_frontmatter=true
             epub_frontmatter_md="$epub_frontmatter_md\n\n# ​ {.unnumbered .unlisted .dedication-page}\n\n::: {.dedication}\n*$META_DEDICATION*\n:::\n"
         fi
 
-        # 3. Epigraph (own page)
+        # 4. Epigraph (own page)
         if [ -n "$META_EPIGRAPH" ]; then
             has_frontmatter=true
             epub_frontmatter_md="$epub_frontmatter_md\n\n# ​ {.unnumbered .unlisted .epigraph-page}\n\n::: {.epigraph}\n> $META_EPIGRAPH"
@@ -2082,7 +2128,7 @@ convert() {
         fi
 
         # Build pandoc command
-        EPUB_CMD="pandoc \"$epub_temp_input\" --from markdown --to epub3 --output \"$OUTPUT_FILE\""
+        EPUB_CMD="pandoc \"$epub_temp_input\" --from markdown --to epub3 --output \"$OUTPUT_FILE\" --epub-title-page=false"
 
         [ -n "$epub_title" ] && EPUB_CMD="$EPUB_CMD --metadata title=\"$epub_title\""
         [ -n "$epub_author" ] && EPUB_CMD="$EPUB_CMD --metadata author=\"$epub_author\""
