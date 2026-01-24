@@ -4,6 +4,23 @@
 # mdtexpdf - Markdown to PDF/EPUB converter using LaTeX
 # =============================================================================
 VERSION="1.0.0"
+MDTEXPDF_VERSION="$VERSION"
+
+# =============================================================================
+# Module Loading
+# =============================================================================
+# Determine script directory for module loading
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source modules if available (for installed version, modules are in lib/)
+if [ -d "$SCRIPT_DIR/lib" ]; then
+    # Source in order of dependency
+    [ -f "$SCRIPT_DIR/lib/core.sh" ] && source "$SCRIPT_DIR/lib/core.sh"
+    [ -f "$SCRIPT_DIR/lib/check.sh" ] && source "$SCRIPT_DIR/lib/check.sh"
+    [ -f "$SCRIPT_DIR/lib/metadata.sh" ] && source "$SCRIPT_DIR/lib/metadata.sh"
+    [ -f "$SCRIPT_DIR/lib/preprocess.sh" ] && source "$SCRIPT_DIR/lib/preprocess.sh"
+    [ -f "$SCRIPT_DIR/lib/epub.sh" ] && source "$SCRIPT_DIR/lib/epub.sh"
+fi
 
 # =============================================================================
 # Exit Codes

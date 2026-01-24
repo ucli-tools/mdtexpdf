@@ -767,6 +767,17 @@ test_epub_math
 test_epub_cjk
 test_epub_code
 
+# Run module unit tests if available
+if [ -f "$SCRIPT_DIR/test_modules.sh" ]; then
+    echo -e "\n${YELLOW}--- Module Unit Tests ---${NC}\n"
+    if "$SCRIPT_DIR/test_modules.sh"; then
+        echo -e "${GREEN}Module tests passed${NC}"
+    else
+        echo -e "${RED}Module tests had failures${NC}"
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+    fi
+fi
+
 # Summary
 echo -e "\n${YELLOW}═══════════════════════════════════════════${NC}"
 echo -e "${YELLOW}                 Summary                   ${NC}"
