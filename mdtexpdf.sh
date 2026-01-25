@@ -248,6 +248,7 @@ BOOK_CMDS_EOF
     \\usepackage{amssymb}
     \\usepackage{amsthm}   % For theorem and proof environments
     \\usepackage{hyperref}
+    \\usepackage{makeidx}  % For index generation
     \\usepackage{xcolor}
     \\usepackage{longtable}
     \\usepackage{booktabs}
@@ -841,6 +842,30 @@ $numbering_commands
   pdfborder={0 0 0}
 }
 
+% Bibliography/Citation support (CSL)
+\\newlength{\\cslhangindent}
+\\setlength{\\cslhangindent}{1.5em}
+\\newlength{\\cslentryspacingunit}
+\\setlength{\\cslentryspacingunit}{\\parskip}
+\\newenvironment{CSLReferences}[2]
+ {\\setlength{\\parindent}{0pt}
+  \\ifodd #1
+  \\let\\oldpar\\par
+  \\def\\par{\\hangindent=\\cslhangindent\\oldpar}
+  \\fi
+  \\setlength{\\parskip}{#2\\cslentryspacingunit}}
+ {}
+\\usepackage{calc}
+\\newcommand{\\CSLBlock}[1]{#1\\hfill\\break}
+\\newcommand{\\CSLLeftMargin}[1]{\\parbox[t]{\\cslhangindent}{#1}}
+\\newcommand{\\CSLRightInline}[1]{\\parbox[t]{\\linewidth - \\cslhangindent}{#1}\\break}
+\\newcommand{\\CSLIndent}[1]{\\hspace{\\cslhangindent}#1}
+
+% Initialize index if requested
+\$if(index)\$
+\\makeindex
+\$endif\$
+
 \\begin{document}
 
 % ============== FRONT COVER (Première de Couverture) ==============
@@ -1050,6 +1075,13 @@ ISBN: \$isbn\$\\\\[0.3cm]
   \$endif\$
 \\end{tikzpicture}
 \\restoregeometry
+\$endif\$
+
+% Print index if requested
+\$if(index)\$
+\\clearpage
+\\addcontentsline{toc}{chapter}{Index}
+\\printindex
 \$endif\$
 
 \\end{document}
@@ -1487,6 +1519,8 @@ parse_yaml_metadata() {
     META_NO_DATE=""
     META_FORMAT="article" # Default format
     META_HEADER_FOOTER_POLICY="" # New metadata for header/footer policy
+    META_BIBLIOGRAPHY="" # Path to bibliography file
+    META_CSL="" # Path to CSL citation style
     META_LANGUAGE=""
     META_GENRE=""
     META_NARRATOR_VOICE=""
@@ -1552,6 +1586,10 @@ parse_yaml_metadata() {
     META_TOC_DEPTH=$(yq eval '.toc_depth // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_FOOTER=$(yq eval '.footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_HEADER_FOOTER_POLICY=$(yq eval '.header_footer_policy // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+
+    # Bibliography and citations
+    META_BIBLIOGRAPHY=$(yq eval '.bibliography // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_CSL=$(yq eval '.csl // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
 
     # Boolean flags (convert true/false to appropriate values)
     local section_numbers_val
@@ -1658,6 +1696,8 @@ parse_yaml_metadata() {
     [ -n "$META_TOC_DEPTH" ] && echo -e "${GREEN}Found metadata - toc_depth: $META_TOC_DEPTH${NC}"
     [ -n "$META_FOOTER" ] && echo -e "${GREEN}Found metadata - footer: $META_FOOTER${NC}"
     [ -n "$META_HEADER_FOOTER_POLICY" ] && echo -e "${GREEN}Found metadata - header_footer_policy: $META_HEADER_FOOTER_POLICY${NC}"
+    [ -n "$META_BIBLIOGRAPHY" ] && echo -e "${GREEN}Found metadata - bibliography: $META_BIBLIOGRAPHY${NC}"
+    [ -n "$META_CSL" ] && echo -e "${GREEN}Found metadata - csl: $META_CSL${NC}"
     [ -n "$META_NO_NUMBERS" ] && echo -e "${GREEN}Found metadata - section_numbers: false${NC}"
     [ -n "$META_NO_FOOTER" ] && echo -e "${GREEN}Found metadata - no_footer: true${NC}"
     [ -n "$META_PAGEOF" ] && echo -e "${GREEN}Found metadata - pageof: true${NC}"
@@ -1724,6 +1764,10 @@ apply_metadata_args() {
             ARG_HEADER_FOOTER_POLICY="$META_HEADER_FOOTER_POLICY"
         fi
 
+        # Apply bibliography and CSL
+        [ -z "$ARG_BIBLIOGRAPHY" ] && [ -n "$META_BIBLIOGRAPHY" ] && ARG_BIBLIOGRAPHY="$META_BIBLIOGRAPHY"
+        [ -z "$ARG_CSL" ] && [ -n "$META_CSL" ] && ARG_CSL="$META_CSL"
+
         # Handle boolean flags - only apply if not explicitly set via CLI
         if [ "$ARG_TOC" = "$DEFAULT_TOC" ] && [ -n "$META_TOC" ]; then
             case "$META_TOC" in
@@ -1776,6 +1820,54 @@ apply_metadata_args() {
         fi
 
         echo -e "${GREEN}Metadata applied successfully${NC}"
+    fi
+}
+
+# Function to validate EPUB with epubcheck
+# Returns 0 if valid, 1 if invalid or epubcheck not available
+validate_epub() {
+    local epub_file="$1"
+
+    if [ ! -f "$epub_file" ]; then
+        echo -e "${RED}Error: EPUB file not found for validation${NC}"
+        return 1
+    fi
+
+    # Check if epubcheck is available
+    if ! command -v epubcheck &> /dev/null; then
+        echo -e "${YELLOW}Warning: epubcheck not installed. Install with: sudo apt install epubcheck${NC}"
+        echo -e "${YELLOW}Skipping EPUB validation.${NC}"
+        return 2
+    fi
+
+    echo -e "${BLUE}Validating EPUB with epubcheck...${NC}"
+
+    # Run epubcheck and capture output
+    local validation_output
+    local validation_result
+    validation_output=$(epubcheck "$epub_file" 2>&1)
+    validation_result=$?
+
+    if [ $validation_result -eq 0 ]; then
+        echo -e "${GREEN}✓ EPUB validation passed - no errors found${NC}"
+        return 0
+    else
+        echo -e "${YELLOW}EPUB validation completed with issues:${NC}"
+        # Show only errors and warnings, not info messages
+        echo "$validation_output" | grep -E "(ERROR|WARNING)" | head -20
+        local error_count
+        local warning_count
+        error_count=$(echo "$validation_output" | grep -c "ERROR" || echo "0")
+        warning_count=$(echo "$validation_output" | grep -c "WARNING" || echo "0")
+        echo -e "${YELLOW}Summary: $error_count errors, $warning_count warnings${NC}"
+
+        if [ "$error_count" -gt 0 ]; then
+            echo -e "${RED}✗ EPUB has validation errors${NC}"
+            return 1
+        else
+            echo -e "${GREEN}✓ EPUB valid (warnings only)${NC}"
+            return 0
+        fi
     fi
 }
 
@@ -1926,6 +2018,13 @@ convert() {
     ARG_FORMAT="" # New variable for document format
     ARG_HEADER_FOOTER_POLICY="default" # New variable for header/footer policy (default, partial, all)
     ARG_EPUB=false # Output format: EPUB instead of PDF
+    ARG_VALIDATE=false # Validate EPUB with epubcheck
+    ARG_BIBLIOGRAPHY="" # Path to bibliography file (.bib, .json, .yaml)
+    ARG_CSL="" # Path to CSL citation style file
+    ARG_TEMPLATE="" # Path to custom LaTeX template
+    ARG_EPUB_CSS="" # Path to custom EPUB CSS
+    ARG_INCLUDE=() # Array of files to include/combine
+    ARG_INDEX=false # Generate index
 
     # Parse command-line arguments
     while [[ $# -gt 0 ]]; do
@@ -2024,6 +2123,34 @@ convert() {
                 ARG_EPUB=true
                 shift
                 ;;
+            --validate)
+                ARG_VALIDATE=true
+                shift
+                ;;
+            --bibliography|-b)
+                ARG_BIBLIOGRAPHY="$2"
+                shift 2
+                ;;
+            --csl)
+                ARG_CSL="$2"
+                shift 2
+                ;;
+            --template)
+                ARG_TEMPLATE="$2"
+                shift 2
+                ;;
+            --epub-css)
+                ARG_EPUB_CSS="$2"
+                shift 2
+                ;;
+            --include|-i)
+                ARG_INCLUDE+=("$2")
+                shift 2
+                ;;
+            --index)
+                ARG_INDEX=true
+                shift
+                ;;
             --format)
                 ARG_FORMAT="$2"
                 shift 2
@@ -2073,6 +2200,13 @@ convert() {
                     echo -e "  --format FORMAT       Set document format (article or book)"
                     echo -e "  --header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default"
                     echo -e "  --epub                Output EPUB format instead of PDF"
+                    echo -e "  --validate            Validate EPUB with epubcheck (requires epubcheck)"
+                    echo -e "  -b, --bibliography FILE  Use bibliography file (.bib, .json, .yaml)"
+                    echo -e "  --csl FILE            Use CSL citation style file"
+                    echo -e "  --template FILE       Use custom LaTeX template for PDF"
+                    echo -e "  --epub-css FILE       Use custom CSS for EPUB"
+                    echo -e "  -i, --include FILE    Include additional markdown file (can be used multiple times)"
+                    echo -e "  --index               Generate index from [index:term] markers"
                     return 1
                 fi
                 shift
@@ -2107,6 +2241,13 @@ convert() {
         echo -e "  --format FORMAT       Set document format (article or book)"
         echo -e "  --header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default"
         echo -e "  --epub                Output EPUB format instead of PDF"
+        echo -e "  --validate            Validate EPUB with epubcheck (requires epubcheck)"
+        echo -e "  -b, --bibliography FILE  Use bibliography file (.bib, .json, .yaml)"
+        echo -e "  --csl FILE            Use CSL citation style file"
+        echo -e "  --template FILE       Use custom LaTeX template for PDF"
+        echo -e "  --epub-css FILE       Use custom CSS for EPUB"
+        echo -e "  -i, --include FILE    Include additional markdown file (can be used multiple times)"
+        echo -e "  --index               Generate index from [index:term] markers"
         return 1
     fi
 
@@ -2119,6 +2260,58 @@ convert() {
     if [ ! -f "$INPUT_FILE" ]; then
         echo -e "${RED}Error: Input file '$INPUT_FILE' not found.${NC}"
         return 1
+    fi
+
+    # Handle multi-file projects (--include option)
+    COMBINED_FILE=""
+    if [ ${#ARG_INCLUDE[@]} -gt 0 ]; then
+        echo -e "${BLUE}Combining multiple markdown files...${NC}"
+
+        # Create a temporary combined file
+        COMBINED_FILE=$(mktemp --suffix=.md)
+        local input_dir
+        input_dir=$(dirname "$INPUT_FILE")
+
+        # Start with the main input file
+        cat "$INPUT_FILE" > "$COMBINED_FILE"
+        echo -e "${GREEN}  Added: $INPUT_FILE (main)${NC}"
+
+        # Append each included file
+        for include_file in "${ARG_INCLUDE[@]}"; do
+            local resolved_file=""
+
+            # Check if file exists as-is
+            if [ -f "$include_file" ]; then
+                resolved_file="$include_file"
+            # Check relative to input file directory
+            elif [ -f "$input_dir/$include_file" ]; then
+                resolved_file="$input_dir/$include_file"
+            else
+                echo -e "${RED}Error: Include file '$include_file' not found${NC}"
+                rm -f "$COMBINED_FILE"
+                return 1
+            fi
+
+            # Add a newline separator and append the file
+            echo "" >> "$COMBINED_FILE"
+            echo "" >> "$COMBINED_FILE"
+
+            # Skip YAML frontmatter in included files (only use from main file)
+            if head -n 1 "$resolved_file" | grep -q "^---\s*$"; then
+                # Extract content after the second ---
+                sed -n '/^---$/,/^---$/d; p' "$resolved_file" >> "$COMBINED_FILE"
+            else
+                cat "$resolved_file" >> "$COMBINED_FILE"
+            fi
+
+            echo -e "${GREEN}  Added: $resolved_file${NC}"
+        done
+
+        echo -e "${GREEN}Combined ${#ARG_INCLUDE[@]} additional file(s) into main document${NC}"
+
+        # Use the combined file as input
+        ORIGINAL_INPUT_FILE="$INPUT_FILE"
+        INPUT_FILE="$COMBINED_FILE"
     fi
 
     # Parse metadata from YAML frontmatter if --read-metadata flag is set or EPUB output
@@ -2461,6 +2654,64 @@ convert() {
         [ -n "$epub_language" ] && EPUB_CMD="$EPUB_CMD --metadata lang=\"$epub_language\""
         [ -n "$epub_cover" ] && EPUB_CMD="$EPUB_CMD --epub-cover-image=\"$epub_cover\""
 
+        # Add bibliography support for EPUB
+        if [ -n "$ARG_BIBLIOGRAPHY" ]; then
+            local bib_path=""
+            if [ -f "$ARG_BIBLIOGRAPHY" ]; then
+                bib_path=$(realpath "$ARG_BIBLIOGRAPHY")
+            else
+                local input_dir
+                input_dir=$(dirname "$INPUT_FILE")
+                if [ -f "$input_dir/$ARG_BIBLIOGRAPHY" ]; then
+                    bib_path=$(realpath "$input_dir/$ARG_BIBLIOGRAPHY")
+                fi
+            fi
+            if [ -n "$bib_path" ]; then
+                EPUB_CMD="$EPUB_CMD --citeproc --bibliography=\"$bib_path\""
+                echo -e "${GREEN}Using bibliography: $bib_path${NC}"
+            else
+                echo -e "${YELLOW}Warning: Bibliography file '$ARG_BIBLIOGRAPHY' not found${NC}"
+            fi
+        fi
+        if [ -n "$ARG_CSL" ]; then
+            local csl_path=""
+            if [ -f "$ARG_CSL" ]; then
+                csl_path=$(realpath "$ARG_CSL")
+            else
+                local input_dir
+                input_dir=$(dirname "$INPUT_FILE")
+                if [ -f "$input_dir/$ARG_CSL" ]; then
+                    csl_path=$(realpath "$input_dir/$ARG_CSL")
+                fi
+            fi
+            if [ -n "$csl_path" ]; then
+                EPUB_CMD="$EPUB_CMD --csl=\"$csl_path\""
+                echo -e "${GREEN}Using citation style: $csl_path${NC}"
+            else
+                echo -e "${YELLOW}Warning: CSL file '$ARG_CSL' not found${NC}"
+            fi
+        fi
+
+        # Add custom EPUB CSS support
+        if [ -n "$ARG_EPUB_CSS" ]; then
+            local css_path=""
+            if [ -f "$ARG_EPUB_CSS" ]; then
+                css_path=$(realpath "$ARG_EPUB_CSS")
+            else
+                local input_dir
+                input_dir=$(dirname "$INPUT_FILE")
+                if [ -f "$input_dir/$ARG_EPUB_CSS" ]; then
+                    css_path=$(realpath "$input_dir/$ARG_EPUB_CSS")
+                fi
+            fi
+            if [ -n "$css_path" ]; then
+                EPUB_CMD="$EPUB_CMD --css=\"$css_path\""
+                echo -e "${GREEN}Using custom EPUB CSS: $css_path${NC}"
+            else
+                echo -e "${YELLOW}Warning: EPUB CSS file '$ARG_EPUB_CSS' not found${NC}"
+            fi
+        fi
+
         EPUB_CMD="$EPUB_CMD $EPUB_OPTS --standalone"
 
         # Execute
@@ -2478,15 +2729,30 @@ convert() {
             # Fix spine order: move TOC after front matter pages
             fix_epub_spine_order "$OUTPUT_FILE"
 
+            # Validate EPUB if requested
+            if [ "$ARG_VALIDATE" = true ]; then
+                validate_epub "$OUTPUT_FILE"
+            fi
+
             # Restore backup
             if [ -f "$BACKUP_FILE" ]; then
                 mv "$BACKUP_FILE" "$INPUT_FILE"
+            fi
+
+            # Clean up combined file if multi-file project
+            if [ -n "$COMBINED_FILE" ] && [ -f "$COMBINED_FILE" ]; then
+                rm -f "$COMBINED_FILE"
             fi
             return 0
         else
             echo -e "${RED}Error: EPUB conversion failed.${NC}"
             if [ -f "$BACKUP_FILE" ]; then
                 mv "$BACKUP_FILE" "$INPUT_FILE"
+            fi
+
+            # Clean up combined file if multi-file project
+            if [ -n "$COMBINED_FILE" ] && [ -f "$COMBINED_FILE" ]; then
+                rm -f "$COMBINED_FILE"
             fi
             return 1
         fi
@@ -2505,11 +2771,40 @@ convert() {
     # No additional options needed for pdflatex
     PANDOC_OPTS=""
 
-    # Check for template.tex in the current directory first (highest priority)
+    # Check for custom template first (highest priority)
     TEMPLATE_IN_CURRENT_DIR=false
-    TEMPLATE_PATH="$(pwd)/template.tex"
+    CUSTOM_TEMPLATE_USED=false
 
-    if [ -f "$TEMPLATE_PATH" ]; then
+    if [ -n "$ARG_TEMPLATE" ]; then
+        # User provided custom template
+        if [ -f "$ARG_TEMPLATE" ]; then
+            TEMPLATE_PATH=$(realpath "$ARG_TEMPLATE")
+            CUSTOM_TEMPLATE_USED=true
+            echo -e "${GREEN}Using custom template: $TEMPLATE_PATH${NC}"
+        else
+            # Check relative to input file directory
+            local input_dir
+            input_dir=$(dirname "$INPUT_FILE")
+            if [ -f "$input_dir/$ARG_TEMPLATE" ]; then
+                TEMPLATE_PATH=$(realpath "$input_dir/$ARG_TEMPLATE")
+                CUSTOM_TEMPLATE_USED=true
+                echo -e "${GREEN}Using custom template: $TEMPLATE_PATH${NC}"
+            else
+                echo -e "${RED}Error: Custom template '$ARG_TEMPLATE' not found${NC}"
+                return 1
+            fi
+        fi
+    fi
+
+    # If no custom template, check for template.tex in the current directory
+    if [ "$CUSTOM_TEMPLATE_USED" = false ]; then
+        TEMPLATE_PATH="$(pwd)/template.tex"
+    fi
+
+    if [ "$CUSTOM_TEMPLATE_USED" = true ]; then
+        # Custom template provided - use it directly
+        TEMPLATE_IN_CURRENT_DIR=false
+    elif [ -f "$TEMPLATE_PATH" ]; then
         TEMPLATE_IN_CURRENT_DIR=true
     else
         # Not found in current directory, check other locations
@@ -2533,8 +2828,11 @@ convert() {
     echo -e "${BLUE}Debug: Template path is $TEMPLATE_PATH${NC}"
     echo -e "${BLUE}Debug: Template in current dir: $TEMPLATE_IN_CURRENT_DIR${NC}"
 
-    # Check if we found a template in the current directory
-    if [ "$TEMPLATE_IN_CURRENT_DIR" = true ]; then
+    # Check if we found a template in the current directory or custom template
+    if [ "$CUSTOM_TEMPLATE_USED" = true ]; then
+        # Custom template already set - nothing more to do
+        :
+    elif [ "$TEMPLATE_IN_CURRENT_DIR" = true ]; then
         echo -e "Using template: ${GREEN}$TEMPLATE_PATH${NC}"
     else
         # Template not found in current directory
@@ -2793,6 +3091,25 @@ EOF
         fi
     fi
 
+    # Add index filter if --index is enabled
+    if [ "$ARG_INDEX" = true ]; then
+        local index_filter_path=""
+        if [ -f "$(pwd)/filters/index_filter.lua" ]; then
+            index_filter_path="$(pwd)/filters/index_filter.lua"
+        elif [ -f "$SCRIPT_DIR/filters/index_filter.lua" ]; then
+            index_filter_path="$SCRIPT_DIR/filters/index_filter.lua"
+        elif [ -f "/usr/local/share/mdtexpdf/filters/index_filter.lua" ]; then
+            index_filter_path="/usr/local/share/mdtexpdf/filters/index_filter.lua"
+        fi
+
+        if [ -n "$index_filter_path" ]; then
+            LUA_FILTERS+=("$index_filter_path")
+            echo -e "${BLUE}Using Lua filter for index generation: $index_filter_path${NC}"
+        else
+            echo -e "${YELLOW}Warning: index_filter.lua not found. Index markers will not be processed.${NC}"
+        fi
+    fi
+
     # Add drop caps filter if drop_caps is enabled
     if [ "$META_DROP_CAPS" = "true" ]; then
         local drop_caps_filter_path=""
@@ -2874,6 +3191,11 @@ EOF
 
     # Professional book features (passed to template)
     BOOK_FEATURE_VARS=()
+
+    # Index generation
+    if [ "$ARG_INDEX" = true ]; then
+        BOOK_FEATURE_VARS+=("--variable=index=true")
+    fi
 
     # Half-title page
     if [ "$META_HALF_TITLE" = "true" ] || [ "$META_HALF_TITLE" = "True" ] || [ "$META_HALF_TITLE" = "TRUE" ]; then
@@ -3073,6 +3395,48 @@ EOF
         BOOK_FEATURE_VARS+=("--variable=donation_wallets=$META_DONATION_WALLETS")
     fi
 
+    # === BIBLIOGRAPHY & CITATIONS ===
+    local -a BIBLIOGRAPHY_VARS=()
+    if [ -n "$ARG_BIBLIOGRAPHY" ]; then
+        local bib_path=""
+        # Check if bibliography file exists (try absolute path first)
+        if [ -f "$ARG_BIBLIOGRAPHY" ]; then
+            bib_path=$(realpath "$ARG_BIBLIOGRAPHY")
+        else
+            # Check relative to input file directory
+            local input_dir
+            input_dir=$(dirname "$INPUT_FILE")
+            if [ -f "$input_dir/$ARG_BIBLIOGRAPHY" ]; then
+                bib_path=$(realpath "$input_dir/$ARG_BIBLIOGRAPHY")
+            fi
+        fi
+        if [ -n "$bib_path" ]; then
+            BIBLIOGRAPHY_VARS+=("--citeproc")
+            BIBLIOGRAPHY_VARS+=("--bibliography=$bib_path")
+            echo -e "${GREEN}Using bibliography: $bib_path${NC}"
+        else
+            echo -e "${YELLOW}Warning: Bibliography file '$ARG_BIBLIOGRAPHY' not found${NC}"
+        fi
+    fi
+    if [ -n "$ARG_CSL" ]; then
+        local csl_path=""
+        if [ -f "$ARG_CSL" ]; then
+            csl_path=$(realpath "$ARG_CSL")
+        else
+            local input_dir
+            input_dir=$(dirname "$INPUT_FILE")
+            if [ -f "$input_dir/$ARG_CSL" ]; then
+                csl_path=$(realpath "$input_dir/$ARG_CSL")
+            fi
+        fi
+        if [ -n "$csl_path" ]; then
+            BIBLIOGRAPHY_VARS+=("--csl=$csl_path")
+            echo -e "${GREEN}Using citation style: $csl_path${NC}"
+        else
+            echo -e "${YELLOW}Warning: CSL file '$ARG_CSL' not found${NC}"
+        fi
+    fi
+
     # shellcheck disable=SC2086 # Word splitting is intentional for PANDOC_OPTS/FILTER_OPTION/TOC_OPTION/SECTION_NUMBERING_OPTION
     if pandoc "$INPUT_FILE" \
         --from markdown \
@@ -3082,6 +3446,7 @@ EOF
         --pdf-engine="$PDF_ENGINE" \
         $PANDOC_OPTS \
         $FILTER_OPTION \
+        "${BIBLIOGRAPHY_VARS[@]}" \
         --variable=geometry:margin=1in \
         --highlight-style=tango \
         --listings \
@@ -3110,6 +3475,11 @@ EOF
             mv "$BACKUP_FILE" "$INPUT_FILE"
         fi
 
+        # Clean up combined file if multi-file project
+        if [ -n "$COMBINED_FILE" ] && [ -f "$COMBINED_FILE" ]; then
+            rm -f "$COMBINED_FILE"
+        fi
+
         echo -e "${GREEN}Cleanup complete. Only the PDF and original markdown file remain.${NC}"
         return 0
     else
@@ -3119,6 +3489,11 @@ EOF
         if [ -f "$BACKUP_FILE" ]; then
             echo -e "${BLUE}Restoring original markdown file from backup${NC}"
             mv "$BACKUP_FILE" "$INPUT_FILE"
+        fi
+
+        # Clean up combined file if multi-file project
+        if [ -n "$COMBINED_FILE" ] && [ -f "$COMBINED_FILE" ]; then
+            rm -f "$COMBINED_FILE"
         fi
 
         return 1
@@ -3448,6 +3823,13 @@ help() {
     echo -e "                    ${BLUE}--format FORMAT       Set document format (article or book)${NC}"
     echo -e "                    ${BLUE}--header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default${NC}"
     echo -e "                    ${BLUE}--epub                Output EPUB format instead of PDF${NC}"
+    echo -e "                    ${BLUE}--validate            Validate EPUB with epubcheck (requires epubcheck)${NC}"
+    echo -e "                    ${BLUE}-b, --bibliography FILE  Use bibliography file (.bib, .json, .yaml)${NC}"
+    echo -e "                    ${BLUE}--csl FILE            Use CSL citation style file${NC}"
+    echo -e "                    ${BLUE}--template FILE       Use custom LaTeX template for PDF${NC}"
+    echo -e "                    ${BLUE}--epub-css FILE       Use custom CSS for EPUB${NC}"
+    echo -e "                    ${BLUE}-i, --include FILE    Include additional markdown file (repeatable)${NC}"
+    echo -e "                    ${BLUE}--index               Generate index from [index:term] markers${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert -a \"John Doe\" -t \"My Document\" --toc --toc-depth 3 document.md output.pdf\n"
 
@@ -3459,6 +3841,10 @@ help() {
     echo -e "  ${GREEN}check${NC}"
     echo -e "                  ${BLUE}Check if all prerequisites are installed${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf check\n"
+
+    echo -e "  ${GREEN}validate <file.epub>${NC}"
+    echo -e "                  ${BLUE}Validate an EPUB file with epubcheck${NC}"
+    echo -e "                  ${BLUE}Example:${NC} mdtexpdf validate book.epub\n"
 
     echo -e "  ${GREEN}install${NC}"
     echo -e "                  ${BLUE}Install mdtexpdf system-wide${NC}"
@@ -3533,6 +3919,19 @@ case "$1" in
         ;;
     check)
         check_prerequisites
+        ;;
+    validate)
+        shift
+        if [ -z "$1" ]; then
+            log_error "No EPUB file specified."
+            echo -e "Usage: ${BLUE}mdtexpdf validate <file.epub>${NC}"
+            exit $EXIT_USER_ERROR
+        fi
+        if [ ! -f "$1" ]; then
+            log_error "EPUB file '$1' not found."
+            exit $EXIT_USER_ERROR
+        fi
+        validate_epub "$1"
         ;;
     install)
         install

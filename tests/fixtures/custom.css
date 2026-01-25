@@ -1,0 +1,45 @@
+/* Custom EPUB CSS */
+
+body {
+    font-family: Georgia, serif;
+    line-height: 1.6;
+    margin: 1em;
+    color: #333;
+}
+
+h1 {
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 0.3em;
+}
+
+h2 {
+    color: #34495e;
+}
+
+p {
+    text-align: justify;
+    margin-bottom: 1em;
+}
+
+blockquote {
+    border-left: 3px solid #3498db;
+    padding-left: 1em;
+    margin-left: 0;
+    font-style: italic;
+    color: #666;
+}
+
+code {
+    background-color: #f4f4f4;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-family: monospace;
+}
+
+pre {
+    background-color: #f4f4f4;
+    padding: 1em;
+    overflow-x: auto;
+    border-radius: 5px;
+}

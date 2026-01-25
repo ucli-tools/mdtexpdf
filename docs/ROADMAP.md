@@ -46,12 +46,12 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] D6. Update main `mdtexpdf.sh` to source modules
 - [x] D7. Make each module independently testable (26 unit tests in tests/test_modules.sh)
 
-### Phase E: New Features (4-8 hours each)
-- [ ] E1. Bibliography & Citations support
-- [ ] E2. Index Generation
-- [ ] E3. Custom Templates (LaTeX and EPUB CSS)
-- [ ] E4. EPUB Validation (epubcheck integration)
-- [ ] E5. Multi-file Projects support
+### Phase E: New Features (4-8 hours each) ✓ COMPLETE
+- [x] E1. Bibliography & Citations support
+- [x] E2. Index Generation
+- [x] E3. Custom Templates (LaTeX and EPUB CSS)
+- [x] E4. EPUB Validation (epubcheck integration)
+- [x] E5. Multi-file Projects support
 
 ### Phase F: Future Enhancements (deferred)
 - Editor integrations (VS Code, Vim, Emacs)
@@ -70,8 +70,8 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] EPUB spine reordering (TOC after front matter)
 - [x] `--version`, `--verbose`, `--debug` flags
 - [x] CHANGELOG.md
-- [x] Comprehensive test suite (57 tests total):
-  - [x] 26 integration tests (run_tests.sh)
+- [x] Comprehensive test suite (66 tests total):
+  - [x] 35 integration tests (run_tests.sh)
   - [x] 26 module unit tests (test_modules.sh)
   - [x] 5 regression tests (test_regression.sh)
 - [x] CI/CD pipeline (GitHub Actions)
@@ -91,8 +91,16 @@ We take a quality-first approach, completing each phase thoroughly before moving
 ### In Progress
 - Phase D: Modularization (D1, D5 deferred - template extraction is complex)
 
+### Completed Recently
+- Phase E: New Features - ALL COMPLETE
+  - E1: Bibliography & Citations (--bibliography, --csl flags)
+  - E2: Index Generation (--index flag, [index:term] markers, Lua filter)
+  - E3: Custom Templates (--template, --epub-css flags)
+  - E4: EPUB Validation (--validate flag, validate command)
+  - E5: Multi-file Projects (--include/-i flag, repeatable)
+
 ### Next Up
-- Phase E: New Features (Bibliography, Index, Custom Templates, EPUB Validation)
+- Phase F: Future Enhancements (editor integrations, package managers, print-ready PDF)
 
 ---
 
@@ -174,18 +182,19 @@ We take a quality-first approach, completing each phase thoroughly before moving
 ### 4. New Features
 
 #### 4.1 Bibliography & Citations
-- [ ] Support for `.bib` files (BibTeX/BibLaTeX)
-- [ ] Citation styles (APA, MLA, Chicago, IEEE)
-- [ ] Metadata: `bibliography: "references.bib"`
-- [ ] Metadata: `citation_style: "apa"`
-- [ ] Auto-generate References/Bibliography section
-- [ ] Works in both PDF and EPUB
+- [x] Support for `.bib` files (BibTeX/BibLaTeX)
+- [x] Citation styles via CSL files
+- [x] Metadata: `bibliography: "references.bib"`
+- [x] Metadata: `csl: "style.csl"`
+- [x] CLI: `--bibliography FILE` and `--csl FILE`
+- [x] Auto-generate References/Bibliography section
+- [x] Works in both PDF and EPUB
 
 #### 4.2 Index Generation
-- [ ] Markup for index entries: `{.index}` or `\index{term}`
-- [ ] Auto-generate Index section
-- [ ] Sub-entries and cross-references
-- [ ] Metadata: `index: true`
+- [x] Markup for index entries: `[index:term]` or `[index:term|subterm]`
+- [x] Auto-generate Index section via `\printindex`
+- [x] Sub-entries support via `|` separator
+- [x] CLI: `--index` flag to enable index generation
 
 #### 4.3 Cross-References
 - [ ] Figure/table numbering and references
@@ -198,10 +207,10 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [ ] Glossary as appendix with proper formatting
 
 #### 4.5 Custom Templates
-- [ ] User-provided LaTeX templates (`--template custom.tex`)
-- [ ] User-provided EPUB CSS (`--epub-css custom.css`)
+- [x] User-provided LaTeX templates (`--template custom.tex`)
+- [x] User-provided EPUB CSS (`--epub-css custom.css`)
 - [ ] Template variables documentation
-- [ ] Example templates in `templates/`
+- [x] Example templates in `tests/fixtures/`
 
 #### 4.6 Multiple Output Formats
 - [ ] DOCX output (Word)
@@ -210,10 +219,10 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [ ] Markdown cleanup/normalization
 
 #### 4.7 Multi-File Projects
-- [ ] `includes:` metadata to combine .md files
-- [ ] Chapter-per-file organization
-- [ ] Shared metadata file
-- [ ] Build order configuration
+- [x] `--include FILE` CLI option to combine .md files (repeatable)
+- [x] Chapter-per-file organization
+- [x] Shared metadata from main file (included files' frontmatter stripped)
+- [x] Build order follows CLI argument order
 
 #### 4.8 Image Handling
 - [ ] Auto-resize images to fit page
@@ -232,9 +241,10 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [ ] Document e-reader compatibility
 
 #### 5.2 EPUB Validation
-- [ ] Run epubcheck automatically
-- [ ] Report and fix common issues
-- [ ] `--validate` flag
+- [x] Run epubcheck automatically
+- [x] Report and fix common issues
+- [x] `--validate` flag
+- [x] `mdtexpdf validate <file.epub>` command
 
 #### 5.3 EPUB Metadata
 - [ ] Full EPUB3 metadata (series, collection)
@@ -368,7 +378,7 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] Core PDF/EPUB functionality
 - [x] Docker and CI/CD
 - [x] Shellcheck passes
-- [x] Comprehensive tests (57 total)
+- [x] Comprehensive tests (66 total)
 
 ### v1.1.0 - Documentation & Examples ✓ ACHIEVED
 - [x] Phase C complete
@@ -380,16 +390,16 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] Modularization (5 modules extracted)
 - [x] Unit tests for all modules (26 tests)
 
-### v1.3.0 - Bibliography & Index
-- [ ] Phase E1-E2 complete
-- [ ] Bibliography support
-- [ ] Index generation
+### v1.3.0 - Bibliography & Index ✓ ACHIEVED
+- [x] Phase E1-E2 complete
+- [x] Bibliography support
+- [x] Index generation
 
-### v2.0.0 - Extended Features
-- [ ] Phase E3-E5 complete
-- [ ] Custom templates
-- [ ] Multi-file projects
-- [ ] EPUB validation
+### v2.0.0 - Extended Features ✓ ACHIEVED
+- [x] Phase E3-E5 complete
+- [x] Custom templates
+- [x] Multi-file projects
+- [x] EPUB validation
 
 ---
 

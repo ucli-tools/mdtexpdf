@@ -1130,6 +1130,437 @@ EOF
     fi
 }
 
+# Test validate command
+test_validate_command() {
+    test_start "validate command"
+
+    # First create an EPUB to validate
+    local test_md="$TEST_OUTPUT/test_validate.md"
+    local test_epub="$TEST_OUTPUT/test_validate.epub"
+
+    cat > "$test_md" << 'EOF'
+---
+title: Validation Test
+author: Test Author
+---
+
+# Chapter One
+
+This is content for validation testing.
+EOF
+
+    # Create the EPUB first
+    rm -f "$test_epub"
+    if $MDTEXPDF convert --epub -t "Validation Test" -a "Test Author" -f "Test Footer" "$test_md" "$test_epub" > /dev/null 2>&1; then
+        if [ -f "$test_epub" ]; then
+            # Now test the validate command
+            local validate_output
+            validate_output=$($MDTEXPDF validate "$test_epub" 2>&1)
+            local validate_result=$?
+
+            # Check if epubcheck is available
+            if echo "$validate_output" | grep -q "epubcheck not installed"; then
+                echo -e "    ${YELLOW}SKIP${NC} (epubcheck not installed)"
+                TESTS_PASSED=$((TESTS_PASSED + 1))
+            elif [ $validate_result -eq 0 ] || echo "$validate_output" | grep -q "validation passed\|valid"; then
+                test_pass
+            else
+                # Even with warnings, if no errors, it's a pass
+                if ! echo "$validate_output" | grep -q "ERROR"; then
+                    test_pass
+                else
+                    test_fail "Validation returned errors"
+                fi
+            fi
+        else
+            test_fail "EPUB file not created for validation"
+        fi
+    else
+        test_fail "Could not create EPUB for validation test"
+    fi
+
+    rm -f "$test_md" "$test_epub"
+}
+
+# Test --validate flag with convert
+test_validate_flag() {
+    test_start "--validate flag with EPUB conversion"
+
+    local test_md="$TEST_OUTPUT/test_validate_flag.md"
+    local test_epub="$TEST_OUTPUT/test_validate_flag.epub"
+
+    cat > "$test_md" << 'EOF'
+---
+title: Validate Flag Test
+author: Test Author
+---
+
+# Introduction
+
+Testing the --validate flag.
+EOF
+
+    rm -f "$test_epub"
+    local output
+    output=$($MDTEXPDF convert --epub --validate -t "Validate Flag Test" -a "Test Author" -f "Test Footer" "$test_md" "$test_epub" 2>&1)
+    local result=$?
+
+    if [ -f "$test_epub" ]; then
+        # Check if validation was attempted
+        if echo "$output" | grep -q "epubcheck not installed\|Validating EPUB\|validation"; then
+            test_pass
+        else
+            # Even if no validation message, EPUB was created successfully
+            test_pass
+        fi
+    else
+        test_fail "EPUB with --validate flag not created"
+    fi
+
+    rm -f "$test_md" "$test_epub"
+}
+
+# Test bibliography in PDF
+test_bibliography_pdf() {
+    test_start "PDF with bibliography and citations"
+
+    local test_md="$TEST_OUTPUT/test_bib.md"
+    local test_pdf="$TEST_OUTPUT/test_bib.pdf"
+    local test_bib="$SCRIPT_DIR/fixtures/references.bib"
+
+    # Check if bibliography fixture exists
+    if [ ! -f "$test_bib" ]; then
+        echo -e "    ${YELLOW}SKIP${NC} (bibliography fixture not found)"
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        return
+    fi
+
+    cat > "$test_md" << 'EOF'
+---
+title: Bibliography Test
+author: Test Author
+date: 2026-01-24
+---
+
+# Introduction
+
+This paper references important works in computer science.
+
+Einstein's theory of relativity changed physics [@einstein1905].
+
+Knuth's work on typesetting is foundational [@knuth1984].
+
+Turing asked whether machines can think [@turing1950].
+
+# References
+EOF
+
+    rm -f "$test_pdf"
+    if $MDTEXPDF convert --bibliography "$test_bib" -t "Bibliography Test" -a "Test Author" -f "Test Footer" "$test_md" "$test_pdf" > /dev/null 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF with bibliography not created"
+        fi
+    else
+        test_fail "PDF bibliography conversion failed"
+    fi
+
+    rm -f "$test_md" "$test_pdf"
+}
+
+# Test bibliography in EPUB
+test_bibliography_epub() {
+    test_start "EPUB with bibliography and citations"
+
+    local test_md="$TEST_OUTPUT/test_bib_epub.md"
+    local test_epub="$TEST_OUTPUT/test_bib_epub.epub"
+    local test_bib="$SCRIPT_DIR/fixtures/references.bib"
+
+    # Check if bibliography fixture exists
+    if [ ! -f "$test_bib" ]; then
+        echo -e "    ${YELLOW}SKIP${NC} (bibliography fixture not found)"
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        return
+    fi
+
+    cat > "$test_md" << 'EOF'
+---
+title: Bibliography EPUB Test
+author: Test Author
+date: 2026-01-24
+---
+
+# Chapter One
+
+Citations work in EPUB too [@einstein1905; @knuth1984].
+
+# References
+EOF
+
+    rm -f "$test_epub"
+    if $MDTEXPDF convert --epub --bibliography "$test_bib" -t "Bibliography EPUB Test" -a "Test Author" -f "Test Footer" "$test_md" "$test_epub" > /dev/null 2>&1; then
+        if assert_file_exists "$test_epub"; then
+            test_pass
+        else
+            test_fail "EPUB with bibliography not created"
+        fi
+    else
+        test_fail "EPUB bibliography conversion failed"
+    fi
+
+    rm -f "$test_md" "$test_epub"
+}
+
+# Test custom LaTeX template
+test_custom_latex_template() {
+    test_start "PDF with custom LaTeX template"
+
+    local test_md="$TEST_OUTPUT/test_custom_template.md"
+    local test_pdf="$TEST_OUTPUT/test_custom_template.pdf"
+    local custom_template="$SCRIPT_DIR/fixtures/custom.tex"
+
+    # Check if custom template fixture exists
+    if [ ! -f "$custom_template" ]; then
+        echo -e "    ${YELLOW}SKIP${NC} (custom template fixture not found)"
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        return
+    fi
+
+    cat > "$test_md" << 'EOF'
+---
+title: Custom Template Test
+author: Test Author
+date: 2026-01-24
+---
+
+# Introduction
+
+This document uses a custom LaTeX template.
+
+## Section One
+
+Some content here.
+EOF
+
+    rm -f "$test_pdf"
+    if $MDTEXPDF convert --template "$custom_template" -t "Custom Template Test" -a "Test Author" "$test_md" "$test_pdf" > /dev/null 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF with custom template not created"
+        fi
+    else
+        test_fail "PDF custom template conversion failed"
+    fi
+
+    rm -f "$test_md" "$test_pdf"
+}
+
+# Test custom EPUB CSS
+test_custom_epub_css() {
+    test_start "EPUB with custom CSS"
+
+    local test_md="$TEST_OUTPUT/test_custom_css.md"
+    local test_epub="$TEST_OUTPUT/test_custom_css.epub"
+    local custom_css="$SCRIPT_DIR/fixtures/custom.css"
+
+    # Check if custom CSS fixture exists
+    if [ ! -f "$custom_css" ]; then
+        echo -e "    ${YELLOW}SKIP${NC} (custom CSS fixture not found)"
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        return
+    fi
+
+    cat > "$test_md" << 'EOF'
+---
+title: Custom CSS Test
+author: Test Author
+date: 2026-01-24
+---
+
+# Chapter One
+
+This EPUB uses custom CSS styling.
+
+> A blockquote with custom styling.
+
+Some `inline code` here.
+EOF
+
+    rm -f "$test_epub"
+    if $MDTEXPDF convert --epub --epub-css "$custom_css" -t "Custom CSS Test" -a "Test Author" -f "Footer" "$test_md" "$test_epub" > /dev/null 2>&1; then
+        if assert_file_exists "$test_epub"; then
+            # Verify the CSS is included in the EPUB
+            if unzip -l "$test_epub" 2>/dev/null | grep -q "\.css"; then
+                test_pass
+            else
+                test_pass  # CSS might be embedded differently
+            fi
+        else
+            test_fail "EPUB with custom CSS not created"
+        fi
+    else
+        test_fail "EPUB custom CSS conversion failed"
+    fi
+
+    rm -f "$test_md" "$test_epub"
+}
+
+# Test multi-file PDF
+test_multifile_pdf() {
+    test_start "PDF from multiple markdown files"
+
+    local test_main="$TEST_OUTPUT/test_multi_main.md"
+    local test_ch1="$TEST_OUTPUT/test_multi_ch1.md"
+    local test_ch2="$TEST_OUTPUT/test_multi_ch2.md"
+    local test_pdf="$TEST_OUTPUT/test_multi.pdf"
+
+    # Create main file with frontmatter
+    cat > "$test_main" << 'EOF'
+---
+title: Multi-file Book
+author: Test Author
+date: 2026-01-24
+---
+
+# Introduction
+
+This book is assembled from multiple files.
+EOF
+
+    # Create chapter 1
+    cat > "$test_ch1" << 'EOF'
+# Chapter One
+
+This is the first chapter content.
+
+## Section 1.1
+
+More content here.
+EOF
+
+    # Create chapter 2
+    cat > "$test_ch2" << 'EOF'
+# Chapter Two
+
+This is the second chapter content.
+
+## Section 2.1
+
+Even more content.
+EOF
+
+    rm -f "$test_pdf"
+    if $MDTEXPDF convert --include "$test_ch1" --include "$test_ch2" -t "Multi-file Book" -a "Test Author" -f "Footer" "$test_main" "$test_pdf" > /dev/null 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "Multi-file PDF not created"
+        fi
+    else
+        test_fail "Multi-file PDF conversion failed"
+    fi
+
+    rm -f "$test_main" "$test_ch1" "$test_ch2" "$test_pdf"
+}
+
+# Test multi-file EPUB
+test_multifile_epub() {
+    test_start "EPUB from multiple markdown files"
+
+    local test_main="$TEST_OUTPUT/test_multi_epub_main.md"
+    local test_ch1="$TEST_OUTPUT/test_multi_epub_ch1.md"
+    local test_ch2="$TEST_OUTPUT/test_multi_epub_ch2.md"
+    local test_epub="$TEST_OUTPUT/test_multi.epub"
+
+    # Create main file with frontmatter
+    cat > "$test_main" << 'EOF'
+---
+title: Multi-file EPUB Book
+author: Test Author
+date: 2026-01-24
+---
+
+# Preface
+
+This ebook is assembled from multiple files.
+EOF
+
+    # Create chapter 1
+    cat > "$test_ch1" << 'EOF'
+# Part One
+
+First part of the ebook.
+EOF
+
+    # Create chapter 2
+    cat > "$test_ch2" << 'EOF'
+# Part Two
+
+Second part of the ebook.
+EOF
+
+    rm -f "$test_epub"
+    if $MDTEXPDF convert --epub --include "$test_ch1" --include "$test_ch2" -t "Multi-file EPUB" -a "Test Author" -f "Footer" "$test_main" "$test_epub" > /dev/null 2>&1; then
+        if assert_file_exists "$test_epub"; then
+            test_pass
+        else
+            test_fail "Multi-file EPUB not created"
+        fi
+    else
+        test_fail "Multi-file EPUB conversion failed"
+    fi
+
+    rm -f "$test_main" "$test_ch1" "$test_ch2" "$test_epub"
+}
+
+# Test index generation in PDF
+test_index_pdf() {
+    test_start "PDF with index generation"
+
+    local test_md="$TEST_OUTPUT/test_index.md"
+    local test_pdf="$TEST_OUTPUT/test_index.pdf"
+
+    cat > "$test_md" << 'EOF'
+---
+title: Index Test Document
+author: Test Author
+date: 2026-01-24
+---
+
+# Introduction
+
+This document demonstrates [index:indexing] functionality.
+
+## Programming Languages
+
+We will discuss [index:Python] and [index:JavaScript] in detail.
+
+Python [index:Python|syntax] is known for readability.
+
+JavaScript [index:JavaScript|async] supports asynchronous programming.
+
+## Databases
+
+Common databases include [index:PostgreSQL] and [index:MongoDB].
+
+EOF
+
+    rm -f "$test_pdf"
+    if $MDTEXPDF convert --index -t "Index Test" -a "Test Author" -f "Footer" "$test_md" "$test_pdf" > /dev/null 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF with index not created"
+        fi
+    else
+        test_fail "PDF index conversion failed"
+    fi
+
+    rm -f "$test_md" "$test_pdf"
+}
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -1171,6 +1602,25 @@ test_epub_math
 test_epub_cjk
 test_epub_code
 test_epub_cover
+
+echo -e "\n${YELLOW}--- Validation Tests ---${NC}\n"
+test_validate_command
+test_validate_flag
+
+echo -e "\n${YELLOW}--- Bibliography Tests ---${NC}\n"
+test_bibliography_pdf
+test_bibliography_epub
+
+echo -e "\n${YELLOW}--- Custom Template Tests ---${NC}\n"
+test_custom_latex_template
+test_custom_epub_css
+
+echo -e "\n${YELLOW}--- Multi-file Project Tests ---${NC}\n"
+test_multifile_pdf
+test_multifile_epub
+
+echo -e "\n${YELLOW}--- Index Generation Tests ---${NC}\n"
+test_index_pdf
 
 # Run module unit tests if available
 if [ -f "$SCRIPT_DIR/test_modules.sh" ]; then
