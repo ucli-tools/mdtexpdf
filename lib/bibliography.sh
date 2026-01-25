@@ -47,7 +47,7 @@ get_unique_key() {
     local key="$base_key"
     local count=0
 
-    while [[ " ${_USED_KEYS} " =~ " ${key} " ]]; do
+    while [[ " ${_USED_KEYS} " =~ \ ${key}\  ]]; do
         count=$((count + 1))
         # a=1, b=2, c=3, etc.
         local suffix
@@ -266,7 +266,7 @@ convert_simple_bibliography() {
     # Create temp directory for entry files
     local temp_dir
     temp_dir=$(mktemp -d)
-    trap "rm -rf $temp_dir" EXIT
+    trap 'rm -rf "$temp_dir"' EXIT
 
     # Collect all JSON entries
     local -a json_entries=()

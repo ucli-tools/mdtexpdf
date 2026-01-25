@@ -501,10 +501,11 @@ test_bibliography_key_generation() {
     (
         source "$LIB_DIR/bibliography.sh"
 
-        local key1=$(generate_citation_key "Knuth, Donald E." "1968")
-        local key2=$(generate_citation_key "Einstein, Albert" "1905")
-        local key3=$(generate_citation_key "Van Gogh, Vincent" "1888")
-        local key4=$(generate_citation_key "U.S. Government Accountability Office" "2024")
+        local key1 key2 key3 key4
+        key1=$(generate_citation_key "Knuth, Donald E." "1968")
+        key2=$(generate_citation_key "Einstein, Albert" "1905")
+        key3=$(generate_citation_key "Van Gogh, Vincent" "1888")
+        key4=$(generate_citation_key "U.S. Government Accountability Office" "2024")
 
         [ "$key1" = "knuth1968" ] && \
         [ "$key2" = "einstein1905" ] && \
@@ -523,7 +524,8 @@ test_bibliography_multi_author_key() {
     (
         source "$LIB_DIR/bibliography.sh"
 
-        local key=$(generate_citation_key "Smith, John and Jones, Mary and Brown, Bob" "2020")
+        local key
+        key=$(generate_citation_key "Smith, John and Jones, Mary and Brown, Bob" "2020")
         [ "$key" = "smith2020" ]
     )
     if [ $? -eq 0 ]; then
