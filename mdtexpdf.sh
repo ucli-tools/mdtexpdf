@@ -876,22 +876,26 @@ $numbering_commands
 \\newgeometry{margin=0pt}
 \\thispagestyle{empty}
 \\begin{tikzpicture}[remember picture,overlay]
-  % Background image - full bleed
+  % Background fill (in case image doesn't fully cover)
+  \\fill[black] (current page.south west) rectangle (current page.north east);
+  % Background image - maintain aspect ratio, cover the page (may crop edges)
   \\node[inner sep=0pt,outer sep=0pt] at (current page.center) {
-    \\includegraphics[width=\\paperwidth,height=\\paperheight,keepaspectratio=false]{\$cover_image\$}
+    \\includegraphics[width=\\paperwidth,height=\\paperheight,keepaspectratio]{\$cover_image\$}
   };
   % Optional dark overlay for text readability
   \$if(cover_overlay_opacity)\$
   \\fill[black,opacity=\$cover_overlay_opacity\$] (current page.south west) rectangle (current page.north east);
   \$endif\$
-  % Title text - centered (hyphenation disabled for titles)
-  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\Huge\\bfseries,align=center,text width=0.8\\paperwidth] at (current page.center) {
+  % Title text - positioned in upper portion of image area (hyphenation disabled)
+  % Using 0.20\paperheight from top keeps text within image bounds for most aspect ratios
+  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\Huge\\bfseries,align=center,text width=0.8\\paperwidth,anchor=north] at ([yshift=-0.20\\paperheight]current page.north) {
     \\nohyphens{\$title\$}
     \$if(cover_subtitle_show)\$\$if(subtitle)\$\\\\[0.5cm]{\\LARGE\\itshape \\nohyphens{\$subtitle\$}}\$endif\$\$endif\$
   };
-  % Author at bottom (if cover_author_position is set)
+  % Author at bottom of image area (if cover_author_position is set)
+  % Using 0.20\paperheight from bottom keeps text within image bounds
   \$if(cover_author_position)\$
-  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\Large,anchor=south] at ([yshift=2cm]current page.south) {
+  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\Large,anchor=south] at ([yshift=0.20\\paperheight]current page.south) {
     \$author\$
   };
   \$endif\$
@@ -1050,16 +1054,19 @@ ISBN: \$isbn\$\\\\[0.3cm]
 \\newgeometry{margin=0pt}
 \\thispagestyle{empty}
 \\begin{tikzpicture}[remember picture,overlay]
-  % Background image - full bleed
+  % Background fill (in case image doesn't fully cover)
+  \\fill[black] (current page.south west) rectangle (current page.north east);
+  % Background image - maintain aspect ratio, cover the page (may crop edges)
   \\node[inner sep=0pt,outer sep=0pt] at (current page.center) {
-    \\includegraphics[width=\\paperwidth,height=\\paperheight,keepaspectratio=false]{\$back_cover_image\$}
+    \\includegraphics[width=\\paperwidth,height=\\paperheight,keepaspectratio]{\$back_cover_image\$}
   };
   % Optional dark overlay for text readability
   \$if(cover_overlay_opacity)\$
   \\fill[black,opacity=\$cover_overlay_opacity\$] (current page.south west) rectangle (current page.north east);
   \$endif\$
   % Content box - quote, summary, or custom text
-  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\large,align=center,text width=0.7\\paperwidth] at ([yshift=2cm]current page.center) {
+  % Positioned in upper portion of image area (0.20\paperheight from top, matching front cover)
+  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\large,align=center,text width=0.7\\paperwidth,anchor=north] at ([yshift=-0.20\\paperheight]current page.north) {
     \$if(back_cover_quote)\$
     {\\itshape ``\$back_cover_quote\$''}
     \$if(back_cover_quote_source)\$\\\\[0.5cm]--- \$back_cover_quote_source\$\$endif\$
@@ -1070,8 +1077,9 @@ ISBN: \$isbn\$\\\\[0.3cm]
     \$endif\$
   };
   % Author bio section (if enabled)
+  % Positioned in lower portion of image area (0.20\paperheight from bottom, matching front cover)
   \$if(back_cover_author_bio)\$
-  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\normalsize,align=left,text width=0.7\\paperwidth,anchor=south] at ([yshift=3cm]current page.south) {
+  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\normalsize,align=left,text width=0.7\\paperwidth,anchor=south] at ([yshift=0.20\\paperheight]current page.south) {
     {\\bfseries About the Author}\\\\[0.3cm]
     \$if(back_cover_author_bio_text)\$\$back_cover_author_bio_text\$\$endif\$
   };
@@ -3588,6 +3596,12 @@ EOF
         # Clean up bibliography temp directory
         if [ -n "$bib_temp_dir" ] && [ -d "$bib_temp_dir" ]; then
             rm -rf "$bib_temp_dir"
+        fi
+
+        # Clean up: Remove template.tex file if it was created in the current directory
+        if [ -f "$(pwd)/template.tex" ]; then
+            echo -e "${BLUE}Cleaning up: Removing template.tex${NC}"
+            rm -f "$(pwd)/template.tex"
         fi
 
         # Restore the original markdown file from backup even if conversion failed
