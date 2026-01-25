@@ -62,6 +62,10 @@ pageof: true                        # Show "Page X of Y"
 date_footer: "DD/MM/YY"            # Date format in footer
 no_date: false                      # Disable date in footer
 
+# Bibliography and citations
+bibliography: "references.bib"      # Path to BibTeX file (or .md for simple format)
+csl: "chicago-author-date.csl"      # Citation style (CSL file path)
+
 # =============================================================================
 # PROFESSIONAL BOOK FEATURES (mdtexpdf only - book format)
 # =============================================================================
@@ -100,6 +104,7 @@ cover_title_color: "white"          # Title text color (name or hex)
 cover_subtitle_show: true           # Show subtitle on cover
 cover_author_position: "bottom"     # Author position: top, center, bottom, none
 cover_overlay_opacity: 0.4          # Dark overlay for readability (0-1)
+cover_fit: "contain"                # Image fit: "contain" (keep ratio, may have bars) or "cover" (fill page, crop overflow)
 
 # Back cover (quatrième de couverture)
 back_cover_image: "img/back.jpg"    # Background image (can reuse front)
@@ -145,7 +150,7 @@ narrator: "AI Narrator"             # Narrator name for metadata
 | Field | Type | Description | Example |
 |-------|------|-------------|---------|
 | `title` | string | Document title | "Bell's Theorem Analysis" |
-| `author` | string | Author name | "Example Press" |
+| `author` | string | Author name | "Jane Smith" |
 | `subtitle` | string | Optional subtitle shown under the title (book format front page) | "A Journey into Mathematical Psychology" |
 | `email` | string | Optional author email shown next to author on book front page only | "author@example.com" |
 | `date` | string | Publication date | "2025-01-01" |
@@ -168,6 +173,15 @@ narrator: "AI Narrator"             # Narrator name for metadata
 | `pageof` | boolean | Show "Page X of Y" | true, false |
 | `date_footer` | string | Date format in footer | "DD/MM/YY", "MM/DD/YYYY" |
 | `no_date` | boolean | Disable date in footer | true, false |
+
+#### Bibliography & Citations
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| `bibliography` | string | Path to bibliography file | "refs.bib", "refs.md" |
+| `csl` | string | Citation style file (CSL) | "chicago-author-date.csl" |
+
+See [SIMPLE_BIBLIOGRAPHY.md](SIMPLE_BIBLIOGRAPHY.md) for detailed bibliography documentation, including the human-readable Markdown bibliography format.
 
 ### Professional Book Features (book format only)
 
@@ -213,6 +227,11 @@ narrator: "AI Narrator"             # Narrator name for metadata
 | `cover_subtitle_show` | boolean | Show subtitle on cover | true, false |
 | `cover_author_position` | string | Author name position | "top", "center", "bottom", "none" |
 | `cover_overlay_opacity` | float | Dark overlay opacity (0-1) | 0.0 to 1.0 |
+| `cover_fit` | string | Image scaling mode | "contain" (default), "cover" |
+
+**Cover Fit Modes**:
+- `contain` (default): Maintains aspect ratio. Image fits within page bounds; may show black bars on sides or top/bottom if aspect ratios differ.
+- `cover`: Scales image to fill page completely (like CSS `background-size: cover`). Maintains aspect ratio but crops overflow. No black bars, but edges may be cropped.
 
 **Auto-detection**: If `cover_image` is not specified, mdtexpdf searches for:
 - `img/cover.{jpg,jpeg,png,pdf}`
@@ -239,6 +258,12 @@ narrator: "AI Narrator"             # Narrator name for metadata
 | `back_cover_author_bio` | boolean | Include author bio section | true, false |
 | `back_cover_author_bio_text` | string | Author biography text | "John is a researcher..." |
 | `back_cover_isbn_barcode` | boolean | Reserve space for ISBN barcode | true, false |
+
+**LaTeX and Math in Back Cover Text**: You can include inline LaTeX math in `back_cover_quote`, `back_cover_summary`, or `back_cover_text` using escaped backslashes:
+```yaml
+back_cover_text: "Euler's identity $e^{i\\pi} + 1 = 0$ reveals deep mathematical beauty."
+```
+Use `\\textit{}` for italics and other LaTeX commands. Note: backslashes must be doubled (`\\`) in YAML strings.
 
 ### Authorship & Support System
 
@@ -385,7 +410,7 @@ publisher_website: "https://publisher.com"
 ```yaml
 ---
 title: "Philosophy of Mathematics"
-author: "Example Press"
+author: "Jane Smith"
 date: "2025-01-15"
 description: "Philosophical exploration of mathematical foundations"
 language: "en"

@@ -115,7 +115,7 @@ narrator: "AI Narrator"
 | `author` | Author name | `"Author Name"` |
 | `email` | Author email (book format, next to author) | `"author@example.com"` |
 | `date` | Publication date | `"January 2026"` |
-| `description` | Brief description | `"Exploring data analysis..."` |
+| `description` | Brief description | `"Exploring mathematical concepts..."` |
 | `language` | ISO language code | `"en"` |
 
 #### Document Format
@@ -726,7 +726,7 @@ The back matter sections (Glossary, Acknowledgments, About the Author) use simpl
 ```markdown
 **Acetic acid**: The active component of vinegar. Chemical formula CH3COOH.
 
-**Data analysis**: The practice of dispersing substances into clouds to modify precipitation.
+**Algorithm**: A step-by-step procedure for solving a problem or accomplishing a task.
 ```
 
 **Acknowledgments** and **About the Author** are regular prose sections that appear after the glossary.

@@ -1,5 +1,48 @@
 #!/bin/bash
 
+# =============================================================================
+# mdtexpdf - Markdown to PDF/EPUB converter using LaTeX
+# =============================================================================
+VERSION="1.0.0"
+MDTEXPDF_VERSION="$VERSION"
+
+# =============================================================================
+# Module Loading
+# =============================================================================
+# Determine script directory for module loading
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source modules if available (for installed version, modules are in lib/)
+if [ -d "$SCRIPT_DIR/lib" ]; then
+    # Source in order of dependency
+    [ -f "$SCRIPT_DIR/lib/core.sh" ] && source "$SCRIPT_DIR/lib/core.sh"
+    [ -f "$SCRIPT_DIR/lib/check.sh" ] && source "$SCRIPT_DIR/lib/check.sh"
+    [ -f "$SCRIPT_DIR/lib/metadata.sh" ] && source "$SCRIPT_DIR/lib/metadata.sh"
+    [ -f "$SCRIPT_DIR/lib/preprocess.sh" ] && source "$SCRIPT_DIR/lib/preprocess.sh"
+    [ -f "$SCRIPT_DIR/lib/epub.sh" ] && source "$SCRIPT_DIR/lib/epub.sh"
+    [ -f "$SCRIPT_DIR/lib/bibliography.sh" ] && source "$SCRIPT_DIR/lib/bibliography.sh"
+fi
+
+# =============================================================================
+# Exit Codes
+# =============================================================================
+# 0 = Success
+# 1 = User error (invalid arguments, missing input file)
+# 2 = Missing dependency (pandoc, latex, etc.)
+# 3 = Conversion failure (pandoc or latex error)
+# 4 = File system error (cannot read/write files)
+# 5 = Configuration error (invalid metadata, bad YAML)
+EXIT_SUCCESS=0
+EXIT_USER_ERROR=1
+EXIT_MISSING_DEP=2
+EXIT_CONVERSION_FAIL=3
+EXIT_FILE_ERROR=4
+EXIT_CONFIG_ERROR=5
+
+# Verbosity levels
+VERBOSE=false
+DEBUG=false
+
 # ANSI color codes
 BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
@@ -7,6 +50,31 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+
+# Logging functions
+log_verbose() {
+    if [ "$VERBOSE" = true ] || [ "$DEBUG" = true ]; then
+        echo -e "${BLUE}[INFO]${NC} $*"
+    fi
+}
+
+log_debug() {
+    if [ "$DEBUG" = true ]; then
+        echo -e "${PURPLE}[DEBUG]${NC} $*"
+    fi
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $*" >&2
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $*"
+}
+
+log_success() {
+    echo -e "${GREEN}[OK]${NC} $*"
+}
 
 # Default TOC depth (3 = subsubsection level)
 DEFAULT_TOC_DEPTH=2
@@ -181,6 +249,7 @@ BOOK_CMDS_EOF
     \\usepackage{amssymb}
     \\usepackage{amsthm}   % For theorem and proof environments
     \\usepackage{hyperref}
+    \\usepackage{makeidx}  % For index generation
     \\usepackage{xcolor}
     \\usepackage{longtable}
     \\usepackage{booktabs}
@@ -197,6 +266,8 @@ BOOK_CMDS_EOF
     \\usepackage{enumitem}
     \\usepackage[version=4]{mhchem}
     \\usepackage{framed}   % For snugshade environment
+    \\usepackage[titles]{tocloft}  % For TOC customization (titles option for titlesec compatibility)
+    \\usepackage{hyphenat}  % For \\nohyphens command (disable hyphenation in titles)
 
     % TikZ for cover pages (full-bleed images with text overlay)
     \\usepackage{tikz}
@@ -774,6 +845,30 @@ $numbering_commands
   pdfborder={0 0 0}
 }
 
+% Bibliography/Citation support (CSL)
+\\newlength{\\cslhangindent}
+\\setlength{\\cslhangindent}{1.5em}
+\\newlength{\\cslentryspacingunit}
+\\setlength{\\cslentryspacingunit}{\\parskip}
+\\newenvironment{CSLReferences}[2]
+ {\\setlength{\\parindent}{0pt}
+  \\ifodd #1
+  \\let\\oldpar\\par
+  \\def\\par{\\hangindent=\\cslhangindent\\oldpar}
+  \\fi
+  \\setlength{\\parskip}{#2\\cslentryspacingunit}}
+ {}
+\\usepackage{calc}
+\\newcommand{\\CSLBlock}[1]{#1\\hfill\\break}
+\\newcommand{\\CSLLeftMargin}[1]{\\parbox[t]{\\cslhangindent}{#1}}
+\\newcommand{\\CSLRightInline}[1]{\\parbox[t]{\\linewidth - \\cslhangindent}{#1}\\break}
+\\newcommand{\\CSLIndent}[1]{\\hspace{\\cslhangindent}#1}
+
+% Initialize index if requested
+\$if(index)\$
+\\makeindex
+\$endif\$
+
 \\begin{document}
 
 % ============== FRONT COVER (Première de Couverture) ==============
@@ -781,22 +876,37 @@ $numbering_commands
 \\newgeometry{margin=0pt}
 \\thispagestyle{empty}
 \\begin{tikzpicture}[remember picture,overlay]
-  % Background image - full bleed
+  % Background fill (in case image doesn't fully cover)
+  \\fill[black] (current page.south west) rectangle (current page.north east);
+  % Background image
+  \$if(cover_fit_cover)\$
+  % Cover mode: scale uniformly to fill page, crop overflow (like CSS background-size: cover)
+  \\begin{scope}
+    \\clip (current page.south west) rectangle (current page.north east);
+    \\node[inner sep=0pt,outer sep=0pt] at (current page.center) {
+      \\includegraphics[width=\\paperwidth]{\$cover_image\$}
+    };
+  \\end{scope}
+  \$else\$
+  % Contain mode (default): maintain aspect ratio (may have black strips)
   \\node[inner sep=0pt,outer sep=0pt] at (current page.center) {
-    \\includegraphics[width=\\paperwidth,height=\\paperheight,keepaspectratio=false]{\$cover_image\$}
+    \\includegraphics[width=\\paperwidth,height=\\paperheight,keepaspectratio]{\$cover_image\$}
   };
+  \$endif\$
   % Optional dark overlay for text readability
   \$if(cover_overlay_opacity)\$
   \\fill[black,opacity=\$cover_overlay_opacity\$] (current page.south west) rectangle (current page.north east);
   \$endif\$
-  % Title text - centered
-  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\Huge\\bfseries,align=center,text width=0.8\\paperwidth] at (current page.center) {
-    \$title\$
-    \$if(cover_subtitle_show)\$\$if(subtitle)\$\\\\[0.5cm]{\\LARGE\\itshape \$subtitle\$}\$endif\$\$endif\$
+  % Title text - positioned in upper portion of image area (hyphenation disabled)
+  % Using 0.20\paperheight from top keeps text within image bounds for most aspect ratios
+  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\Huge\\bfseries,align=center,text width=0.8\\paperwidth,anchor=north] at ([yshift=-0.20\\paperheight]current page.north) {
+    \\nohyphens{\$title\$}
+    \$if(cover_subtitle_show)\$\$if(subtitle)\$\\\\[0.5cm]{\\LARGE\\itshape \\nohyphens{\$subtitle\$}}\$endif\$\$endif\$
   };
-  % Author at bottom (if cover_author_position is set)
+  % Author at bottom of image area (if cover_author_position is set)
+  % Using 0.20\paperheight from bottom keeps text within image bounds
   \$if(cover_author_position)\$
-  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\Large,anchor=south] at ([yshift=2cm]current page.south) {
+  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\Large,anchor=south] at ([yshift=0.20\\paperheight]current page.south) {
     \$author\$
   };
   \$endif\$
@@ -812,7 +922,7 @@ $numbering_commands
 \\thispagestyle{frontmatter}
 \\begin{center}
 \\vspace*{\\fill}
-{\\LARGE \\textbf{\$title\$}}
+{\\LARGE \\textbf{\\nohyphens{\$title\$}}}
 \\vspace*{\\fill}
 \\end{center}
 \\cleardoublepage
@@ -827,9 +937,9 @@ $numbering_commands
 \\thispagestyle{titlepage}
 \\begin{center}
 \\vspace*{\\fill}
-{\\Huge \\textbf{\$title\$}}\\\\[0.5cm]
+{\\Huge \\textbf{\\nohyphens{\$title\$}}}\\\\[0.5cm]
 \$if(subtitle)\$
-{\\LARGE \\itshape \$subtitle\$}\\\\[1.5cm]
+{\\LARGE \\itshape \\nohyphens{\$subtitle\$}}\\\\[1.5cm]
 \$endif\$
 \$if(author)\$
 {\\large \$author\$ \$if(email)\$ --- \$email\$ \$endif\$}\\\\[1cm]
@@ -855,9 +965,9 @@ $numbering_commands
 \\thispagestyle{frontmatter}
 \\vspace*{\\fill}
 \\begin{flushleft}
-\\textbf{\$title\$}\\\\[0.3cm]
+\\textbf{\\nohyphens{\$title\$}}\\\\[0.3cm]
 \$if(subtitle)\$
-\\textit{\$subtitle\$}\\\\[0.5cm]
+\\textit{\\nohyphens{\$subtitle\$}}\\\\[0.5cm]
 \$endif\$
 \$if(author)\$
 by \$author\$\\\\[0.5cm]
@@ -955,16 +1065,30 @@ ISBN: \$isbn\$\\\\[0.3cm]
 \\newgeometry{margin=0pt}
 \\thispagestyle{empty}
 \\begin{tikzpicture}[remember picture,overlay]
-  % Background image - full bleed
+  % Background fill (in case image doesn't fully cover)
+  \\fill[black] (current page.south west) rectangle (current page.north east);
+  % Background image
+  \$if(cover_fit_cover)\$
+  % Cover mode: scale uniformly to fill page, crop overflow (like CSS background-size: cover)
+  \\begin{scope}
+    \\clip (current page.south west) rectangle (current page.north east);
+    \\node[inner sep=0pt,outer sep=0pt] at (current page.center) {
+      \\includegraphics[width=\\paperwidth]{\$back_cover_image\$}
+    };
+  \\end{scope}
+  \$else\$
+  % Contain mode (default): maintain aspect ratio (may have black strips)
   \\node[inner sep=0pt,outer sep=0pt] at (current page.center) {
-    \\includegraphics[width=\\paperwidth,height=\\paperheight,keepaspectratio=false]{\$back_cover_image\$}
+    \\includegraphics[width=\\paperwidth,height=\\paperheight,keepaspectratio]{\$back_cover_image\$}
   };
+  \$endif\$
   % Optional dark overlay for text readability
   \$if(cover_overlay_opacity)\$
   \\fill[black,opacity=\$cover_overlay_opacity\$] (current page.south west) rectangle (current page.north east);
   \$endif\$
   % Content box - quote, summary, or custom text
-  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\large,align=center,text width=0.7\\paperwidth] at ([yshift=2cm]current page.center) {
+  % Positioned in upper portion of image area (0.20\paperheight from top, matching front cover)
+  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\large,align=center,text width=0.7\\paperwidth,anchor=north] at ([yshift=-0.20\\paperheight]current page.north) {
     \$if(back_cover_quote)\$
     {\\itshape ``\$back_cover_quote\$''}
     \$if(back_cover_quote_source)\$\\\\[0.5cm]--- \$back_cover_quote_source\$\$endif\$
@@ -975,14 +1099,22 @@ ISBN: \$isbn\$\\\\[0.3cm]
     \$endif\$
   };
   % Author bio section (if enabled)
+  % Positioned in lower portion of image area (0.20\paperheight from bottom, matching front cover)
   \$if(back_cover_author_bio)\$
-  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\normalsize,align=left,text width=0.7\\paperwidth,anchor=south] at ([yshift=3cm]current page.south) {
+  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\normalsize,align=left,text width=0.7\\paperwidth,anchor=south] at ([yshift=0.20\\paperheight]current page.south) {
     {\\bfseries About the Author}\\\\[0.3cm]
     \$if(back_cover_author_bio_text)\$\$back_cover_author_bio_text\$\$endif\$
   };
   \$endif\$
 \\end{tikzpicture}
 \\restoregeometry
+\$endif\$
+
+% Print index if requested
+\$if(index)\$
+\\clearpage
+\\addcontentsline{toc}{chapter}{Index}
+\\printindex
 \$endif\$
 
 \\end{document}
@@ -1013,6 +1145,15 @@ detect_unicode_characters() {
     # And other scripts that pdfLaTeX typically doesn't support well
     if grep -qP '[\x{0600}-\x{06FF}\x{0590}-\x{05FF}\x{0900}-\x{097F}\x{0980}-\x{09FF}\x{0A00}-\x{0A7F}\x{0A80}-\x{0AFF}\x{0B00}-\x{0B7F}\x{0B80}-\x{0BFF}\x{0C00}-\x{0C7F}\x{0C80}-\x{0CFF}\x{0D00}-\x{0D7F}\x{0D80}-\x{0DFF}]' "$input_file"; then
         return 0  # Found other complex script characters
+    fi
+
+    # Check for typographic characters that cause issues with pdfLaTeX in code blocks
+    # Em-dash: U+2014, En-dash: U+2013
+    # Smart quotes: U+2018, U+2019, U+201C, U+201D
+    # Vulgar fractions: U+00BC-U+00BE (¼½¾), U+2150-U+215F (⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞)
+    # Ellipsis: U+2026
+    if grep -qP '[\x{2013}-\x{2014}\x{2018}-\x{201D}\x{2026}\x{00BC}-\x{00BE}\x{2150}-\x{215F}]' "$input_file" 2>/dev/null; then
+        return 0  # Found typographic characters
     fi
 
     return 1  # No Unicode characters requiring special handling found
@@ -1195,10 +1336,12 @@ preprocess_markdown() {
     # Remove duplicate title H1 heading if it matches YAML frontmatter title
     if [ -n "$META_TITLE" ]; then
         # Get the first H1 heading from the content (after YAML frontmatter)
-        local first_h1=$(awk '/^---$/{if(!yaml) yaml=1; else {yaml=0; next}} yaml{next} /^# /{print substr($0,3); exit}' "$temp_file")
+        local first_h1
+        first_h1=$(awk '/^---$/{if(!yaml) yaml=1; else {yaml=0; next}} yaml{next} /^# /{print substr($0,3); exit}' "$temp_file")
 
         # Compare with metadata title (remove quotes for comparison)
-        local meta_title_clean=$(echo "$META_TITLE" | sed 's/^["\x27]*//; s/["\x27]*$//')
+        local meta_title_clean
+        meta_title_clean=$(echo "$META_TITLE" | sed 's/^["\x27]*//; s/["\x27]*$//')
 
         if [ "$first_h1" = "$meta_title_clean" ] || [[ "$first_h1" == "$meta_title_clean"* ]]; then
             echo -e "${YELLOW}Removing duplicate title H1 heading: '$first_h1'${NC}"
@@ -1287,8 +1430,10 @@ parse_html_metadata() {
         if [ "$in_comment" = true ]; then
             # Check if line contains key: value format
             if echo "$line" | grep -q ":"; then
-                local key=$(echo "$line" | sed -n 's/^[[:space:]]*\([^:]*\):[[:space:]]*.*$/\1/p')
-                local value=$(echo "$line" | sed -n 's/^[[:space:]]*[^:]*:[[:space:]]*"\?\([^"]*\)"\?[[:space:]]*$/\1/p')
+                local key
+                local value
+                key=$(echo "$line" | sed -n 's/^[[:space:]]*\([^:]*\):[[:space:]]*.*$/\1/p')
+                value=$(echo "$line" | sed -n 's/^[[:space:]]*[^:]*:[[:space:]]*"\?\([^"]*\)"\?[[:space:]]*$/\1/p')
 
                 # If value extraction with quotes failed, try without quotes
                 if [ -z "$value" ]; then
@@ -1407,6 +1552,8 @@ parse_yaml_metadata() {
     META_NO_DATE=""
     META_FORMAT="article" # Default format
     META_HEADER_FOOTER_POLICY="" # New metadata for header/footer policy
+    META_BIBLIOGRAPHY="" # Path to bibliography file
+    META_CSL="" # Path to CSL citation style
     META_LANGUAGE=""
     META_GENRE=""
     META_NARRATOR_VOICE=""
@@ -1449,7 +1596,8 @@ parse_yaml_metadata() {
     fi
 
     # Create temporary YAML file for parsing
-    local temp_yaml=$(mktemp)
+    local temp_yaml
+    temp_yaml=$(mktemp)
     echo "$yaml_content" > "$temp_yaml"
 
     # Parse YAML using yq and extract metadata fields
@@ -1472,22 +1620,32 @@ parse_yaml_metadata() {
     META_FOOTER=$(yq eval '.footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_HEADER_FOOTER_POLICY=$(yq eval '.header_footer_policy // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
 
+    # Bibliography and citations
+    META_BIBLIOGRAPHY=$(yq eval '.bibliography // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_CSL=$(yq eval '.csl // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+
     # Boolean flags (convert true/false to appropriate values)
-    local section_numbers_val=$(yq eval '.section_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
-    local no_numbers_val=$(yq eval '.no_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    local section_numbers_val
+    local no_numbers_val
+    section_numbers_val=$(yq eval '.section_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    no_numbers_val=$(yq eval '.no_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$section_numbers_val" = "false" ] && META_NO_NUMBERS="true"
     [ "$no_numbers_val" = "true" ] && META_NO_NUMBERS="true"
 
-    local no_footer_val=$(yq eval '.no_footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    local no_footer_val
+    no_footer_val=$(yq eval '.no_footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$no_footer_val" = "true" ] && META_NO_FOOTER="true"
 
-    local pageof_val=$(yq eval '.pageof // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    local pageof_val
+    pageof_val=$(yq eval '.pageof // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$pageof_val" = "true" ] && META_PAGEOF="true"
 
-    local date_footer_val=$(yq eval '.date_footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    local date_footer_val
+    date_footer_val=$(yq eval '.date_footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$date_footer_val" = "true" ] && META_DATE_FOOTER="true"
 
-    local no_date_val=$(yq eval '.no_date // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    local no_date_val
+    no_date_val=$(yq eval '.no_date // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$no_date_val" = "true" ] && META_NO_DATE="true"
 
     # Audio-specific metadata (for future compatibility)
@@ -1522,6 +1680,8 @@ parse_yaml_metadata() {
     META_COVER_SUBTITLE_SHOW=$(yq eval '.cover_subtitle_show // "true"' "$temp_yaml" 2>/dev/null | sed 's/^null$/true/')
     META_COVER_AUTHOR_POSITION=$(yq eval '.cover_author_position // "bottom"' "$temp_yaml" 2>/dev/null | sed 's/^null$/bottom/')
     META_COVER_OVERLAY_OPACITY=$(yq eval '.cover_overlay_opacity // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    # Cover fit mode: "contain" (default, keeps ratio, may have strips) or "cover" (zoom/crop to fill, no strips)
+    META_COVER_FIT=$(yq eval '.cover_fit // "contain"' "$temp_yaml" 2>/dev/null | sed 's/^null$/contain/')
 
     # Back cover
     META_BACK_COVER_IMAGE=$(yq eval '.back_cover_image // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
@@ -1540,11 +1700,14 @@ parse_yaml_metadata() {
 
     # Parse donation_wallets list - build LaTeX-formatted string
     META_DONATION_WALLETS=""
-    local wallet_count=$(yq eval '.donation_wallets | length' "$temp_yaml" 2>/dev/null)
+    local wallet_count
+    wallet_count=$(yq eval '.donation_wallets | length' "$temp_yaml" 2>/dev/null)
     if [ -n "$wallet_count" ] && [ "$wallet_count" != "0" ] && [ "$wallet_count" != "null" ]; then
         for i in $(seq 0 $((wallet_count - 1))); do
-            local wallet_type=$(yq eval ".donation_wallets[$i].type" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
-            local wallet_address=$(yq eval ".donation_wallets[$i].address" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+            local wallet_type
+            local wallet_address
+            wallet_type=$(yq eval ".donation_wallets[$i].type" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+            wallet_address=$(yq eval ".donation_wallets[$i].address" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
             if [ -n "$wallet_type" ] && [ -n "$wallet_address" ]; then
                 # Build LaTeX string - single backslash in output needs \\ in bash
                 META_DONATION_WALLETS="${META_DONATION_WALLETS}${wallet_type}: {\\small\\texttt{${wallet_address}}}\\\\[0.3cm] "
@@ -1568,6 +1731,8 @@ parse_yaml_metadata() {
     [ -n "$META_TOC_DEPTH" ] && echo -e "${GREEN}Found metadata - toc_depth: $META_TOC_DEPTH${NC}"
     [ -n "$META_FOOTER" ] && echo -e "${GREEN}Found metadata - footer: $META_FOOTER${NC}"
     [ -n "$META_HEADER_FOOTER_POLICY" ] && echo -e "${GREEN}Found metadata - header_footer_policy: $META_HEADER_FOOTER_POLICY${NC}"
+    [ -n "$META_BIBLIOGRAPHY" ] && echo -e "${GREEN}Found metadata - bibliography: $META_BIBLIOGRAPHY${NC}"
+    [ -n "$META_CSL" ] && echo -e "${GREEN}Found metadata - csl: $META_CSL${NC}"
     [ -n "$META_NO_NUMBERS" ] && echo -e "${GREEN}Found metadata - section_numbers: false${NC}"
     [ -n "$META_NO_FOOTER" ] && echo -e "${GREEN}Found metadata - no_footer: true${NC}"
     [ -n "$META_PAGEOF" ] && echo -e "${GREEN}Found metadata - pageof: true${NC}"
@@ -1634,6 +1799,10 @@ apply_metadata_args() {
             ARG_HEADER_FOOTER_POLICY="$META_HEADER_FOOTER_POLICY"
         fi
 
+        # Apply bibliography and CSL
+        [ -z "$ARG_BIBLIOGRAPHY" ] && [ -n "$META_BIBLIOGRAPHY" ] && ARG_BIBLIOGRAPHY="$META_BIBLIOGRAPHY"
+        [ -z "$ARG_CSL" ] && [ -n "$META_CSL" ] && ARG_CSL="$META_CSL"
+
         # Handle boolean flags - only apply if not explicitly set via CLI
         if [ "$ARG_TOC" = "$DEFAULT_TOC" ] && [ -n "$META_TOC" ]; then
             case "$META_TOC" in
@@ -1689,6 +1858,183 @@ apply_metadata_args() {
     fi
 }
 
+# Function to validate EPUB with epubcheck
+# Returns 0 if valid, 1 if invalid or epubcheck not available
+validate_epub() {
+    local epub_file="$1"
+
+    if [ ! -f "$epub_file" ]; then
+        echo -e "${RED}Error: EPUB file not found for validation${NC}"
+        return 1
+    fi
+
+    # Check if epubcheck is available
+    if ! command -v epubcheck &> /dev/null; then
+        echo -e "${YELLOW}Warning: epubcheck not installed. Install with: sudo apt install epubcheck${NC}"
+        echo -e "${YELLOW}Skipping EPUB validation.${NC}"
+        return 2
+    fi
+
+    echo -e "${BLUE}Validating EPUB with epubcheck...${NC}"
+
+    # Run epubcheck and capture output
+    local validation_output
+    local validation_result
+    validation_output=$(epubcheck "$epub_file" 2>&1)
+    validation_result=$?
+
+    if [ $validation_result -eq 0 ]; then
+        echo -e "${GREEN}✓ EPUB validation passed - no errors found${NC}"
+        return 0
+    else
+        echo -e "${YELLOW}EPUB validation completed with issues:${NC}"
+        # Show only errors and warnings, not info messages
+        echo "$validation_output" | grep -E "(ERROR|WARNING)" | head -20
+        local error_count
+        local warning_count
+        error_count=$(echo "$validation_output" | grep -c "ERROR" || echo "0")
+        warning_count=$(echo "$validation_output" | grep -c "WARNING" || echo "0")
+        echo -e "${YELLOW}Summary: $error_count errors, $warning_count warnings${NC}"
+
+        if [ "$error_count" -gt 0 ]; then
+            echo -e "${RED}✗ EPUB has validation errors${NC}"
+            return 1
+        else
+            echo -e "${GREEN}✓ EPUB valid (warnings only)${NC}"
+            return 0
+        fi
+    fi
+}
+
+# Function to fix EPUB spine order (move TOC after front matter)
+# In standard book conventions, the TOC should come after title, copyright, dedication, epigraph
+fix_epub_spine_order() {
+    local epub_file="$1"
+
+    if [ ! -f "$epub_file" ]; then
+        echo -e "${YELLOW}Warning: EPUB file not found for spine reordering${NC}"
+        return 1
+    fi
+
+    # Convert to absolute path for later use after cd
+    local epub_file_abs
+    epub_file_abs=$(realpath "$epub_file")
+
+    echo -e "${BLUE}Reordering EPUB spine (moving TOC after front matter)...${NC}"
+
+    # Create temp directory for extraction
+    local temp_dir
+    temp_dir=$(mktemp -d)
+    local original_dir
+    original_dir=$(pwd)
+
+    # Extract EPUB
+    unzip -q "$epub_file_abs" -d "$temp_dir" 2>/dev/null
+    if [ $? -ne 0 ]; then
+        echo -e "${YELLOW}Warning: Could not extract EPUB for spine reordering${NC}"
+        rm -rf "$temp_dir"
+        return 1
+    fi
+
+    local content_opf="$temp_dir/EPUB/content.opf"
+    if [ ! -f "$content_opf" ]; then
+        echo -e "${YELLOW}Warning: content.opf not found in EPUB${NC}"
+        rm -rf "$temp_dir"
+        return 1
+    fi
+
+    # Count how many front matter chapters we have (title-page, copyright-page, dedication-page, epigraph-page)
+    # These are marked with specific classes in our generated XHTML files
+    local frontmatter_count=0
+    for xhtml_file in "$temp_dir"/EPUB/text/ch*.xhtml; do
+        if [ -f "$xhtml_file" ]; then
+            # Check if this chapter is a front matter page (has specific classes)
+            if grep -q 'class=".*\(title-page\|copyright-page\|dedication-page\|epigraph-page\)' "$xhtml_file" 2>/dev/null; then
+                frontmatter_count=$((frontmatter_count + 1))
+            else
+                # Stop counting when we hit non-frontmatter content
+                break
+            fi
+        fi
+    done
+
+    if [ "$frontmatter_count" -eq 0 ]; then
+        echo -e "${BLUE}No front matter pages detected, keeping default spine order${NC}"
+        rm -rf "$temp_dir"
+        return 0
+    fi
+
+    echo -e "${BLUE}Found $frontmatter_count front matter pages${NC}"
+
+    # Use sed/awk to reorder the spine in content.opf
+    # We need to move <itemref idref="nav" /> to come after the front matter itemrefs
+
+    # Check if nav is in the spine
+    if ! grep -q '<itemref idref="nav"' "$content_opf"; then
+        echo -e "${BLUE}No nav item in spine, nothing to reorder${NC}"
+        rm -rf "$temp_dir"
+        return 0
+    fi
+
+    # Create a modified content.opf
+    # Strategy: Extract spine section, reorder it, put it back
+    local temp_opf
+    temp_opf=$(mktemp)
+
+    # Use awk to reorder: move nav itemref after the first N chapter itemrefs (where N = frontmatter_count)
+    awk -v fm_count="$frontmatter_count" '
+    BEGIN { in_spine = 0; nav_line = ""; ch_count = 0; buffer = "" }
+    /<spine/ { in_spine = 1 }
+    /<\/spine>/ { in_spine = 0 }
+    {
+        if (in_spine) {
+            if (match($0, /<itemref idref="nav"/)) {
+                # Store nav line, do not print yet
+                nav_line = $0
+            } else if (match($0, /<itemref idref="ch[0-9]+_xhtml"/)) {
+                ch_count++
+                print $0
+                # After printing fm_count chapters, insert the nav line
+                if (ch_count == fm_count && nav_line != "") {
+                    print nav_line
+                    nav_line = ""
+                }
+            } else {
+                print $0
+            }
+        } else {
+            print $0
+        }
+    }
+    END {
+        # If nav was never inserted (fm_count > total chapters), append it
+        if (nav_line != "") {
+            # This should not happen in normal cases
+        }
+    }
+    ' "$content_opf" > "$temp_opf"
+
+    # Replace original content.opf
+    mv "$temp_opf" "$content_opf"
+
+    # Repackage EPUB (must maintain proper structure)
+    # EPUB requires mimetype to be first and uncompressed
+    rm -f "$epub_file_abs"
+    cd "$temp_dir" || return 1
+
+    # Create new EPUB with proper structure (using absolute path)
+    zip -X0 "$epub_file_abs" mimetype 2>/dev/null
+    zip -Xr9D "$epub_file_abs" META-INF EPUB 2>/dev/null
+
+    cd "$original_dir" || return 1
+
+    # Cleanup
+    rm -rf "$temp_dir"
+
+    echo -e "${GREEN}EPUB spine reordered: TOC now appears after front matter${NC}"
+    return 0
+}
+
 # Function to convert markdown to PDF
 convert() {
     # Initialize variables for command-line arguments
@@ -1707,6 +2053,13 @@ convert() {
     ARG_FORMAT="" # New variable for document format
     ARG_HEADER_FOOTER_POLICY="default" # New variable for header/footer policy (default, partial, all)
     ARG_EPUB=false # Output format: EPUB instead of PDF
+    ARG_VALIDATE=false # Validate EPUB with epubcheck
+    ARG_BIBLIOGRAPHY="" # Path to bibliography file (.bib, .json, .yaml)
+    ARG_CSL="" # Path to CSL citation style file
+    ARG_TEMPLATE="" # Path to custom LaTeX template
+    ARG_EPUB_CSS="" # Path to custom EPUB CSS
+    ARG_INCLUDE=() # Array of files to include/combine
+    ARG_INDEX=false # Generate index
 
     # Parse command-line arguments
     while [[ $# -gt 0 ]]; do
@@ -1805,6 +2158,34 @@ convert() {
                 ARG_EPUB=true
                 shift
                 ;;
+            --validate)
+                ARG_VALIDATE=true
+                shift
+                ;;
+            --bibliography|-b)
+                ARG_BIBLIOGRAPHY="$2"
+                shift 2
+                ;;
+            --csl)
+                ARG_CSL="$2"
+                shift 2
+                ;;
+            --template)
+                ARG_TEMPLATE="$2"
+                shift 2
+                ;;
+            --epub-css)
+                ARG_EPUB_CSS="$2"
+                shift 2
+                ;;
+            --include|-i)
+                ARG_INCLUDE+=("$2")
+                shift 2
+                ;;
+            --index)
+                ARG_INDEX=true
+                shift
+                ;;
             --format)
                 ARG_FORMAT="$2"
                 shift 2
@@ -1854,6 +2235,13 @@ convert() {
                     echo -e "  --format FORMAT       Set document format (article or book)"
                     echo -e "  --header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default"
                     echo -e "  --epub                Output EPUB format instead of PDF"
+                    echo -e "  --validate            Validate EPUB with epubcheck (requires epubcheck)"
+                    echo -e "  -b, --bibliography FILE  Use bibliography file (.bib, .json, .yaml, .md)"
+                    echo -e "  --csl FILE            Use CSL citation style file"
+                    echo -e "  --template FILE       Use custom LaTeX template for PDF"
+                    echo -e "  --epub-css FILE       Use custom CSS for EPUB"
+                    echo -e "  -i, --include FILE    Include additional markdown file (can be used multiple times)"
+                    echo -e "  --index               Generate index from [index:term] markers"
                     return 1
                 fi
                 shift
@@ -1888,6 +2276,13 @@ convert() {
         echo -e "  --format FORMAT       Set document format (article or book)"
         echo -e "  --header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default"
         echo -e "  --epub                Output EPUB format instead of PDF"
+        echo -e "  --validate            Validate EPUB with epubcheck (requires epubcheck)"
+        echo -e "  -b, --bibliography FILE  Use bibliography file (.bib, .json, .yaml, .md)"
+        echo -e "  --csl FILE            Use CSL citation style file"
+        echo -e "  --template FILE       Use custom LaTeX template for PDF"
+        echo -e "  --epub-css FILE       Use custom CSS for EPUB"
+        echo -e "  -i, --include FILE    Include additional markdown file (can be used multiple times)"
+        echo -e "  --index               Generate index from [index:term] markers"
         return 1
     fi
 
@@ -1900,6 +2295,58 @@ convert() {
     if [ ! -f "$INPUT_FILE" ]; then
         echo -e "${RED}Error: Input file '$INPUT_FILE' not found.${NC}"
         return 1
+    fi
+
+    # Handle multi-file projects (--include option)
+    COMBINED_FILE=""
+    if [ ${#ARG_INCLUDE[@]} -gt 0 ]; then
+        echo -e "${BLUE}Combining multiple markdown files...${NC}"
+
+        # Create a temporary combined file
+        COMBINED_FILE=$(mktemp --suffix=.md)
+        local input_dir
+        input_dir=$(dirname "$INPUT_FILE")
+
+        # Start with the main input file
+        cat "$INPUT_FILE" > "$COMBINED_FILE"
+        echo -e "${GREEN}  Added: $INPUT_FILE (main)${NC}"
+
+        # Append each included file
+        for include_file in "${ARG_INCLUDE[@]}"; do
+            local resolved_file=""
+
+            # Check if file exists as-is
+            if [ -f "$include_file" ]; then
+                resolved_file="$include_file"
+            # Check relative to input file directory
+            elif [ -f "$input_dir/$include_file" ]; then
+                resolved_file="$input_dir/$include_file"
+            else
+                echo -e "${RED}Error: Include file '$include_file' not found${NC}"
+                rm -f "$COMBINED_FILE"
+                return 1
+            fi
+
+            # Add a newline separator and append the file
+            echo "" >> "$COMBINED_FILE"
+            echo "" >> "$COMBINED_FILE"
+
+            # Skip YAML frontmatter in included files (only use from main file)
+            if head -n 1 "$resolved_file" | grep -q "^---\s*$"; then
+                # Extract content after the second ---
+                sed -n '/^---$/,/^---$/d; p' "$resolved_file" >> "$COMBINED_FILE"
+            else
+                cat "$resolved_file" >> "$COMBINED_FILE"
+            fi
+
+            echo -e "${GREEN}  Added: $resolved_file${NC}"
+        done
+
+        echo -e "${GREEN}Combined ${#ARG_INCLUDE[@]} additional file(s) into main document${NC}"
+
+        # Use the combined file as input
+        ORIGINAL_INPUT_FILE="$INPUT_FILE"
+        INPUT_FILE="$COMBINED_FILE"
     fi
 
     # Parse metadata from YAML frontmatter if --read-metadata flag is set or EPUB output
@@ -1983,7 +2430,8 @@ convert() {
             epub_cover_base="$META_COVER_IMAGE"
         else
             # Try to auto-detect cover image
-            local input_dir=$(dirname "$INPUT_FILE")
+            local input_dir
+            input_dir=$(dirname "$INPUT_FILE")
             for ext in jpg jpeg png; do
                 for dir in "$input_dir/img" "$input_dir/images" "$input_dir"; do
                     if [ -f "$dir/cover.$ext" ]; then
@@ -1998,7 +2446,8 @@ convert() {
         local epub_cover=""
         if [ -n "$epub_cover_base" ] && command -v convert &> /dev/null; then
             # Make paths absolute
-            local input_dir=$(dirname "$INPUT_FILE")
+            local input_dir
+            input_dir=$(dirname "$INPUT_FILE")
             if [[ ! "$epub_cover_base" = /* ]]; then
                 epub_cover_base="$input_dir/$epub_cover_base"
             fi
@@ -2012,8 +2461,10 @@ convert() {
             echo -e "${YELLOW}Generating EPUB cover with text overlay...${NC}"
 
             # Get image dimensions
-            local img_width=$(identify -format "%w" "$epub_cover_base" 2>/dev/null)
-            local img_height=$(identify -format "%h" "$epub_cover_base" 2>/dev/null)
+            local img_width
+            local img_height
+            img_width=$(identify -format "%w" "$epub_cover_base" 2>/dev/null)
+            img_height=$(identify -format "%h" "$epub_cover_base" 2>/dev/null)
 
             # Calculate font sizes relative to image height
             local title_size=$((img_height / 12))
@@ -2023,24 +2474,40 @@ convert() {
 
             # Build cover using composite approach with text wrapping
             # 1. Create base with overlay
-            local temp_base=$(mktemp --suffix=.png)
+            local temp_base
+            temp_base=$(mktemp --suffix=.png)
             /usr/bin/convert "$epub_cover_base" \
                 -fill "rgba(0,0,0,$cover_overlay)" -draw "rectangle 0,0,$img_width,$img_height" \
                 "$temp_base"
 
-            # 2. Create title image with word wrap
-            local temp_title=$(mktemp --suffix=.png)
+            # 2. Create title image with word wrap (caption: wraps at word boundaries without hyphenation)
+            # Use Latin Modern Roman (same as PDF) for consistent look, fallback to DejaVu
+            local temp_title
+            temp_title=$(mktemp --suffix=.png)
+            /usr/bin/convert -background none -fill "$cover_title_color" \
+                -font LMRoman10-Bold -pointsize $title_size \
+                -size ${text_width}x -gravity Center caption:"$cover_title" \
+                "$temp_title" 2>/dev/null || \
             /usr/bin/convert -background none -fill "$cover_title_color" \
                 -font DejaVu-Serif-Bold -pointsize $title_size \
                 -size ${text_width}x -gravity Center caption:"$cover_title" \
                 "$temp_title"
 
+            # Get actual rendered title height for proper subtitle positioning
+            local title_actual_height
+            title_actual_height=$(identify -format "%h" "$temp_title" 2>/dev/null)
+
             # 3. Create subtitle image with word wrap (if present)
-            # Use narrower width (60%) to encourage 2-line wrapping like PDF
-            local subtitle_width=$((img_width * 60 / 100))
+            local subtitle_width=$((img_width * 80 / 100))
             local temp_subtitle=""
             if [ -n "$cover_subtitle" ]; then
                 temp_subtitle=$(mktemp --suffix=.png)
+                # caption: wraps at word boundaries without hyphenation
+                # Use Latin Modern Roman Italic for consistent look, fallback to DejaVu
+                /usr/bin/convert -background none -fill "$cover_title_color" \
+                    -font LMRoman10-Italic -pointsize $subtitle_size \
+                    -size ${subtitle_width}x -gravity Center caption:"$cover_subtitle" \
+                    "$temp_subtitle" 2>/dev/null || \
                 /usr/bin/convert -background none -fill "$cover_title_color" \
                     -font DejaVu-Serif-Italic -pointsize $subtitle_size \
                     -size ${subtitle_width}x -gravity Center caption:"$cover_subtitle" \
@@ -2048,7 +2515,13 @@ convert() {
             fi
 
             # 4. Create author image
-            local temp_author=$(mktemp --suffix=.png)
+            # Use Latin Modern Roman Regular for consistent look, fallback to DejaVu
+            local temp_author
+            temp_author=$(mktemp --suffix=.png)
+            /usr/bin/convert -background none -fill "$cover_title_color" \
+                -font LMRoman10-Regular -pointsize $author_size \
+                -size ${text_width}x -gravity Center caption:"$cover_author" \
+                "$temp_author" 2>/dev/null || \
             /usr/bin/convert -background none -fill "$cover_title_color" \
                 -font DejaVu-Serif -pointsize $author_size \
                 -size ${text_width}x -gravity Center caption:"$cover_author" \
@@ -2061,9 +2534,11 @@ convert() {
                 "$temp_author" -gravity South -geometry +0+$((img_height / 10)) -composite \
                 "$epub_cover_generated"
 
-            # 5b. Add subtitle if present (between title and center)
+            # 5b. Add subtitle if present (positioned based on actual title height)
             if [ -n "$temp_subtitle" ]; then
-                local subtitle_y=$((img_height / 8 + title_size + 40))
+                # Calculate gap as percentage of image height (scales with image size)
+                local title_subtitle_gap=$((img_height / 40))
+                local subtitle_y=$((title_y + title_actual_height + title_subtitle_gap))
                 /usr/bin/convert "$epub_cover_generated" \
                     "$temp_subtitle" -gravity North -geometry +0+${subtitle_y} -composite \
                     "$epub_cover_generated"
@@ -2171,14 +2646,18 @@ convert() {
             epub_frontmatter_md="$epub_frontmatter_md\n\n# Authorship & Support {.unnumbered .unlisted}\n\n**Authorship Verification**\n\n${META_AUTHOR_PUBKEY_TYPE:-PGP}: \`$META_AUTHOR_PUBKEY\`\n"
 
             # For EPUB, re-parse donation wallets directly from YAML instead of using LaTeX-formatted version
-            local temp_yaml=$(mktemp)
+            local temp_yaml
+            temp_yaml=$(mktemp)
             sed -n '/^---$/,/^---$/p' "$INPUT_FILE" | tail -n +2 | head -n -1 > "$temp_yaml"
-            local wallet_count=$(yq eval '.donation_wallets | length' "$temp_yaml" 2>/dev/null)
+            local wallet_count
+            wallet_count=$(yq eval '.donation_wallets | length' "$temp_yaml" 2>/dev/null)
             if [ -n "$wallet_count" ] && [ "$wallet_count" != "0" ] && [ "$wallet_count" != "null" ]; then
                 epub_frontmatter_md="$epub_frontmatter_md\n**Support the Author**\n\n"
                 for i in $(seq 0 $((wallet_count - 1))); do
-                    local wallet_type=$(yq eval ".donation_wallets[$i].type" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
-                    local wallet_address=$(yq eval ".donation_wallets[$i].address" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+                    local wallet_type
+                    local wallet_address
+                    wallet_type=$(yq eval ".donation_wallets[$i].type" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+                    wallet_address=$(yq eval ".donation_wallets[$i].address" "$temp_yaml" 2>/dev/null | sed 's/^null$//')
                     if [ -n "$wallet_type" ] && [ -n "$wallet_address" ]; then
                         epub_frontmatter_md="$epub_frontmatter_md${wallet_type}: \`${wallet_address}\`\n\n"
                     fi
@@ -2206,11 +2685,13 @@ convert() {
         # Insert front matter into temp file after YAML frontmatter ends
         if [ "$has_frontmatter" = true ] && [ -n "$epub_frontmatter_md" ]; then
             # Find the line number of the closing --- of YAML frontmatter
-            local yaml_end_line=$(awk '/^---$/{n++; if(n==2) {print NR; exit}}' "$epub_temp_input")
+            local yaml_end_line
+            yaml_end_line=$(awk '/^---$/{n++; if(n==2) {print NR; exit}}' "$epub_temp_input")
             if [ -n "$yaml_end_line" ]; then
                 # Insert front matter markdown after YAML frontmatter
                 # Each section already has its own h1 with .unlisted for separate pages
-                local temp_with_frontmatter=$(mktemp)
+                local temp_with_frontmatter
+                temp_with_frontmatter=$(mktemp)
                 head -n "$yaml_end_line" "$epub_temp_input" > "$temp_with_frontmatter"
                 echo -e "$epub_frontmatter_md" >> "$temp_with_frontmatter"
                 tail -n +$((yaml_end_line + 1)) "$epub_temp_input" >> "$temp_with_frontmatter"
@@ -2219,7 +2700,8 @@ convert() {
         fi
 
         # Build pandoc command
-        EPUB_CMD="pandoc \"$epub_temp_input\" --from markdown --to epub3 --output \"$OUTPUT_FILE\" --epub-title-page=false"
+        # --mathml enables proper rendering of LaTeX math equations in EPUB
+        EPUB_CMD="pandoc \"$epub_temp_input\" --from markdown --to epub3 --output \"$OUTPUT_FILE\" --epub-title-page=false --mathml"
 
         [ -n "$epub_title" ] && EPUB_CMD="$EPUB_CMD --metadata title=\"$epub_title\""
         [ -n "$epub_author" ] && EPUB_CMD="$EPUB_CMD --metadata author=\"$epub_author\""
@@ -2228,29 +2710,147 @@ convert() {
         [ -n "$epub_language" ] && EPUB_CMD="$EPUB_CMD --metadata lang=\"$epub_language\""
         [ -n "$epub_cover" ] && EPUB_CMD="$EPUB_CMD --epub-cover-image=\"$epub_cover\""
 
+        # Add bibliography support for EPUB
+        local epub_bib_temp_dir=""
+        local epub_bib_path=""
+        local epub_using_inline_bib=false
+
+        # Check for inline bibliography first (if no external bibliography specified)
+        # Use epub_temp_input since that's the preprocessed file we're working with
+        if [ -z "$ARG_BIBLIOGRAPHY" ] && type has_inline_bibliography &>/dev/null; then
+            if has_inline_bibliography "$epub_temp_input"; then
+                echo -e "${BLUE}Detected inline bibliography in document${NC}"
+                epub_bib_temp_dir=$(mktemp -d)
+
+                if epub_bib_path=$(process_inline_bibliography "$epub_temp_input" "$epub_bib_temp_dir"); then
+                    # Replace epub_temp_input with the content file (without bibliography section)
+                    cp "$epub_bib_temp_dir/content.md" "$epub_temp_input"
+                    epub_using_inline_bib=true
+                    EPUB_CMD="$EPUB_CMD --citeproc --bibliography=\"$epub_bib_path\""
+                    echo -e "${GREEN}Using inline bibliography${NC}"
+                else
+                    echo -e "${YELLOW}Warning: Could not process inline bibliography${NC}"
+                    rm -rf "$epub_bib_temp_dir"
+                    epub_bib_temp_dir=""
+                fi
+            fi
+        fi
+
+        # Handle external bibliography file (if specified and not using inline)
+        if [ -n "$ARG_BIBLIOGRAPHY" ] && [ "$epub_using_inline_bib" = false ]; then
+            local external_bib_path=""
+            if [ -f "$ARG_BIBLIOGRAPHY" ]; then
+                external_bib_path=$(realpath "$ARG_BIBLIOGRAPHY")
+            else
+                local input_dir
+                input_dir=$(dirname "$INPUT_FILE")
+                if [ -f "$input_dir/$ARG_BIBLIOGRAPHY" ]; then
+                    external_bib_path=$(realpath "$input_dir/$ARG_BIBLIOGRAPHY")
+                fi
+            fi
+
+            if [ -n "$external_bib_path" ]; then
+                # Check if it's a simple markdown bibliography
+                if type is_simple_bibliography &>/dev/null && is_simple_bibliography "$external_bib_path"; then
+                    echo -e "${BLUE}Converting simple markdown bibliography...${NC}"
+                    [ -z "$epub_bib_temp_dir" ] && epub_bib_temp_dir=$(mktemp -d)
+
+                    if epub_bib_path=$(process_bibliography_file "$external_bib_path" "$epub_bib_temp_dir"); then
+                        EPUB_CMD="$EPUB_CMD --citeproc --bibliography=\"$epub_bib_path\""
+                        echo -e "${GREEN}Using simple bibliography: $external_bib_path${NC}"
+                    else
+                        echo -e "${YELLOW}Warning: Could not convert simple bibliography${NC}"
+                    fi
+                else
+                    # Traditional .bib or CSL-JSON file
+                    EPUB_CMD="$EPUB_CMD --citeproc --bibliography=\"$external_bib_path\""
+                    echo -e "${GREEN}Using bibliography: $external_bib_path${NC}"
+                fi
+            else
+                echo -e "${YELLOW}Warning: Bibliography file '$ARG_BIBLIOGRAPHY' not found${NC}"
+            fi
+        fi
+        if [ -n "$ARG_CSL" ]; then
+            local csl_path=""
+            if [ -f "$ARG_CSL" ]; then
+                csl_path=$(realpath "$ARG_CSL")
+            else
+                local input_dir
+                input_dir=$(dirname "$INPUT_FILE")
+                if [ -f "$input_dir/$ARG_CSL" ]; then
+                    csl_path=$(realpath "$input_dir/$ARG_CSL")
+                fi
+            fi
+            if [ -n "$csl_path" ]; then
+                EPUB_CMD="$EPUB_CMD --csl=\"$csl_path\""
+                echo -e "${GREEN}Using citation style: $csl_path${NC}"
+            else
+                echo -e "${YELLOW}Warning: CSL file '$ARG_CSL' not found${NC}"
+            fi
+        fi
+
+        # Add custom EPUB CSS support
+        if [ -n "$ARG_EPUB_CSS" ]; then
+            local css_path=""
+            if [ -f "$ARG_EPUB_CSS" ]; then
+                css_path=$(realpath "$ARG_EPUB_CSS")
+            else
+                local input_dir
+                input_dir=$(dirname "$INPUT_FILE")
+                if [ -f "$input_dir/$ARG_EPUB_CSS" ]; then
+                    css_path=$(realpath "$input_dir/$ARG_EPUB_CSS")
+                fi
+            fi
+            if [ -n "$css_path" ]; then
+                EPUB_CMD="$EPUB_CMD --css=\"$css_path\""
+                echo -e "${GREEN}Using custom EPUB CSS: $css_path${NC}"
+            else
+                echo -e "${YELLOW}Warning: EPUB CSS file '$ARG_EPUB_CSS' not found${NC}"
+            fi
+        fi
+
         EPUB_CMD="$EPUB_CMD $EPUB_OPTS --standalone"
 
         # Execute
         echo -e "${BLUE}Running: $EPUB_CMD${NC}"
-        eval $EPUB_CMD
+        eval "$EPUB_CMD"
         local epub_result=$?
 
         # Cleanup temp files
         rm -f "$epub_temp_input"
         [ -n "$epub_cover_generated" ] && rm -f "$epub_cover_generated"
+        [ -n "$epub_bib_temp_dir" ] && [ -d "$epub_bib_temp_dir" ] && rm -rf "$epub_bib_temp_dir"
 
         if [ $epub_result -eq 0 ]; then
             echo -e "${GREEN}Success! EPUB created as $OUTPUT_FILE${NC}"
 
+            # Fix spine order: move TOC after front matter pages
+            fix_epub_spine_order "$OUTPUT_FILE"
+
+            # Validate EPUB if requested
+            if [ "$ARG_VALIDATE" = true ]; then
+                validate_epub "$OUTPUT_FILE"
+            fi
+
             # Restore backup
             if [ -f "$BACKUP_FILE" ]; then
                 mv "$BACKUP_FILE" "$INPUT_FILE"
+            fi
+
+            # Clean up combined file if multi-file project
+            if [ -n "$COMBINED_FILE" ] && [ -f "$COMBINED_FILE" ]; then
+                rm -f "$COMBINED_FILE"
             fi
             return 0
         else
             echo -e "${RED}Error: EPUB conversion failed.${NC}"
             if [ -f "$BACKUP_FILE" ]; then
                 mv "$BACKUP_FILE" "$INPUT_FILE"
+            fi
+
+            # Clean up combined file if multi-file project
+            if [ -n "$COMBINED_FILE" ] && [ -f "$COMBINED_FILE" ]; then
+                rm -f "$COMBINED_FILE"
             fi
             return 1
         fi
@@ -2269,11 +2869,40 @@ convert() {
     # No additional options needed for pdflatex
     PANDOC_OPTS=""
 
-    # Check for template.tex in the current directory first (highest priority)
+    # Check for custom template first (highest priority)
     TEMPLATE_IN_CURRENT_DIR=false
-    TEMPLATE_PATH="$(pwd)/template.tex"
+    CUSTOM_TEMPLATE_USED=false
 
-    if [ -f "$TEMPLATE_PATH" ]; then
+    if [ -n "$ARG_TEMPLATE" ]; then
+        # User provided custom template
+        if [ -f "$ARG_TEMPLATE" ]; then
+            TEMPLATE_PATH=$(realpath "$ARG_TEMPLATE")
+            CUSTOM_TEMPLATE_USED=true
+            echo -e "${GREEN}Using custom template: $TEMPLATE_PATH${NC}"
+        else
+            # Check relative to input file directory
+            local input_dir
+            input_dir=$(dirname "$INPUT_FILE")
+            if [ -f "$input_dir/$ARG_TEMPLATE" ]; then
+                TEMPLATE_PATH=$(realpath "$input_dir/$ARG_TEMPLATE")
+                CUSTOM_TEMPLATE_USED=true
+                echo -e "${GREEN}Using custom template: $TEMPLATE_PATH${NC}"
+            else
+                echo -e "${RED}Error: Custom template '$ARG_TEMPLATE' not found${NC}"
+                return 1
+            fi
+        fi
+    fi
+
+    # If no custom template, check for template.tex in the current directory
+    if [ "$CUSTOM_TEMPLATE_USED" = false ]; then
+        TEMPLATE_PATH="$(pwd)/template.tex"
+    fi
+
+    if [ "$CUSTOM_TEMPLATE_USED" = true ]; then
+        # Custom template provided - use it directly
+        TEMPLATE_IN_CURRENT_DIR=false
+    elif [ -f "$TEMPLATE_PATH" ]; then
         TEMPLATE_IN_CURRENT_DIR=true
     else
         # Not found in current directory, check other locations
@@ -2297,8 +2926,11 @@ convert() {
     echo -e "${BLUE}Debug: Template path is $TEMPLATE_PATH${NC}"
     echo -e "${BLUE}Debug: Template in current dir: $TEMPLATE_IN_CURRENT_DIR${NC}"
 
-    # Check if we found a template in the current directory
-    if [ "$TEMPLATE_IN_CURRENT_DIR" = true ]; then
+    # Check if we found a template in the current directory or custom template
+    if [ "$CUSTOM_TEMPLATE_USED" = true ]; then
+        # Custom template already set - nothing more to do
+        :
+    elif [ "$TEMPLATE_IN_CURRENT_DIR" = true ]; then
         echo -e "Using template: ${GREEN}$TEMPLATE_PATH${NC}"
     else
         # Template not found in current directory
@@ -2317,7 +2949,7 @@ convert() {
             CREATE_TEMPLATE="y"
             echo -e "${BLUE}Using command-line arguments, automatically creating template...${NC}"
         else
-            read CREATE_TEMPLATE
+            read -r CREATE_TEMPLATE
             CREATE_TEMPLATE=${CREATE_TEMPLATE:-"y"}
         fi
 
@@ -2340,7 +2972,7 @@ convert() {
                 # If a first-level heading was found, use it as the default title
                 echo -e "${BLUE}Found title in document: '$FIRST_HEADING'${NC}"
                 echo -e "${GREEN}Enter document title (press Enter to use the found title) [${FIRST_HEADING}]:${NC}"
-                read USER_TITLE
+                read -r USER_TITLE
 
                 if [ -z "$USER_TITLE" ]; then
                     # User pressed Enter, use the found title
@@ -2355,7 +2987,7 @@ convert() {
                 # Otherwise use filename as default
                 DEFAULT_TITLE=$(basename "$INPUT_FILE" .md | sed 's/_/ /g' | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')
                 echo -e "${GREEN}Enter document title [${DEFAULT_TITLE}]:${NC}"
-                read TITLE
+                read -r TITLE
                 TITLE=${TITLE:-"$DEFAULT_TITLE"}
             fi
 
@@ -2365,7 +2997,7 @@ convert() {
                 echo -e "${GREEN}Using author from command-line argument: '$AUTHOR'${NC}"
             else
                 echo -e "${GREEN}Enter author name [$(whoami)]:${NC}"
-                read AUTHOR
+                read -r AUTHOR
                 AUTHOR=${AUTHOR:-"$(whoami)"}
             fi
 
@@ -2378,7 +3010,7 @@ convert() {
                 echo -e "${GREEN}Using date from command-line argument: '$DOC_DATE'${NC}"
             else
                 echo -e "${GREEN}Enter document date [$(date +"%B %d, %Y")]:${NC}"
-                read DOC_DATE
+                read -r DOC_DATE
                 DOC_DATE=${DOC_DATE:-"$(date +"%B %d, %Y")"}
             fi
 
@@ -2391,12 +3023,12 @@ convert() {
                 echo -e "${GREEN}Using footer text from command-line argument: '$FOOTER_TEXT'${NC}"
             else
                 echo -e "${GREEN}Do you want to add a footer to your document? (y/n) [y]:${NC}"
-                read ADD_FOOTER
+                read -r ADD_FOOTER
                 ADD_FOOTER=${ADD_FOOTER:-"y"}
 
                 if [[ $ADD_FOOTER =~ ^[Yy]$ ]]; then
                     echo -e "${GREEN}Enter footer text (press Enter for default ' All rights reserved $(date +"%Y")'):${NC}"
-                    read FOOTER_TEXT
+                    read -r FOOTER_TEXT
                     FOOTER_TEXT=${FOOTER_TEXT:-" All rights reserved $(date +"%Y")"}
                 else
                     FOOTER_TEXT=""
@@ -2557,6 +3189,25 @@ EOF
         fi
     fi
 
+    # Add index filter if --index is enabled
+    if [ "$ARG_INDEX" = true ]; then
+        local index_filter_path=""
+        if [ -f "$(pwd)/filters/index_filter.lua" ]; then
+            index_filter_path="$(pwd)/filters/index_filter.lua"
+        elif [ -f "$SCRIPT_DIR/filters/index_filter.lua" ]; then
+            index_filter_path="$SCRIPT_DIR/filters/index_filter.lua"
+        elif [ -f "/usr/local/share/mdtexpdf/filters/index_filter.lua" ]; then
+            index_filter_path="/usr/local/share/mdtexpdf/filters/index_filter.lua"
+        fi
+
+        if [ -n "$index_filter_path" ]; then
+            LUA_FILTERS+=("$index_filter_path")
+            echo -e "${BLUE}Using Lua filter for index generation: $index_filter_path${NC}"
+        else
+            echo -e "${YELLOW}Warning: index_filter.lua not found. Index markers will not be processed.${NC}"
+        fi
+    fi
+
     # Add drop caps filter if drop_caps is enabled
     if [ "$META_DROP_CAPS" = "true" ]; then
         local drop_caps_filter_path=""
@@ -2638,6 +3289,11 @@ EOF
 
     # Professional book features (passed to template)
     BOOK_FEATURE_VARS=()
+
+    # Index generation
+    if [ "$ARG_INDEX" = true ]; then
+        BOOK_FEATURE_VARS+=("--variable=index=true")
+    fi
 
     # Half-title page
     if [ "$META_HALF_TITLE" = "true" ] || [ "$META_HALF_TITLE" = "True" ] || [ "$META_HALF_TITLE" = "TRUE" ]; then
@@ -2722,7 +3378,8 @@ EOF
 
     # === COVER SYSTEM VARIABLES ===
     # Get input file directory for auto-detection
-    local INPUT_DIR=$(dirname "$INPUT_FILE")
+    local INPUT_DIR
+    INPUT_DIR=$(dirname "$INPUT_FILE")
 
     # Front cover image (with auto-detection fallback)
     local COVER_IMAGE_PATH="$META_COVER_IMAGE"
@@ -2762,6 +3419,11 @@ EOF
     # Cover overlay opacity
     if [ -n "$META_COVER_OVERLAY_OPACITY" ]; then
         BOOK_FEATURE_VARS+=("--variable=cover_overlay_opacity=$META_COVER_OVERLAY_OPACITY")
+    fi
+
+    # Cover fit mode (contain or cover)
+    if [ "$META_COVER_FIT" = "cover" ]; then
+        BOOK_FEATURE_VARS+=("--variable=cover_fit_cover=true")
     fi
 
     # Back cover image (with auto-detection fallback)
@@ -2836,14 +3498,102 @@ EOF
         BOOK_FEATURE_VARS+=("--variable=donation_wallets=$META_DONATION_WALLETS")
     fi
 
-    pandoc "$INPUT_FILE" \
+    # === BIBLIOGRAPHY & CITATIONS ===
+    local -a BIBLIOGRAPHY_VARS=()
+    local bib_temp_dir=""
+    local bib_path=""
+    local using_inline_bib=false
+    local processed_input_file="$INPUT_FILE"
+
+    # Check for inline bibliography first (if no external bibliography specified)
+    if [ -z "$ARG_BIBLIOGRAPHY" ] && type has_inline_bibliography &>/dev/null; then
+        if has_inline_bibliography "$INPUT_FILE"; then
+            echo -e "${BLUE}Detected inline bibliography in document${NC}"
+            bib_temp_dir=$(mktemp -d)
+
+            if bib_path=$(process_inline_bibliography "$INPUT_FILE" "$bib_temp_dir"); then
+                # Use the content file without bibliography section
+                processed_input_file="$bib_temp_dir/content.md"
+                using_inline_bib=true
+                BIBLIOGRAPHY_VARS+=("--citeproc")
+                BIBLIOGRAPHY_VARS+=("--bibliography=$bib_path")
+                echo -e "${GREEN}Using inline bibliography (extracted to $bib_path)${NC}"
+            else
+                echo -e "${YELLOW}Warning: Could not process inline bibliography${NC}"
+                rm -rf "$bib_temp_dir"
+                bib_temp_dir=""
+            fi
+        fi
+    fi
+
+    # Handle external bibliography file (if specified and not using inline)
+    if [ -n "$ARG_BIBLIOGRAPHY" ] && [ "$using_inline_bib" = false ]; then
+        local external_bib_path=""
+        # Check if bibliography file exists (try absolute path first)
+        if [ -f "$ARG_BIBLIOGRAPHY" ]; then
+            external_bib_path=$(realpath "$ARG_BIBLIOGRAPHY")
+        else
+            # Check relative to input file directory
+            local input_dir
+            input_dir=$(dirname "$INPUT_FILE")
+            if [ -f "$input_dir/$ARG_BIBLIOGRAPHY" ]; then
+                external_bib_path=$(realpath "$input_dir/$ARG_BIBLIOGRAPHY")
+            fi
+        fi
+
+        if [ -n "$external_bib_path" ]; then
+            # Check if it's a simple markdown bibliography
+            if type is_simple_bibliography &>/dev/null && is_simple_bibliography "$external_bib_path"; then
+                echo -e "${BLUE}Converting simple markdown bibliography...${NC}"
+                [ -z "$bib_temp_dir" ] && bib_temp_dir=$(mktemp -d)
+
+                if bib_path=$(process_bibliography_file "$external_bib_path" "$bib_temp_dir"); then
+                    BIBLIOGRAPHY_VARS+=("--citeproc")
+                    BIBLIOGRAPHY_VARS+=("--bibliography=$bib_path")
+                    echo -e "${GREEN}Using simple bibliography: $external_bib_path${NC}"
+                else
+                    echo -e "${YELLOW}Warning: Could not convert simple bibliography${NC}"
+                fi
+            else
+                # Traditional .bib or CSL-JSON file
+                bib_path="$external_bib_path"
+                BIBLIOGRAPHY_VARS+=("--citeproc")
+                BIBLIOGRAPHY_VARS+=("--bibliography=$bib_path")
+                echo -e "${GREEN}Using bibliography: $bib_path${NC}"
+            fi
+        else
+            echo -e "${YELLOW}Warning: Bibliography file '$ARG_BIBLIOGRAPHY' not found${NC}"
+        fi
+    fi
+    if [ -n "$ARG_CSL" ]; then
+        local csl_path=""
+        if [ -f "$ARG_CSL" ]; then
+            csl_path=$(realpath "$ARG_CSL")
+        else
+            local input_dir
+            input_dir=$(dirname "$INPUT_FILE")
+            if [ -f "$input_dir/$ARG_CSL" ]; then
+                csl_path=$(realpath "$input_dir/$ARG_CSL")
+            fi
+        fi
+        if [ -n "$csl_path" ]; then
+            BIBLIOGRAPHY_VARS+=("--csl=$csl_path")
+            echo -e "${GREEN}Using citation style: $csl_path${NC}"
+        else
+            echo -e "${YELLOW}Warning: CSL file '$ARG_CSL' not found${NC}"
+        fi
+    fi
+
+    # shellcheck disable=SC2086 # Word splitting is intentional for PANDOC_OPTS/FILTER_OPTION/TOC_OPTION/SECTION_NUMBERING_OPTION
+    if pandoc "$processed_input_file" \
         --from markdown \
         --to pdf \
         --output "$OUTPUT_FILE" \
         --template="$TEMPLATE_PATH" \
-        --pdf-engine=$PDF_ENGINE \
+        --pdf-engine="$PDF_ENGINE" \
         $PANDOC_OPTS \
         $FILTER_OPTION \
+        "${BIBLIOGRAPHY_VARS[@]}" \
         --variable=geometry:margin=1in \
         --highlight-style=tango \
         --listings \
@@ -2852,15 +3602,17 @@ EOF
         "${FOOTER_VARS[@]}" \
         "${HEADER_FOOTER_VARS[@]}" \
         "${BOOK_FEATURE_VARS[@]}" \
-        --standalone
-
-    # Check if conversion was successful
-    if [ $? -eq 0 ]; then
+        --standalone; then
         echo -e "${GREEN}Success! PDF created as $OUTPUT_FILE${NC}"
 
         # Additional message for CJK documents
         if detect_unicode_characters "$INPUT_FILE" >/dev/null 2>&1; then
             echo -e "${GREEN}✓ CJK characters (Chinese, Japanese, Korean) have been properly rendered in the PDF.${NC}"
+        fi
+
+        # Clean up bibliography temp directory
+        if [ -n "$bib_temp_dir" ] && [ -d "$bib_temp_dir" ]; then
+            rm -rf "$bib_temp_dir"
         fi
 
         # Clean up: Remove template.tex file if it was created in the current directory
@@ -2875,15 +3627,36 @@ EOF
             mv "$BACKUP_FILE" "$INPUT_FILE"
         fi
 
+        # Clean up combined file if multi-file project
+        if [ -n "$COMBINED_FILE" ] && [ -f "$COMBINED_FILE" ]; then
+            rm -f "$COMBINED_FILE"
+        fi
+
         echo -e "${GREEN}Cleanup complete. Only the PDF and original markdown file remain.${NC}"
         return 0
     else
         echo -e "${RED}Error: PDF conversion failed.${NC}"
 
+        # Clean up bibliography temp directory
+        if [ -n "$bib_temp_dir" ] && [ -d "$bib_temp_dir" ]; then
+            rm -rf "$bib_temp_dir"
+        fi
+
+        # Clean up: Remove template.tex file if it was created in the current directory
+        if [ -f "$(pwd)/template.tex" ]; then
+            echo -e "${BLUE}Cleaning up: Removing template.tex${NC}"
+            rm -f "$(pwd)/template.tex"
+        fi
+
         # Restore the original markdown file from backup even if conversion failed
         if [ -f "$BACKUP_FILE" ]; then
             echo -e "${BLUE}Restoring original markdown file from backup${NC}"
             mv "$BACKUP_FILE" "$INPUT_FILE"
+        fi
+
+        # Clean up combined file if multi-file project
+        if [ -n "$COMBINED_FILE" ] && [ -f "$COMBINED_FILE" ]; then
+            rm -f "$COMBINED_FILE"
         fi
 
         return 1
@@ -2911,7 +3684,7 @@ create() {
     # Interactive mode - ask for document details
     if [ -z "$2" ]; then
         echo -e "${GREEN}Enter document title:${NC}"
-        read TITLE
+        read -r TITLE
         TITLE=${TITLE:-"My Document"}
     else
         TITLE="$2"
@@ -2919,24 +3692,24 @@ create() {
 
     if [ -z "$3" ]; then
         echo -e "${GREEN}Enter author name:${NC}"
-        read AUTHOR
+        read -r AUTHOR
         AUTHOR=${AUTHOR:-"$(whoami)"}
     else
         AUTHOR="$3"
     fi
 
     echo -e "${GREEN}Enter document date [$(date +"%B %d, %Y")]:${NC}"
-    read DOC_DATE
+    read -r DOC_DATE
     DOC_DATE=${DOC_DATE:-"$(date +"%B %d, %Y")"}
 
     # Always ask about footer preferences
     echo -e "${GREEN}Do you want to add a footer to your document? (y/n) [y]:${NC}"
-    read ADD_FOOTER
+    read -r ADD_FOOTER
     ADD_FOOTER=${ADD_FOOTER:-"y"}
 
     if [[ $ADD_FOOTER =~ ^[Yy]$ ]]; then
         echo -e "${GREEN}Enter footer text (press Enter for default '© All rights reserved $(date +"%Y")'):${NC}"
-        read FOOTER_TEXT
+        read -r FOOTER_TEXT
         FOOTER_TEXT=${FOOTER_TEXT:-"© All rights reserved $(date +"%Y")"}
     else
         FOOTER_TEXT=""
@@ -3013,7 +3786,8 @@ def hello_world():
 ---
 EOF
 
-    if [ $? -eq 0 ]; then
+    local create_result=$?
+    if [ $create_result -eq 0 ]; then
         echo -e "${GREEN}Success! Markdown document created as $OUTPUT_FILE${NC}"
         echo -e "You can now edit this file and convert it to PDF using:"
         echo -e "${BLUE}mdtexpdf convert $OUTPUT_FILE${NC}"
@@ -3144,8 +3918,8 @@ install() {
         echo -e "Use ${BLUE}mdtexpdf help${NC} to see the commands."
         echo
     else
-        echo -e "${RED}Error: Failed to obtain sudo privileges. Installation aborted.${NC}"
-        exit 1
+        log_error "Failed to obtain sudo privileges. Installation aborted."
+        exit $EXIT_USER_ERROR
     fi
 }
 
@@ -3163,22 +3937,28 @@ uninstall() {
         echo -e "${PURPLE}mdtexpdf has been uninstalled successfully.${NC}"
         echo
     else
-        echo -e "${RED}Error: Failed to obtain sudo privileges. Uninstallation aborted.${NC}"
-        exit 1
+        log_error "Failed to obtain sudo privileges. Uninstallation aborted."
+        exit $EXIT_USER_ERROR
     fi
 }
 
 # Function to display help information
 help() {
     echo -e "\n${YELLOW}═══════════════════════════════════════════${NC}"
-    echo -e "${YELLOW}         mdtexpdf - Markdown to PDF         ${NC}"
+    echo -e "${YELLOW}      mdtexpdf - Markdown to PDF/EPUB       ${NC}"
+    echo -e "${YELLOW}              Version $VERSION              ${NC}"
     echo -e "${YELLOW}═══════════════════════════════════════════${NC}\n"
 
-    echo -e "${PURPLE}Description:${NC} mdtexpdf is a tool for converting Markdown documents to PDF using LaTeX templates."
+    echo -e "${PURPLE}Description:${NC} mdtexpdf is a tool for converting Markdown documents to PDF and EPUB using LaTeX."
     echo -e "${PURPLE}             It supports LaTeX math equations, custom templates, and more.${NC}"
-    echo -e "${PURPLE}Usage:${NC}       mdtexpdf <command> [arguments]"
+    echo -e "${PURPLE}Usage:${NC}       mdtexpdf [global-options] <command> [arguments]"
     echo -e "${PURPLE}License:${NC}     Apache 2.0"
     echo -e "${PURPLE}Code:${NC}        https://github.com/ucli-tools/mdtexpdf\n"
+
+    echo -e "${PURPLE}Global Options:${NC}"
+    echo -e "  ${GREEN}--version, -V${NC}     Show version number"
+    echo -e "  ${GREEN}--verbose, -v${NC}     Enable verbose output"
+    echo -e "  ${GREEN}--debug${NC}           Enable debug output (includes verbose)\n"
 
     echo -e "${PURPLE}Commands:${NC}"
     echo -e "  ${GREEN}convert [options] <input.md> [output.pdf]${NC}"
@@ -3205,7 +3985,15 @@ help() {
     echo -e "                    ${BLUE}--read-metadata       Read metadata from HTML comments in markdown file${NC}"
     echo -e "                    ${BLUE}--format FORMAT       Set document format (article or book)${NC}"
     echo -e "                    ${BLUE}--header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default${NC}"
-  echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
+    echo -e "                    ${BLUE}--epub                Output EPUB format instead of PDF${NC}"
+    echo -e "                    ${BLUE}--validate            Validate EPUB with epubcheck (requires epubcheck)${NC}"
+    echo -e "                    ${BLUE}-b, --bibliography FILE  Use bibliography file (.bib, .json, .yaml, .md)${NC}"
+    echo -e "                    ${BLUE}--csl FILE            Use CSL citation style file${NC}"
+    echo -e "                    ${BLUE}--template FILE       Use custom LaTeX template for PDF${NC}"
+    echo -e "                    ${BLUE}--epub-css FILE       Use custom CSS for EPUB${NC}"
+    echo -e "                    ${BLUE}-i, --include FILE    Include additional markdown file (repeatable)${NC}"
+    echo -e "                    ${BLUE}--index               Generate index from [index:term] markers${NC}"
+    echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert document.md"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf convert -a \"John Doe\" -t \"My Document\" --toc --toc-depth 3 document.md output.pdf\n"
 
     echo -e "  ${GREEN}create <output.md> [title] [author]${NC}"
@@ -3216,6 +4004,10 @@ help() {
     echo -e "  ${GREEN}check${NC}"
     echo -e "                  ${BLUE}Check if all prerequisites are installed${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf check\n"
+
+    echo -e "  ${GREEN}validate <file.epub>${NC}"
+    echo -e "                  ${BLUE}Validate an EPUB file with epubcheck${NC}"
+    echo -e "                  ${BLUE}Example:${NC} mdtexpdf validate book.epub\n"
 
     echo -e "  ${GREEN}install${NC}"
     echo -e "                  ${BLUE}Install mdtexpdf system-wide${NC}"
@@ -3229,13 +4021,54 @@ help() {
     echo -e "                  ${BLUE}Display this help information${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf help\n"
 
+    echo -e "  ${GREEN}version${NC}"
+    echo -e "                  ${BLUE}Display version information${NC}"
+    echo -e "                  ${BLUE}Example:${NC} mdtexpdf version\n"
+
+    echo -e "${PURPLE}Exit Codes:${NC}"
+    echo -e "  0 - Success"
+    echo -e "  1 - User error (invalid arguments, missing input)"
+    echo -e "  2 - Missing dependency (pandoc, latex, etc.)"
+    echo -e "  3 - Conversion failure"
+    echo -e "  4 - File system error"
+    echo -e "  5 - Configuration error\n"
+
     echo -e "${PURPLE}Prerequisites:${NC}"
     echo -e "  - Pandoc: Document conversion tool"
     echo -e "  - LaTeX: PDF generation engine (pdflatex, xelatex, or lualatex)"
-    echo -e "  - LaTeX Packages: Various packages for formatting and math support\n"
+    echo -e "  - LaTeX Packages: Various packages for formatting and math support"
+    echo -e "  - ImageMagick (optional): For EPUB cover generation with text overlay\n"
 
-    echo -e "${PURPLE}For more information, see the README.md file.${NC}\n"
+    echo -e "${PURPLE}Documentation:${NC}"
+    echo -e "  README.md          - Overview and quick start"
+    echo -e "  docs/METADATA.md   - Complete metadata field reference"
+    echo -e "  docs/AUTHORSHIP.md - Cryptographic authorship guide"
+    echo -e "  docs/ROADMAP.md    - Planned features\n"
+
+    echo -e "${PURPLE}For more information:${NC} https://github.com/ucli-tools/mdtexpdf\n"
 }
+
+# Parse global flags first
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --version|-V)
+            echo "mdtexpdf version $VERSION"
+            exit 0
+            ;;
+        --verbose|-v)
+            VERBOSE=true
+            shift
+            ;;
+        --debug)
+            DEBUG=true
+            VERBOSE=true
+            shift
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
 
 # Main script execution
 case "$1" in
@@ -3250,24 +4083,40 @@ case "$1" in
     check)
         check_prerequisites
         ;;
+    validate)
+        shift
+        if [ -z "$1" ]; then
+            log_error "No EPUB file specified."
+            echo -e "Usage: ${BLUE}mdtexpdf validate <file.epub>${NC}"
+            exit $EXIT_USER_ERROR
+        fi
+        if [ ! -f "$1" ]; then
+            log_error "EPUB file '$1' not found."
+            exit $EXIT_USER_ERROR
+        fi
+        validate_epub "$1"
+        ;;
     install)
         install
         ;;
     uninstall)
         uninstall
         ;;
-    help)
+    help|--help|-h)
         help
+        ;;
+    version)
+        echo "mdtexpdf version $VERSION"
         ;;
     *)
         if [ -z "$1" ]; then
-            echo -e "${RED}Error: No command specified.${NC}"
+            log_error "No command specified."
         else
-            echo -e "${RED}Error: Unknown command '$1'.${NC}"
+            log_error "Unknown command '$1'."
         fi
         echo -e "Use ${BLUE}mdtexpdf help${NC} to see the commands."
-        exit 1
+        exit $EXIT_USER_ERROR
         ;;
 esac
 
-exit $?
+exit $EXIT_SUCCESS

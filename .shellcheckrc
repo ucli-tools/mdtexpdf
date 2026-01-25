@@ -1,0 +1,13 @@
+# Shellcheck configuration for mdtexpdf
+# https://github.com/koalaman/shellcheck/wiki/Ignore
+
+# Disable warnings for unused variables that are used in heredocs or eval
+# These variables are used in template generation and may not be directly referenced
+disable=SC2034
+
+# Disable warnings for functions that are invoked indirectly or conditionally
+# log_verbose, log_debug, etc. are used based on VERBOSE/DEBUG flags
+disable=SC2329
+
+# Allow unicode characters in strings (used for LaTeX unicode support)
+disable=SC1111
