@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Bibliography & Citations support (`--bibliography`, `--csl` flags)
+  - BibTeX/BibLaTeX `.bib` files
+  - CSL citation styles
+  - Simple Markdown bibliography format (see docs/SIMPLE_BIBLIOGRAPHY.md)
+- Index Generation (`--index` flag)
+  - `[index:term]` markers in text
+  - Sub-entries with `[index:term|subterm]` syntax
+  - Lua filter for index processing
+- Custom Templates support
+  - `--template FILE` for custom LaTeX templates
+  - `--epub-css FILE` for custom EPUB styling
+- EPUB Validation (`--validate` flag, `mdtexpdf validate` command)
+  - Integration with epubcheck
+- Multi-file Projects (`--include`/`-i` flag)
+  - Combine multiple markdown files
+  - Repeatable flag for chapter-per-file organization
+- Modular architecture with extracted libraries:
+  - `lib/core.sh` - Common functions, logging, utilities
+  - `lib/check.sh` - Prerequisites checking
+  - `lib/metadata.sh` - YAML/HTML parsing and metadata handling
+  - `lib/preprocess.sh` - Markdown preprocessing, Unicode detection
+  - `lib/epub.sh` - EPUB helpers (spine reorder, chemistry)
+  - `lib/bibliography.sh` - Simple markdown bibliography format conversion
+- Expanded test suite (176 tests total):
+  - 79 integration tests
+  - 83 module unit tests
+  - 14 regression tests
+
+### Documentation
+- docs/SIMPLE_BIBLIOGRAPHY.md: Human-readable bibliography format guide
+- Expanded examples: academic paper, novel, cookbook, technical docs, multilingual
+
 ## [1.0.0] - 2026-01-24
 
 ### Added

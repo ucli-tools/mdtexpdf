@@ -21,8 +21,8 @@ We take a quality-first approach, completing each phase thoroughly before moving
   - [x] Cover generation (with cover image fixture)
   - [x] Math/chemistry rendering
   - [x] CJK content (skips if xeCJK not installed)
-- [x] B3. Regression tests (5 tests in tests/test_regression.sh)
-- [x] B4. Unit tests for modules (26 tests in tests/test_modules.sh)
+- [x] B3. Regression tests (14 tests in tests/test_regression.sh)
+- [x] B4. Unit tests for modules (83 tests in tests/test_modules.sh)
 - [x] B5. Create CONTRIBUTING.md with code style guide
 
 ### Phase C: Documentation (3-5 hours) ✓ COMPLETE
@@ -44,7 +44,7 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] D4. Extract `lib/preprocess.sh` - Markdown preprocessing, Unicode detection
 - [ ] D5. Extract `lib/template.sh` - LaTeX template generation (deferred - 950 lines)
 - [x] D6. Update main `mdtexpdf.sh` to source modules
-- [x] D7. Make each module independently testable (26 unit tests in tests/test_modules.sh)
+- [x] D7. Make each module independently testable (83 unit tests in tests/test_modules.sh)
 
 ### Phase E: New Features (4-8 hours each) ✓ COMPLETE
 - [x] E1. Bibliography & Citations support
@@ -70,10 +70,10 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] EPUB spine reordering (TOC after front matter)
 - [x] `--version`, `--verbose`, `--debug` flags
 - [x] CHANGELOG.md
-- [x] Comprehensive test suite (66 tests total):
-  - [x] 35 integration tests (run_tests.sh)
-  - [x] 26 module unit tests (test_modules.sh)
-  - [x] 5 regression tests (test_regression.sh)
+- [x] Comprehensive test suite (176 tests total):
+  - [x] 79 integration tests (run_tests.sh)
+  - [x] 83 module unit tests (test_modules.sh)
+  - [x] 14 regression tests (test_regression.sh)
 - [x] CI/CD pipeline (GitHub Actions)
 - [x] Docker image with all dependencies
 - [x] Makefile template for book projects
@@ -88,19 +88,19 @@ We take a quality-first approach, completing each phase thoroughly before moving
   - [x] `lib/epub.sh` - EPUB helpers (spine reorder, chemistry)
 - [x] Unicode detection for typographic characters (em-dash, smart quotes, fractions)
 
-### In Progress
-- Phase D: Modularization (D1, D5 deferred - template extraction is complex)
-
-### Completed Recently
-- Phase E: New Features - ALL COMPLETE
-  - E1: Bibliography & Citations (--bibliography, --csl flags)
-  - E2: Index Generation (--index flag, [index:term] markers, Lua filter)
-  - E3: Custom Templates (--template, --epub-css flags)
-  - E4: EPUB Validation (--validate flag, validate command)
-  - E5: Multi-file Projects (--include/-i flag, repeatable)
+- [x] Phase D: Modularization (D1, D5 deferred - template extraction is complex)
+- [x] Phase E: New Features - ALL COMPLETE
+  - [x] E1: Bibliography & Citations (--bibliography, --csl flags)
+  - [x] E2: Index Generation (--index flag, [index:term] markers, Lua filter)
+  - [x] E3: Custom Templates (--template, --epub-css flags)
+  - [x] E4: EPUB Validation (--validate flag, validate command)
+  - [x] E5: Multi-file Projects (--include/-i flag, repeatable)
 
 ### Next Up
 - Phase F: Future Enhancements (editor integrations, package managers, print-ready PDF)
+  - Configuration files (~/.mdtexpdf/config.yaml, .mdtexpdf.yaml)
+  - Cross-references (figure/table/chapter references)
+  - Print-ready PDF options (bleed, CMYK, PDF/X)
 
 ---
 
@@ -138,7 +138,7 @@ We take a quality-first approach, completing each phase thoroughly before moving
 
 #### 2.1 Automated Test Suite
 - [x] `tests/` directory with test runner
-- [x] Integration tests (26 tests):
+- [x] Integration tests (79 tests in run_tests.sh):
   - [x] Basic article PDF
   - [x] EPUB generation
   - [x] Book with full front matter PDF
@@ -146,8 +146,10 @@ We take a quality-first approach, completing each phase thoroughly before moving
   - [x] Math/chemistry rendering
   - [x] CJK content (skips if xeCJK not available)
   - [x] PDF feature tests (pageof, date-footer, no-numbers, toc-cli, header-footer-policy, no-footer)
-- [x] Unit tests for each module (40 tests in test_modules.sh)
-- [x] Regression tests (5 tests in test_regression.sh)
+  - [x] Bibliography and index tests
+  - [x] Multi-file project tests
+- [x] Unit tests for each module (83 tests in test_modules.sh)
+- [x] Regression tests (14 tests in test_regression.sh)
 - [x] Test runner script: `make test`
 
 #### 2.2 CI/CD Pipeline
@@ -380,33 +382,26 @@ We take a quality-first approach, completing each phase thoroughly before moving
 
 ## Version Targets
 
-### v1.0.0 - Stable Release ✓ ACHIEVED
-- [x] All Phase A-B items complete
-- [x] Core PDF/EPUB functionality
-- [x] Docker and CI/CD
-- [x] Shellcheck passes
-- [x] Comprehensive tests (66 total)
+### v1.0.0 - Feature Complete ✓ ACHIEVED (Current)
+All phases A through E complete in a single comprehensive release:
+- [x] Phase A: Quick Wins - CI badge, error codes, help output
+- [x] Phase B: Testing & Quality - 176 tests, shellcheck, CONTRIBUTING.md
+- [x] Phase C: Documentation - Tutorials, FAQ, troubleshooting, 5 examples
+- [x] Phase D: Modularization - 6 lib modules, unit tests (D1, D5 deferred)
+- [x] Phase E: New Features - Bibliography, index, templates, validation, multi-file
+- [x] Core PDF/EPUB functionality with cover generation
+- [x] Docker and CI/CD pipeline
+- [x] Comprehensive test suite (176 tests)
 
-### v1.1.0 - Documentation & Examples ✓ ACHIEVED
-- [x] Phase C complete
-- [x] All tutorials written
-- [x] Example documents (5 examples)
+### v1.1.0 - Future (Planned)
+- [ ] Configuration files (~/.mdtexpdf/config.yaml, .mdtexpdf.yaml)
+- [ ] Cross-references (figure/table/chapter references)
+- [ ] Template variables documentation
 
-### v1.2.0 - Modular Architecture (IN PROGRESS)
-- [x] Phase D mostly complete (D1, D5 deferred)
-- [x] Modularization (5 modules extracted)
-- [x] Unit tests for all modules (26 tests)
-
-### v1.3.0 - Bibliography & Index ✓ ACHIEVED
-- [x] Phase E1-E2 complete
-- [x] Bibliography support
-- [x] Index generation
-
-### v2.0.0 - Extended Features ✓ ACHIEVED
-- [x] Phase E3-E5 complete
-- [x] Custom templates
-- [x] Multi-file projects
-- [x] EPUB validation
+### v2.0.0 - Future (Planned)
+- [ ] Print-ready PDF options (bleed, CMYK, PDF/X)
+- [ ] Package manager distribution (Homebrew, APT, AUR)
+- [ ] Editor integrations (VS Code, Vim, Emacs)
 
 ---
 
