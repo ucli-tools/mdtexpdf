@@ -391,3 +391,124 @@ process_bibliography_file() {
         return 0
     fi
 }
+
+# =============================================================================
+# Inline Bibliography Extraction
+# =============================================================================
+
+# Check if a markdown file contains an inline bibliography section
+# Usage: has_inline_bibliography file.md
+# Returns: 0 if yes, 1 if no
+has_inline_bibliography() {
+    local file="$1"
+
+    if [ ! -f "$file" ]; then
+        return 1
+    fi
+
+    # Look for a References or Bibliography heading followed by entries
+    # Pattern: heading line, then within next 20 lines, an entry starting with "- Author:" or "- Key:"
+    if grep -qEi '^#{1,3}[[:space:]]*(References|Bibliography)[[:space:]]*$' "$file" 2>/dev/null; then
+        # Found a heading, now check if there are entries after it
+        if grep -qE '^-[[:space:]]+(Author|Key):' "$file" 2>/dev/null; then
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+# Extract inline bibliography section from a markdown file
+# Usage: extract_inline_bibliography input.md output_bib.md output_content.md
+# Creates: output_bib.md (just the bibliography entries)
+#          output_content.md (the document without the bibliography section)
+# Returns: 0 on success, 1 if no inline bibliography found
+extract_inline_bibliography() {
+    local input_file="$1"
+    local output_bib="$2"
+    local output_content="$3"
+
+    if [ ! -f "$input_file" ]; then
+        log_error "Input file not found: $input_file"
+        return 1
+    fi
+
+    # Find the line number of the References/Bibliography heading
+    local bib_heading_line
+    bib_heading_line=$(grep -nEi '^#{1,3}[[:space:]]*(References|Bibliography)[[:space:]]*$' "$input_file" | head -1 | cut -d: -f1)
+
+    if [ -z "$bib_heading_line" ]; then
+        log_debug "No References/Bibliography heading found"
+        return 1
+    fi
+
+    log_debug "Found bibliography heading at line $bib_heading_line"
+
+    # Get total lines in file
+    local total_lines
+    total_lines=$(wc -l < "$input_file")
+
+    # Extract content before the bibliography heading
+    if [ "$bib_heading_line" -gt 1 ]; then
+        head -n $((bib_heading_line - 1)) "$input_file" > "$output_content"
+    else
+        : > "$output_content"
+    fi
+
+    # Extract the bibliography section (from heading to end or next major heading)
+    local bib_section_start=$bib_heading_line
+    local bib_section_end=$total_lines
+
+    # Look for the next top-level heading after the bibliography (# Something)
+    # that would indicate end of bibliography section
+    local next_heading_line
+    next_heading_line=$(tail -n +$((bib_heading_line + 1)) "$input_file" | grep -n '^#[[:space:]]' | head -1 | cut -d: -f1)
+
+    if [ -n "$next_heading_line" ]; then
+        # Adjust for the offset from tail
+        bib_section_end=$((bib_heading_line + next_heading_line - 1))
+
+        # Append content after bibliography to output_content
+        tail -n +$((bib_section_end + 1)) "$input_file" >> "$output_content"
+    fi
+
+    # Extract just the bibliography entries (skip the heading itself)
+    sed -n "$((bib_heading_line + 1)),${bib_section_end}p" "$input_file" > "$output_bib"
+
+    # Verify we got some entries
+    if grep -qE '^-[[:space:]]+(Author|Key):' "$output_bib" 2>/dev/null; then
+        log_verbose "Extracted inline bibliography (lines $bib_heading_line-$bib_section_end)"
+        return 0
+    else
+        log_debug "Bibliography section found but no valid entries"
+        return 1
+    fi
+}
+
+# Process a markdown file with inline bibliography
+# Usage: process_inline_bibliography input.md temp_dir
+# Creates: temp_dir/content.md (document without bibliography)
+#          temp_dir/bibliography.json (CSL-JSON bibliography)
+# Output: Echoes path to bibliography.json if successful
+# Returns: 0 on success, 1 if no inline bibliography
+process_inline_bibliography() {
+    local input_file="$1"
+    local temp_dir="$2"
+
+    local temp_bib="$temp_dir/extracted_bib.md"
+    local temp_content="$temp_dir/content.md"
+    local output_json="$temp_dir/bibliography.json"
+
+    # Extract the bibliography section
+    if ! extract_inline_bibliography "$input_file" "$temp_bib" "$temp_content"; then
+        return 1
+    fi
+
+    # Convert the extracted bibliography to CSL-JSON
+    if convert_simple_bibliography "$temp_bib" "$output_json"; then
+        echo "$output_json"
+        return 0
+    else
+        return 1
+    fi
+}

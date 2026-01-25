@@ -146,7 +146,7 @@ We take a quality-first approach, completing each phase thoroughly before moving
   - [x] Math/chemistry rendering
   - [x] CJK content (skips if xeCJK not available)
   - [x] PDF feature tests (pageof, date-footer, no-numbers, toc-cli, header-footer-policy, no-footer)
-- [x] Unit tests for each module (35 tests in test_modules.sh)
+- [x] Unit tests for each module (40 tests in test_modules.sh)
 - [x] Regression tests (5 tests in test_regression.sh)
 - [x] Test runner script: `make test`
 

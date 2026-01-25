@@ -20,6 +20,7 @@ if [ -d "$SCRIPT_DIR/lib" ]; then
     [ -f "$SCRIPT_DIR/lib/metadata.sh" ] && source "$SCRIPT_DIR/lib/metadata.sh"
     [ -f "$SCRIPT_DIR/lib/preprocess.sh" ] && source "$SCRIPT_DIR/lib/preprocess.sh"
     [ -f "$SCRIPT_DIR/lib/epub.sh" ] && source "$SCRIPT_DIR/lib/epub.sh"
+    [ -f "$SCRIPT_DIR/lib/bibliography.sh" ] && source "$SCRIPT_DIR/lib/bibliography.sh"
 fi
 
 # =============================================================================
@@ -265,6 +266,7 @@ BOOK_CMDS_EOF
     \\usepackage{enumitem}
     \\usepackage[version=4]{mhchem}
     \\usepackage{framed}   % For snugshade environment
+    \\usepackage[titles]{tocloft}  % For TOC customization (titles option for titlesec compatibility)
 
     % TikZ for cover pages (full-bleed images with text overlay)
     \\usepackage{tikz}
@@ -2201,7 +2203,7 @@ convert() {
                     echo -e "  --header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default"
                     echo -e "  --epub                Output EPUB format instead of PDF"
                     echo -e "  --validate            Validate EPUB with epubcheck (requires epubcheck)"
-                    echo -e "  -b, --bibliography FILE  Use bibliography file (.bib, .json, .yaml)"
+                    echo -e "  -b, --bibliography FILE  Use bibliography file (.bib, .json, .yaml, .md)"
                     echo -e "  --csl FILE            Use CSL citation style file"
                     echo -e "  --template FILE       Use custom LaTeX template for PDF"
                     echo -e "  --epub-css FILE       Use custom CSS for EPUB"
@@ -2242,7 +2244,7 @@ convert() {
         echo -e "  --header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default"
         echo -e "  --epub                Output EPUB format instead of PDF"
         echo -e "  --validate            Validate EPUB with epubcheck (requires epubcheck)"
-        echo -e "  -b, --bibliography FILE  Use bibliography file (.bib, .json, .yaml)"
+        echo -e "  -b, --bibliography FILE  Use bibliography file (.bib, .json, .yaml, .md)"
         echo -e "  --csl FILE            Use CSL citation style file"
         echo -e "  --template FILE       Use custom LaTeX template for PDF"
         echo -e "  --epub-css FILE       Use custom CSS for EPUB"
@@ -2655,20 +2657,61 @@ convert() {
         [ -n "$epub_cover" ] && EPUB_CMD="$EPUB_CMD --epub-cover-image=\"$epub_cover\""
 
         # Add bibliography support for EPUB
-        if [ -n "$ARG_BIBLIOGRAPHY" ]; then
-            local bib_path=""
+        local epub_bib_temp_dir=""
+        local epub_bib_path=""
+        local epub_using_inline_bib=false
+
+        # Check for inline bibliography first (if no external bibliography specified)
+        # Use epub_temp_input since that's the preprocessed file we're working with
+        if [ -z "$ARG_BIBLIOGRAPHY" ] && type has_inline_bibliography &>/dev/null; then
+            if has_inline_bibliography "$epub_temp_input"; then
+                echo -e "${BLUE}Detected inline bibliography in document${NC}"
+                epub_bib_temp_dir=$(mktemp -d)
+
+                if epub_bib_path=$(process_inline_bibliography "$epub_temp_input" "$epub_bib_temp_dir"); then
+                    # Replace epub_temp_input with the content file (without bibliography section)
+                    cp "$epub_bib_temp_dir/content.md" "$epub_temp_input"
+                    epub_using_inline_bib=true
+                    EPUB_CMD="$EPUB_CMD --citeproc --bibliography=\"$epub_bib_path\""
+                    echo -e "${GREEN}Using inline bibliography${NC}"
+                else
+                    echo -e "${YELLOW}Warning: Could not process inline bibliography${NC}"
+                    rm -rf "$epub_bib_temp_dir"
+                    epub_bib_temp_dir=""
+                fi
+            fi
+        fi
+
+        # Handle external bibliography file (if specified and not using inline)
+        if [ -n "$ARG_BIBLIOGRAPHY" ] && [ "$epub_using_inline_bib" = false ]; then
+            local external_bib_path=""
             if [ -f "$ARG_BIBLIOGRAPHY" ]; then
-                bib_path=$(realpath "$ARG_BIBLIOGRAPHY")
+                external_bib_path=$(realpath "$ARG_BIBLIOGRAPHY")
             else
                 local input_dir
                 input_dir=$(dirname "$INPUT_FILE")
                 if [ -f "$input_dir/$ARG_BIBLIOGRAPHY" ]; then
-                    bib_path=$(realpath "$input_dir/$ARG_BIBLIOGRAPHY")
+                    external_bib_path=$(realpath "$input_dir/$ARG_BIBLIOGRAPHY")
                 fi
             fi
-            if [ -n "$bib_path" ]; then
-                EPUB_CMD="$EPUB_CMD --citeproc --bibliography=\"$bib_path\""
-                echo -e "${GREEN}Using bibliography: $bib_path${NC}"
+
+            if [ -n "$external_bib_path" ]; then
+                # Check if it's a simple markdown bibliography
+                if type is_simple_bibliography &>/dev/null && is_simple_bibliography "$external_bib_path"; then
+                    echo -e "${BLUE}Converting simple markdown bibliography...${NC}"
+                    [ -z "$epub_bib_temp_dir" ] && epub_bib_temp_dir=$(mktemp -d)
+
+                    if epub_bib_path=$(process_bibliography_file "$external_bib_path" "$epub_bib_temp_dir"); then
+                        EPUB_CMD="$EPUB_CMD --citeproc --bibliography=\"$epub_bib_path\""
+                        echo -e "${GREEN}Using simple bibliography: $external_bib_path${NC}"
+                    else
+                        echo -e "${YELLOW}Warning: Could not convert simple bibliography${NC}"
+                    fi
+                else
+                    # Traditional .bib or CSL-JSON file
+                    EPUB_CMD="$EPUB_CMD --citeproc --bibliography=\"$external_bib_path\""
+                    echo -e "${GREEN}Using bibliography: $external_bib_path${NC}"
+                fi
             else
                 echo -e "${YELLOW}Warning: Bibliography file '$ARG_BIBLIOGRAPHY' not found${NC}"
             fi
@@ -2722,6 +2765,7 @@ convert() {
         # Cleanup temp files
         rm -f "$epub_temp_input"
         [ -n "$epub_cover_generated" ] && rm -f "$epub_cover_generated"
+        [ -n "$epub_bib_temp_dir" ] && [ -d "$epub_bib_temp_dir" ] && rm -rf "$epub_bib_temp_dir"
 
         if [ $epub_result -eq 0 ]; then
             echo -e "${GREEN}Success! EPUB created as $OUTPUT_FILE${NC}"
@@ -3397,23 +3441,67 @@ EOF
 
     # === BIBLIOGRAPHY & CITATIONS ===
     local -a BIBLIOGRAPHY_VARS=()
-    if [ -n "$ARG_BIBLIOGRAPHY" ]; then
-        local bib_path=""
+    local bib_temp_dir=""
+    local bib_path=""
+    local using_inline_bib=false
+    local processed_input_file="$INPUT_FILE"
+
+    # Check for inline bibliography first (if no external bibliography specified)
+    if [ -z "$ARG_BIBLIOGRAPHY" ] && type has_inline_bibliography &>/dev/null; then
+        if has_inline_bibliography "$INPUT_FILE"; then
+            echo -e "${BLUE}Detected inline bibliography in document${NC}"
+            bib_temp_dir=$(mktemp -d)
+
+            if bib_path=$(process_inline_bibliography "$INPUT_FILE" "$bib_temp_dir"); then
+                # Use the content file without bibliography section
+                processed_input_file="$bib_temp_dir/content.md"
+                using_inline_bib=true
+                BIBLIOGRAPHY_VARS+=("--citeproc")
+                BIBLIOGRAPHY_VARS+=("--bibliography=$bib_path")
+                echo -e "${GREEN}Using inline bibliography (extracted to $bib_path)${NC}"
+            else
+                echo -e "${YELLOW}Warning: Could not process inline bibliography${NC}"
+                rm -rf "$bib_temp_dir"
+                bib_temp_dir=""
+            fi
+        fi
+    fi
+
+    # Handle external bibliography file (if specified and not using inline)
+    if [ -n "$ARG_BIBLIOGRAPHY" ] && [ "$using_inline_bib" = false ]; then
+        local external_bib_path=""
         # Check if bibliography file exists (try absolute path first)
         if [ -f "$ARG_BIBLIOGRAPHY" ]; then
-            bib_path=$(realpath "$ARG_BIBLIOGRAPHY")
+            external_bib_path=$(realpath "$ARG_BIBLIOGRAPHY")
         else
             # Check relative to input file directory
             local input_dir
             input_dir=$(dirname "$INPUT_FILE")
             if [ -f "$input_dir/$ARG_BIBLIOGRAPHY" ]; then
-                bib_path=$(realpath "$input_dir/$ARG_BIBLIOGRAPHY")
+                external_bib_path=$(realpath "$input_dir/$ARG_BIBLIOGRAPHY")
             fi
         fi
-        if [ -n "$bib_path" ]; then
-            BIBLIOGRAPHY_VARS+=("--citeproc")
-            BIBLIOGRAPHY_VARS+=("--bibliography=$bib_path")
-            echo -e "${GREEN}Using bibliography: $bib_path${NC}"
+
+        if [ -n "$external_bib_path" ]; then
+            # Check if it's a simple markdown bibliography
+            if type is_simple_bibliography &>/dev/null && is_simple_bibliography "$external_bib_path"; then
+                echo -e "${BLUE}Converting simple markdown bibliography...${NC}"
+                [ -z "$bib_temp_dir" ] && bib_temp_dir=$(mktemp -d)
+
+                if bib_path=$(process_bibliography_file "$external_bib_path" "$bib_temp_dir"); then
+                    BIBLIOGRAPHY_VARS+=("--citeproc")
+                    BIBLIOGRAPHY_VARS+=("--bibliography=$bib_path")
+                    echo -e "${GREEN}Using simple bibliography: $external_bib_path${NC}"
+                else
+                    echo -e "${YELLOW}Warning: Could not convert simple bibliography${NC}"
+                fi
+            else
+                # Traditional .bib or CSL-JSON file
+                bib_path="$external_bib_path"
+                BIBLIOGRAPHY_VARS+=("--citeproc")
+                BIBLIOGRAPHY_VARS+=("--bibliography=$bib_path")
+                echo -e "${GREEN}Using bibliography: $bib_path${NC}"
+            fi
         else
             echo -e "${YELLOW}Warning: Bibliography file '$ARG_BIBLIOGRAPHY' not found${NC}"
         fi
@@ -3438,7 +3526,7 @@ EOF
     fi
 
     # shellcheck disable=SC2086 # Word splitting is intentional for PANDOC_OPTS/FILTER_OPTION/TOC_OPTION/SECTION_NUMBERING_OPTION
-    if pandoc "$INPUT_FILE" \
+    if pandoc "$processed_input_file" \
         --from markdown \
         --to pdf \
         --output "$OUTPUT_FILE" \
@@ -3463,6 +3551,11 @@ EOF
             echo -e "${GREEN}✓ CJK characters (Chinese, Japanese, Korean) have been properly rendered in the PDF.${NC}"
         fi
 
+        # Clean up bibliography temp directory
+        if [ -n "$bib_temp_dir" ] && [ -d "$bib_temp_dir" ]; then
+            rm -rf "$bib_temp_dir"
+        fi
+
         # Clean up: Remove template.tex file if it was created in the current directory
         if [ -f "$(pwd)/template.tex" ]; then
             echo -e "${BLUE}Cleaning up: Removing template.tex${NC}"
@@ -3484,6 +3577,11 @@ EOF
         return 0
     else
         echo -e "${RED}Error: PDF conversion failed.${NC}"
+
+        # Clean up bibliography temp directory
+        if [ -n "$bib_temp_dir" ] && [ -d "$bib_temp_dir" ]; then
+            rm -rf "$bib_temp_dir"
+        fi
 
         # Restore the original markdown file from backup even if conversion failed
         if [ -f "$BACKUP_FILE" ]; then
@@ -3824,7 +3922,7 @@ help() {
     echo -e "                    ${BLUE}--header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default${NC}"
     echo -e "                    ${BLUE}--epub                Output EPUB format instead of PDF${NC}"
     echo -e "                    ${BLUE}--validate            Validate EPUB with epubcheck (requires epubcheck)${NC}"
-    echo -e "                    ${BLUE}-b, --bibliography FILE  Use bibliography file (.bib, .json, .yaml)${NC}"
+    echo -e "                    ${BLUE}-b, --bibliography FILE  Use bibliography file (.bib, .json, .yaml, .md)${NC}"
     echo -e "                    ${BLUE}--csl FILE            Use CSL citation style file${NC}"
     echo -e "                    ${BLUE}--template FILE       Use custom LaTeX template for PDF${NC}"
     echo -e "                    ${BLUE}--epub-css FILE       Use custom CSS for EPUB${NC}"

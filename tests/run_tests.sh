@@ -1312,6 +1312,142 @@ EOF
     rm -f "$test_md" "$test_epub"
 }
 
+# Test inline bibliography in PDF
+test_inline_bibliography_pdf() {
+    test_start "PDF with inline bibliography (auto-detected)"
+
+    local test_md="$TEST_OUTPUT/test_inline_bib.md"
+    local test_pdf="$TEST_OUTPUT/test_inline_bib.pdf"
+
+    cat > "$test_md" << 'EOF'
+---
+title: Inline Bibliography Test
+author: Test Author
+date: 2026-01-24
+---
+
+# Introduction
+
+This paper uses inline bibliography with auto-generated keys.
+
+Smith's work is foundational [@smith2024].
+
+Jones extended this [@jones2023].
+
+# References
+
+- Author: Smith, John
+  Title: A Foundational Work
+  Publisher: Academic Press
+  Year: 2024
+
+- Author: Jones, Mary
+  Title: Extensions and Applications
+  Journal: Journal of Research
+  Year: 2023
+EOF
+
+    rm -f "$test_pdf"
+    if $MDTEXPDF convert -t "Inline Bibliography Test" -a "Test Author" "$test_md" "$test_pdf" > /dev/null 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF with inline bibliography not created"
+        fi
+    else
+        test_fail "PDF inline bibliography conversion failed"
+    fi
+
+    rm -f "$test_md" "$test_pdf"
+}
+
+# Test inline bibliography in EPUB
+test_inline_bibliography_epub() {
+    test_start "EPUB with inline bibliography (auto-detected)"
+
+    local test_md="$TEST_OUTPUT/test_inline_bib_epub.md"
+    local test_epub="$TEST_OUTPUT/test_inline_bib_epub.epub"
+
+    cat > "$test_md" << 'EOF'
+---
+title: Inline Bibliography EPUB Test
+author: Test Author
+---
+
+# Chapter One
+
+Inline bibliography works in EPUB too [@smith2024].
+
+# References
+
+- Author: Smith, John
+  Title: A Great Work
+  Year: 2024
+EOF
+
+    rm -f "$test_epub"
+    if $MDTEXPDF convert --epub -t "Inline Bibliography EPUB" -a "Test Author" "$test_md" "$test_epub" > /dev/null 2>&1; then
+        if assert_file_exists "$test_epub"; then
+            test_pass
+        else
+            test_fail "EPUB with inline bibliography not created"
+        fi
+    else
+        test_fail "EPUB inline bibliography conversion failed"
+    fi
+
+    rm -f "$test_md" "$test_epub"
+}
+
+# Test simple markdown bibliography file
+test_simple_bibliography_file() {
+    test_start "PDF with simple markdown bibliography file"
+
+    local test_md="$TEST_OUTPUT/test_simple_bib.md"
+    local test_pdf="$TEST_OUTPUT/test_simple_bib.pdf"
+    local test_bib="$TEST_OUTPUT/simple_refs.md"
+
+    # Create simple bibliography file
+    cat > "$test_bib" << 'EOF'
+- Author: Einstein, Albert
+  Title: On the Electrodynamics of Moving Bodies
+  Journal: Annalen der Physik
+  Year: 1905
+
+- Key: knuth-taocp
+  Author: Knuth, Donald E.
+  Title: The Art of Computer Programming
+  Publisher: Addison-Wesley
+  Year: 1968
+EOF
+
+    cat > "$test_md" << 'EOF'
+---
+title: Simple Bibliography File Test
+author: Test Author
+---
+
+# Introduction
+
+Einstein's work [@einstein1905] and Knuth's classic [@knuth-taocp] are referenced.
+
+# References
+EOF
+
+    rm -f "$test_pdf"
+    if $MDTEXPDF convert --bibliography "$test_bib" -t "Simple Bib Test" -a "Test Author" "$test_md" "$test_pdf" > /dev/null 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF with simple bibliography file not created"
+        fi
+    else
+        test_fail "Simple bibliography file conversion failed"
+    fi
+
+    rm -f "$test_md" "$test_pdf" "$test_bib"
+}
+
 # Test custom LaTeX template
 test_custom_latex_template() {
     test_start "PDF with custom LaTeX template"
@@ -1610,6 +1746,9 @@ test_validate_flag
 echo -e "\n${YELLOW}--- Bibliography Tests ---${NC}\n"
 test_bibliography_pdf
 test_bibliography_epub
+test_inline_bibliography_pdf
+test_inline_bibliography_epub
+test_simple_bibliography_file
 
 echo -e "\n${YELLOW}--- Custom Template Tests ---${NC}\n"
 test_custom_latex_template

@@ -657,6 +657,139 @@ test_bibliography_fixture() {
     rm -f "$test_json"
 }
 
+test_bibliography_has_inline_function() {
+    test_start "bibliography.sh defines has_inline_bibliography function"
+    (
+        source "$LIB_DIR/bibliography.sh"
+        type has_inline_bibliography &>/dev/null
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "has_inline_bibliography not defined"
+    fi
+}
+
+test_bibliography_inline_detection() {
+    test_start "has_inline_bibliography detects inline references"
+
+    local test_md="$TEST_OUTPUT/test_inline_detect.md"
+
+    cat > "$test_md" << 'EOF'
+---
+title: Test
+---
+
+# Introduction
+
+Some text [@smith2024].
+
+# References
+
+- Author: Smith, John
+  Title: A Book
+  Year: 2024
+EOF
+
+    (
+        source "$LIB_DIR/bibliography.sh"
+        has_inline_bibliography "$test_md"
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "Failed to detect inline bibliography"
+    fi
+
+    rm -f "$test_md"
+}
+
+test_bibliography_extract_function() {
+    test_start "bibliography.sh defines extract_inline_bibliography function"
+    (
+        source "$LIB_DIR/bibliography.sh"
+        type extract_inline_bibliography &>/dev/null
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "extract_inline_bibliography not defined"
+    fi
+}
+
+test_bibliography_inline_extraction() {
+    test_start "extract_inline_bibliography separates content and bibliography"
+
+    local test_md="$TEST_OUTPUT/test_inline_extract.md"
+    local test_bib="$TEST_OUTPUT/test_extracted_bib.md"
+    local test_content="$TEST_OUTPUT/test_extracted_content.md"
+
+    cat > "$test_md" << 'EOF'
+---
+title: Test
+---
+
+# Chapter 1
+
+Content here [@smith2024].
+
+# References
+
+- Author: Smith, John
+  Title: A Book
+  Year: 2024
+EOF
+
+    (
+        source "$LIB_DIR/bibliography.sh"
+        extract_inline_bibliography "$test_md" "$test_bib" "$test_content" && \
+        grep -q "Author: Smith" "$test_bib" && \
+        grep -q "Chapter 1" "$test_content" && \
+        ! grep -q "Author: Smith" "$test_content"
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "Inline extraction failed"
+    fi
+
+    rm -f "$test_md" "$test_bib" "$test_content"
+}
+
+test_bibliography_process_inline() {
+    test_start "process_inline_bibliography produces CSL-JSON"
+
+    local test_md="$TEST_OUTPUT/test_process_inline.md"
+
+    cat > "$test_md" << 'EOF'
+# Intro
+
+Text [@smith2024].
+
+# References
+
+- Author: Smith, John
+  Title: A Book
+  Year: 2024
+EOF
+
+    (
+        source "$LIB_DIR/bibliography.sh"
+        local json_path
+        json_path=$(process_inline_bibliography "$test_md" "$TEST_OUTPUT")
+        [ -n "$json_path" ] && \
+        [ -f "$json_path" ] && \
+        grep -q '"id":"smith2024"' "$json_path"
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "process_inline_bibliography failed"
+    fi
+
+    rm -f "$test_md" "$TEST_OUTPUT/bibliography.json" "$TEST_OUTPUT/extracted_bib.md" "$TEST_OUTPUT/content.md"
+}
+
 # =============================================================================
 # Module Interaction Tests
 # =============================================================================
@@ -761,6 +894,11 @@ test_bibliography_detection
 test_bibliography_convert_function
 test_bibliography_conversion
 test_bibliography_fixture
+test_bibliography_has_inline_function
+test_bibliography_inline_detection
+test_bibliography_extract_function
+test_bibliography_inline_extraction
+test_bibliography_process_inline
 
 echo -e "\n${YELLOW}--- Module Interaction Tests ---${NC}\n"
 test_all_modules_load_together
