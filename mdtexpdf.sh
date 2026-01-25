@@ -2447,20 +2447,33 @@ convert() {
                 -fill "rgba(0,0,0,$cover_overlay)" -draw "rectangle 0,0,$img_width,$img_height" \
                 "$temp_base"
 
-            # 2. Create title image with word wrap
+            # 2. Create title image with word wrap (using pango for proper word boundaries)
             local temp_title
             temp_title=$(mktemp --suffix=.png)
+            # Use pango markup for proper word wrapping (no mid-word breaks)
+            /usr/bin/convert -background none -fill "$cover_title_color" \
+                -font DejaVu-Serif-Bold -pointsize $title_size \
+                -size ${text_width}x -gravity Center pango:"<span font_weight='bold'>$cover_title</span>" \
+                "$temp_title" 2>/dev/null || \
             /usr/bin/convert -background none -fill "$cover_title_color" \
                 -font DejaVu-Serif-Bold -pointsize $title_size \
                 -size ${text_width}x -gravity Center caption:"$cover_title" \
                 "$temp_title"
 
+            # Get actual rendered title height for proper subtitle positioning
+            local title_actual_height
+            title_actual_height=$(identify -format "%h" "$temp_title" 2>/dev/null)
+
             # 3. Create subtitle image with word wrap (if present)
-            # Use narrower width (60%) to encourage 2-line wrapping like PDF
-            local subtitle_width=$((img_width * 60 / 100))
+            local subtitle_width=$((img_width * 80 / 100))
             local temp_subtitle=""
             if [ -n "$cover_subtitle" ]; then
                 temp_subtitle=$(mktemp --suffix=.png)
+                # Use pango markup for proper word wrapping (no mid-word breaks)
+                /usr/bin/convert -background none -fill "$cover_title_color" \
+                    -font DejaVu-Serif-Italic -pointsize $subtitle_size \
+                    -size ${subtitle_width}x -gravity Center pango:"<span font_style='italic'>$cover_subtitle</span>" \
+                    "$temp_subtitle" 2>/dev/null || \
                 /usr/bin/convert -background none -fill "$cover_title_color" \
                     -font DejaVu-Serif-Italic -pointsize $subtitle_size \
                     -size ${subtitle_width}x -gravity Center caption:"$cover_subtitle" \
@@ -2470,6 +2483,10 @@ convert() {
             # 4. Create author image
             local temp_author
             temp_author=$(mktemp --suffix=.png)
+            /usr/bin/convert -background none -fill "$cover_title_color" \
+                -font DejaVu-Serif -pointsize $author_size \
+                -size ${text_width}x -gravity Center pango:"$cover_author" \
+                "$temp_author" 2>/dev/null || \
             /usr/bin/convert -background none -fill "$cover_title_color" \
                 -font DejaVu-Serif -pointsize $author_size \
                 -size ${text_width}x -gravity Center caption:"$cover_author" \
@@ -2482,9 +2499,11 @@ convert() {
                 "$temp_author" -gravity South -geometry +0+$((img_height / 10)) -composite \
                 "$epub_cover_generated"
 
-            # 5b. Add subtitle if present (between title and center)
+            # 5b. Add subtitle if present (positioned based on actual title height)
             if [ -n "$temp_subtitle" ]; then
-                local subtitle_y=$((img_height / 8 + title_size + 40))
+                # Calculate gap as percentage of image height (scales with image size)
+                local title_subtitle_gap=$((img_height / 40))
+                local subtitle_y=$((title_y + title_actual_height + title_subtitle_gap))
                 /usr/bin/convert "$epub_cover_generated" \
                     "$temp_subtitle" -gravity North -geometry +0+${subtitle_y} -composite \
                     "$epub_cover_generated"
