@@ -267,6 +267,7 @@ BOOK_CMDS_EOF
     \\usepackage[version=4]{mhchem}
     \\usepackage{framed}   % For snugshade environment
     \\usepackage[titles]{tocloft}  % For TOC customization (titles option for titlesec compatibility)
+    \\usepackage{hyphenat}  % For \\nohyphens command (disable hyphenation in titles)
 
     % TikZ for cover pages (full-bleed images with text overlay)
     \\usepackage{tikz}
@@ -883,10 +884,10 @@ $numbering_commands
   \$if(cover_overlay_opacity)\$
   \\fill[black,opacity=\$cover_overlay_opacity\$] (current page.south west) rectangle (current page.north east);
   \$endif\$
-  % Title text - centered
+  % Title text - centered (hyphenation disabled for titles)
   \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\Huge\\bfseries,align=center,text width=0.8\\paperwidth] at (current page.center) {
-    \$title\$
-    \$if(cover_subtitle_show)\$\$if(subtitle)\$\\\\[0.5cm]{\\LARGE\\itshape \$subtitle\$}\$endif\$\$endif\$
+    \\nohyphens{\$title\$}
+    \$if(cover_subtitle_show)\$\$if(subtitle)\$\\\\[0.5cm]{\\LARGE\\itshape \\nohyphens{\$subtitle\$}}\$endif\$\$endif\$
   };
   % Author at bottom (if cover_author_position is set)
   \$if(cover_author_position)\$
@@ -906,7 +907,7 @@ $numbering_commands
 \\thispagestyle{frontmatter}
 \\begin{center}
 \\vspace*{\\fill}
-{\\LARGE \\textbf{\$title\$}}
+{\\LARGE \\textbf{\\nohyphens{\$title\$}}}
 \\vspace*{\\fill}
 \\end{center}
 \\cleardoublepage
@@ -921,9 +922,9 @@ $numbering_commands
 \\thispagestyle{titlepage}
 \\begin{center}
 \\vspace*{\\fill}
-{\\Huge \\textbf{\$title\$}}\\\\[0.5cm]
+{\\Huge \\textbf{\\nohyphens{\$title\$}}}\\\\[0.5cm]
 \$if(subtitle)\$
-{\\LARGE \\itshape \$subtitle\$}\\\\[1.5cm]
+{\\LARGE \\itshape \\nohyphens{\$subtitle\$}}\\\\[1.5cm]
 \$endif\$
 \$if(author)\$
 {\\large \$author\$ \$if(email)\$ --- \$email\$ \$endif\$}\\\\[1cm]
@@ -949,9 +950,9 @@ $numbering_commands
 \\thispagestyle{frontmatter}
 \\vspace*{\\fill}
 \\begin{flushleft}
-\\textbf{\$title\$}\\\\[0.3cm]
+\\textbf{\\nohyphens{\$title\$}}\\\\[0.3cm]
 \$if(subtitle)\$
-\\textit{\$subtitle\$}\\\\[0.5cm]
+\\textit{\\nohyphens{\$subtitle\$}}\\\\[0.5cm]
 \$endif\$
 \$if(author)\$
 by \$author\$\\\\[0.5cm]
@@ -2447,14 +2448,9 @@ convert() {
                 -fill "rgba(0,0,0,$cover_overlay)" -draw "rectangle 0,0,$img_width,$img_height" \
                 "$temp_base"
 
-            # 2. Create title image with word wrap (using pango for proper word boundaries)
+            # 2. Create title image with word wrap (caption: wraps at word boundaries without hyphenation)
             local temp_title
             temp_title=$(mktemp --suffix=.png)
-            # Use pango markup for proper word wrapping (no mid-word breaks)
-            /usr/bin/convert -background none -fill "$cover_title_color" \
-                -font DejaVu-Serif-Bold -pointsize $title_size \
-                -size ${text_width}x -gravity Center pango:"<span font_weight='bold'>$cover_title</span>" \
-                "$temp_title" 2>/dev/null || \
             /usr/bin/convert -background none -fill "$cover_title_color" \
                 -font DejaVu-Serif-Bold -pointsize $title_size \
                 -size ${text_width}x -gravity Center caption:"$cover_title" \
@@ -2469,11 +2465,7 @@ convert() {
             local temp_subtitle=""
             if [ -n "$cover_subtitle" ]; then
                 temp_subtitle=$(mktemp --suffix=.png)
-                # Use pango markup for proper word wrapping (no mid-word breaks)
-                /usr/bin/convert -background none -fill "$cover_title_color" \
-                    -font DejaVu-Serif-Italic -pointsize $subtitle_size \
-                    -size ${subtitle_width}x -gravity Center pango:"<span font_style='italic'>$cover_subtitle</span>" \
-                    "$temp_subtitle" 2>/dev/null || \
+                # caption: wraps at word boundaries without hyphenation
                 /usr/bin/convert -background none -fill "$cover_title_color" \
                     -font DejaVu-Serif-Italic -pointsize $subtitle_size \
                     -size ${subtitle_width}x -gravity Center caption:"$cover_subtitle" \
@@ -2483,10 +2475,6 @@ convert() {
             # 4. Create author image
             local temp_author
             temp_author=$(mktemp --suffix=.png)
-            /usr/bin/convert -background none -fill "$cover_title_color" \
-                -font DejaVu-Serif -pointsize $author_size \
-                -size ${text_width}x -gravity Center pango:"$cover_author" \
-                "$temp_author" 2>/dev/null || \
             /usr/bin/convert -background none -fill "$cover_title_color" \
                 -font DejaVu-Serif -pointsize $author_size \
                 -size ${text_width}x -gravity Center caption:"$cover_author" \
