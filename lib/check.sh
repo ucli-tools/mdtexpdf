@@ -29,18 +29,26 @@ check_prerequisites() {
     echo -e "\n${PURPLE}Checking for LaTeX engines...${NC}"
     local latex_found=false
 
+    # Initialize engine availability flags (global)
+    LUALATEX_AVAILABLE=false
+    XELATEX_AVAILABLE=false
+    PDFLATEX_AVAILABLE=false
+
     if command -v lualatex &> /dev/null; then
         echo -e "${GREEN}✓ lualatex is installed${NC}"
+        LUALATEX_AVAILABLE=true
         latex_found=true
     fi
 
     if command -v xelatex &> /dev/null; then
         echo -e "${GREEN}✓ xelatex is installed${NC}"
+        XELATEX_AVAILABLE=true
         latex_found=true
     fi
 
     if command -v pdflatex &> /dev/null; then
         echo -e "${GREEN}✓ pdflatex is installed${NC}"
+        PDFLATEX_AVAILABLE=true
         latex_found=true
     fi
 

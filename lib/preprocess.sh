@@ -164,47 +164,4 @@ detect_cover_image() {
     return 1
 }
 
-# =============================================================================
-# LaTeX Engine Selection
-# =============================================================================
-
-# Select appropriate PDF engine based on document content
-# Sets PDF_ENGINE global variable
-select_pdf_engine() {
-    local input_file="$1"
-
-    echo -e "${YELLOW}Analyzing document content for Unicode character requirements...${NC}"
-
-    if detect_unicode_characters "$input_file"; then
-        echo -e "${YELLOW}Unicode characters detected that require advanced LaTeX engine support${NC}"
-        # Prioritize Unicode-capable engines - XeLaTeX with xeCJK for CJK support
-        if [ "$XELATEX_AVAILABLE" = true ]; then
-            PDF_ENGINE="xelatex"
-            echo -e "${GREEN}Selected XeLaTeX engine for Unicode support${NC}"
-            echo -e "${BLUE}Note: CJK characters (Chinese, Japanese, Korean) will be handled automatically by xeCJK${NC}"
-            echo -e "${BLUE}Some font fallback warnings may appear during compilation, but characters will render correctly.${NC}"
-        elif [ "$LUALATEX_AVAILABLE" = true ]; then
-            PDF_ENGINE="lualatex"
-            echo -e "${GREEN}Selected LuaLaTeX engine for Unicode support${NC}"
-        elif [ "$PDFLATEX_AVAILABLE" = true ]; then
-            PDF_ENGINE="pdflatex"
-            echo -e "${YELLOW}Warning: Using pdfLaTeX with limited Unicode support. Some characters may not render correctly.${NC}"
-        else
-            echo -e "${RED}Error: No LaTeX engine available for Unicode content${NC}"
-            return 1
-        fi
-    else
-        echo -e "${GREEN}No Unicode characters requiring special handling detected${NC}"
-        # Use default engine selection (pdfLaTeX preferred for compatibility)
-        if [ "$PDFLATEX_AVAILABLE" = true ]; then
-            PDF_ENGINE="pdflatex"
-        elif [ "$XELATEX_AVAILABLE" = true ]; then
-            PDF_ENGINE="xelatex"
-        elif [ "$LUALATEX_AVAILABLE" = true ]; then
-            PDF_ENGINE="lualatex"
-        fi
-        echo -e "Using PDF engine: ${GREEN}$PDF_ENGINE${NC}"
-    fi
-
-    return 0
-}
+# Note: select_pdf_engine() is now in lib/pdf.sh
