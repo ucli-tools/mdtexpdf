@@ -793,6 +793,192 @@ EOF
 }
 
 # =============================================================================
+# Template Module Tests
+# =============================================================================
+
+test_template_loads() {
+    test_start "template.sh loads without error"
+    (
+        source "$LIB_DIR/template.sh"
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "template.sh failed to load"
+    fi
+}
+
+test_template_create_function() {
+    test_start "template.sh defines create_template_file function"
+    (
+        source "$LIB_DIR/template.sh"
+        type create_template_file &>/dev/null
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "create_template_file not defined"
+    fi
+}
+
+test_template_creation() {
+    test_start "create_template_file generates valid LaTeX template"
+
+    local test_template="$TEST_OUTPUT/test_template.tex"
+
+    (
+        # Set required globals
+        PDF_ENGINE="pdflatex"
+        ARG_TOC_DEPTH=2
+
+        source "$LIB_DIR/template.sh"
+        create_template_file "$test_template" "Footer" "Test Title" "Test Author" "" "true" "article" "default"
+
+        # Verify template has expected content
+        [ -f "$test_template" ] && \
+        grep -q '\\documentclass' "$test_template" && \
+        grep -q '\\begin{document}' "$test_template" && \
+        grep -q '\\end{document}' "$test_template" && \
+        grep -q '\\usepackage{geometry}' "$test_template"
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "Template creation failed"
+    fi
+
+    rm -f "$test_template"
+}
+
+test_template_book_format() {
+    test_start "create_template_file supports book format"
+
+    local test_template="$TEST_OUTPUT/test_book_template.tex"
+
+    (
+        PDF_ENGINE="xelatex"
+        ARG_TOC_DEPTH=3
+
+        source "$LIB_DIR/template.sh"
+        create_template_file "$test_template" "" "Book Title" "Author" "" "true" "book" "all"
+
+        [ -f "$test_template" ] && \
+        grep -q '{book}' "$test_template" && \
+        grep -q 'titlesec' "$test_template"
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "Book format template creation failed"
+    fi
+
+    rm -f "$test_template"
+}
+
+# =============================================================================
+# PDF Module Tests
+# =============================================================================
+
+test_pdf_loads() {
+    test_start "pdf.sh loads without error"
+    (
+        source "$LIB_DIR/pdf.sh"
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "pdf.sh failed to load"
+    fi
+}
+
+test_pdf_detect_unicode_function() {
+    test_start "pdf.sh defines detect_unicode_characters function"
+    (
+        source "$LIB_DIR/pdf.sh"
+        type detect_unicode_characters &>/dev/null
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "detect_unicode_characters not defined"
+    fi
+}
+
+test_pdf_detect_cover_function() {
+    test_start "pdf.sh defines detect_cover_image function"
+    (
+        source "$LIB_DIR/pdf.sh"
+        type detect_cover_image &>/dev/null
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "detect_cover_image not defined"
+    fi
+}
+
+test_pdf_truncate_address_function() {
+    test_start "pdf.sh defines truncate_address function"
+    (
+        source "$LIB_DIR/pdf.sh"
+        type truncate_address &>/dev/null
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "truncate_address not defined"
+    fi
+}
+
+test_pdf_truncate_address_output() {
+    test_start "truncate_address truncates long addresses correctly"
+    (
+        source "$LIB_DIR/pdf.sh"
+
+        local result1 result2
+
+        # Long address should be truncated
+        result1=$(truncate_address "0x1234567890abcdef1234567890abcdef12345678" 4)
+        [ "$result1" = "0x12...5678" ] || exit 1
+
+        # Short address should not be truncated
+        result2=$(truncate_address "short" 4)
+        [ "$result2" = "short" ] || exit 1
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "truncate_address output incorrect"
+    fi
+}
+
+test_pdf_find_lua_filter_function() {
+    test_start "pdf.sh defines find_lua_filter function"
+    (
+        source "$LIB_DIR/pdf.sh"
+        type find_lua_filter &>/dev/null
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "find_lua_filter not defined"
+    fi
+}
+
+test_pdf_cleanup_function() {
+    test_start "pdf.sh defines cleanup_pdf_generation function"
+    (
+        source "$LIB_DIR/pdf.sh"
+        type cleanup_pdf_generation &>/dev/null
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "cleanup_pdf_generation not defined"
+    fi
+}
+
+# =============================================================================
 # Module Interaction Tests
 # =============================================================================
 
@@ -805,13 +991,17 @@ test_all_modules_load_together() {
         source "$LIB_DIR/preprocess.sh"
         source "$LIB_DIR/epub.sh"
         source "$LIB_DIR/bibliography.sh"
+        source "$LIB_DIR/template.sh"
+        source "$LIB_DIR/pdf.sh"
 
         # Verify key functions from each module are available
         type log_verbose &>/dev/null && \
         type check_prerequisites &>/dev/null && \
         type parse_yaml_metadata &>/dev/null && \
+        type fix_epub_spine_order &>/dev/null && \
+        type create_template_file &>/dev/null && \
         type detect_unicode_characters &>/dev/null && \
-        type fix_epub_spine_order &>/dev/null
+        type detect_cover_image &>/dev/null
     )
     if [ $? -eq 0 ]; then
         test_pass
@@ -901,6 +1091,21 @@ test_bibliography_inline_detection
 test_bibliography_extract_function
 test_bibliography_inline_extraction
 test_bibliography_process_inline
+
+echo -e "\n${YELLOW}--- Template Module Tests ---${NC}\n"
+test_template_loads
+test_template_create_function
+test_template_creation
+test_template_book_format
+
+echo -e "\n${YELLOW}--- PDF Module Tests ---${NC}\n"
+test_pdf_loads
+test_pdf_detect_unicode_function
+test_pdf_detect_cover_function
+test_pdf_truncate_address_function
+test_pdf_truncate_address_output
+test_pdf_find_lua_filter_function
+test_pdf_cleanup_function
 
 echo -e "\n${YELLOW}--- Module Interaction Tests ---${NC}\n"
 test_all_modules_load_together

@@ -37,14 +37,14 @@ We take a quality-first approach, completing each phase thoroughly before moving
   - [x] Cookbook with images
   - [x] Multi-language document
 
-### Phase D: Modularization (6-10 hours) - MOSTLY COMPLETE
-- [ ] D1. Extract `lib/pdf.sh` - PDF generation logic (deferred - large template)
+### Phase D: Modularization (6-10 hours) ✓ COMPLETE
+- [x] D1. Extract `lib/pdf.sh` - PDF generation helpers (Unicode detection, cover detection, cleanup)
 - [x] D2. Extract `lib/epub.sh` - EPUB generation logic (spine reorder, frontmatter, chemistry)
 - [x] D3. Extract `lib/metadata.sh` - YAML/HTML parsing and metadata handling
 - [x] D4. Extract `lib/preprocess.sh` - Markdown preprocessing, Unicode detection
-- [ ] D5. Extract `lib/template.sh` - LaTeX template generation (deferred - 950 lines)
+- [x] D5. Extract `lib/template.sh` - LaTeX template generation (1041 lines)
 - [x] D6. Update main `mdtexpdf.sh` to source modules
-- [x] D7. Make each module independently testable (83 unit tests in tests/test_modules.sh)
+- [x] D7. Make each module independently testable (51 unit tests in tests/test_modules.sh)
 
 ### Phase E: New Features (4-8 hours each) ✓ COMPLETE
 - [x] E1. Bibliography & Citations support
@@ -80,15 +80,18 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] Phase A: Quick Wins - COMPLETE
 - [x] Phase B: Testing & Quality - COMPLETE
 - [x] Phase C: Documentation - COMPLETE
-- [x] Modularization:
+- [x] Modularization (8 modules):
   - [x] `lib/core.sh` - Common functions, logging, utilities
   - [x] `lib/check.sh` - Prerequisites checking
   - [x] `lib/metadata.sh` - YAML/HTML metadata parsing
   - [x] `lib/preprocess.sh` - Markdown preprocessing, Unicode detection
   - [x] `lib/epub.sh` - EPUB helpers (spine reorder, chemistry)
+  - [x] `lib/bibliography.sh` - Simple markdown bibliography format conversion
+  - [x] `lib/pdf.sh` - PDF generation helpers (Unicode detection, cover detection)
+  - [x] `lib/template.sh` - LaTeX template generation (1041 lines)
 - [x] Unicode detection for typographic characters (em-dash, smart quotes, fractions)
 
-- [x] Phase D: Modularization (D1, D5 deferred - template extraction is complex)
+- [x] Phase D: Modularization - COMPLETE (8 lib modules, 51 unit tests)
 - [x] Phase E: New Features - ALL COMPLETE
   - [x] E1: Bibliography & Citations (--bibliography, --csl flags)
   - [x] E2: Index Generation (--index flag, [index:term] markers, Lua filter)
@@ -108,17 +111,17 @@ We take a quality-first approach, completing each phase thoroughly before moving
 
 ### 1. Code Architecture
 
-#### 1.1 Modularization
+#### 1.1 Modularization ✓ COMPLETE
 - [x] `lib/core.sh` - Common functions, color codes, utilities
 - [x] `lib/check.sh` - Prerequisites checking
 - [x] `lib/metadata.sh` - YAML/HTML parsing and metadata handling
 - [x] `lib/preprocess.sh` - Markdown preprocessing, Unicode detection
 - [x] `lib/epub.sh` - EPUB helpers (spine reorder, frontmatter, chemistry)
 - [x] `lib/bibliography.sh` - Simple markdown bibliography format conversion
-- [ ] `lib/pdf.sh` - PDF generation logic (deferred)
-- [ ] `lib/template.sh` - LaTeX template generation (deferred - 950 lines)
+- [x] `lib/pdf.sh` - PDF generation helpers (Unicode detection, cover detection, cleanup)
+- [x] `lib/template.sh` - LaTeX template generation (1041 lines)
 - [x] Main `mdtexpdf.sh` sources modules automatically
-- [x] Each module independently testable
+- [x] Each module independently testable (51 unit tests)
 
 #### 1.2 Configuration
 - [ ] Support `~/.mdtexpdf/config.yaml` for user defaults
@@ -387,7 +390,7 @@ All phases A through E complete in a single comprehensive release:
 - [x] Phase A: Quick Wins - CI badge, error codes, help output
 - [x] Phase B: Testing & Quality - 176 tests, shellcheck, CONTRIBUTING.md
 - [x] Phase C: Documentation - Tutorials, FAQ, troubleshooting, 5 examples
-- [x] Phase D: Modularization - 6 lib modules, unit tests (D1, D5 deferred)
+- [x] Phase D: Modularization - 8 lib modules, 51 unit tests
 - [x] Phase E: New Features - Bibliography, index, templates, validation, multi-file
 - [x] Core PDF/EPUB functionality with cover generation
 - [x] Docker and CI/CD pipeline

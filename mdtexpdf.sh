@@ -21,6 +21,8 @@ if [ -d "$SCRIPT_DIR/lib" ]; then
     [ -f "$SCRIPT_DIR/lib/preprocess.sh" ] && source "$SCRIPT_DIR/lib/preprocess.sh"
     [ -f "$SCRIPT_DIR/lib/epub.sh" ] && source "$SCRIPT_DIR/lib/epub.sh"
     [ -f "$SCRIPT_DIR/lib/bibliography.sh" ] && source "$SCRIPT_DIR/lib/bibliography.sh"
+    [ -f "$SCRIPT_DIR/lib/template.sh" ] && source "$SCRIPT_DIR/lib/template.sh"
+    [ -f "$SCRIPT_DIR/lib/pdf.sh" ] && source "$SCRIPT_DIR/lib/pdf.sh"
 fi
 
 # =============================================================================
