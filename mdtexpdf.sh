@@ -2457,8 +2457,13 @@ convert() {
                 "$temp_base"
 
             # 2. Create title image with word wrap (caption: wraps at word boundaries without hyphenation)
+            # Use Latin Modern Roman (same as PDF) for consistent look, fallback to DejaVu
             local temp_title
             temp_title=$(mktemp --suffix=.png)
+            /usr/bin/convert -background none -fill "$cover_title_color" \
+                -font LMRoman10-Bold -pointsize $title_size \
+                -size ${text_width}x -gravity Center caption:"$cover_title" \
+                "$temp_title" 2>/dev/null || \
             /usr/bin/convert -background none -fill "$cover_title_color" \
                 -font DejaVu-Serif-Bold -pointsize $title_size \
                 -size ${text_width}x -gravity Center caption:"$cover_title" \
@@ -2474,6 +2479,11 @@ convert() {
             if [ -n "$cover_subtitle" ]; then
                 temp_subtitle=$(mktemp --suffix=.png)
                 # caption: wraps at word boundaries without hyphenation
+                # Use Latin Modern Roman Italic for consistent look, fallback to DejaVu
+                /usr/bin/convert -background none -fill "$cover_title_color" \
+                    -font LMRoman10-Italic -pointsize $subtitle_size \
+                    -size ${subtitle_width}x -gravity Center caption:"$cover_subtitle" \
+                    "$temp_subtitle" 2>/dev/null || \
                 /usr/bin/convert -background none -fill "$cover_title_color" \
                     -font DejaVu-Serif-Italic -pointsize $subtitle_size \
                     -size ${subtitle_width}x -gravity Center caption:"$cover_subtitle" \
@@ -2481,8 +2491,13 @@ convert() {
             fi
 
             # 4. Create author image
+            # Use Latin Modern Roman Regular for consistent look, fallback to DejaVu
             local temp_author
             temp_author=$(mktemp --suffix=.png)
+            /usr/bin/convert -background none -fill "$cover_title_color" \
+                -font LMRoman10-Regular -pointsize $author_size \
+                -size ${text_width}x -gravity Center caption:"$cover_author" \
+                "$temp_author" 2>/dev/null || \
             /usr/bin/convert -background none -fill "$cover_title_color" \
                 -font DejaVu-Serif -pointsize $author_size \
                 -size ${text_width}x -gravity Center caption:"$cover_author" \
