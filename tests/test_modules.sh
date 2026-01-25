@@ -624,11 +624,11 @@ EOF
 }
 
 test_bibliography_fixture() {
-    test_start "convert_simple_bibliography handles The Example Book fixture"
+    test_start "convert_simple_bibliography handles bibliography fixture"
 
     # Save paths before sourcing (bibliography.sh may override SCRIPT_DIR)
     local fixture="$SCRIPT_DIR/fixtures/simple_bibliography.md"
-    local test_json="$TEST_OUTPUT/blue_skies_bib.json"
+    local test_json="$TEST_OUTPUT/example_bib.json"
 
     (
         source "$LIB_DIR/bibliography.sh"
@@ -651,7 +651,7 @@ test_bibliography_fixture() {
     if [ $? -eq 0 ]; then
         test_pass
     else
-        test_fail "The Example Book fixture conversion failed"
+        test_fail "Bibliography fixture conversion failed"
     fi
 
     rm -f "$test_json"

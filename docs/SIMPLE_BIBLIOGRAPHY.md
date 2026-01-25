@@ -26,35 +26,35 @@ author: "Jane Smith"
 
 # Introduction
 
-Research methodology has a long history [@smith1950].
+Academic publishing has evolved significantly [@smith2020].
 
-# The Science
+# The Research
 
-Recent studies confirm these effects [@research2018; @report2024].
+Recent studies confirm these effects [@jones2021; @brown2023].
 
 # Conclusion
 
-States are now taking action [@news2025].
+New frameworks are emerging [@academic2024].
 
 # References
 
-- Author: Schaefer, Vincent J. and Vonnegut, Bernard
-  Title: Method of Crystal Formation and Precipitation
-  Year: 1950
+- Author: Smith, John and Williams, Mary
+  Title: Evolution of Academic Publishing
+  Year: 2020
 
-- Key: report2024
-  Author: U.S. Government Accountability Office
-  Title: Data Analysis: Science and Policy Considerations
+- Key: jones2021
+  Author: Jones, Robert
+  Title: Research Methodologies in Modern Academia
+  Year: 2021
+
+- Author: Brown, Alice and Chen, Wei
+  Title: Statistical Methods for Literature Review
+  Year: 2023
+
+- Key: academic2024
+  Author: Academic Press
+  Title: Publishing Standards and Guidelines
   Year: 2024
-
-- Author: Jiang, Shu-Ye and Ma, Ali and Ramachandran, Srinivasan
-  Title: Negative Air Ions and Their Effects
-  Year: 2018
-
-- Key: news2025
-  Author: Florida Phoenix
-  Title: Florida Senate approves ban on scientific methods
-  Year: 2025
 ```
 
 **That's it!** mdtexpdf automatically:
@@ -283,42 +283,42 @@ The References section is automatically formatted:
 ### Technical Report
 ```markdown
 - Key: report2024
-  Author: U.S. Government Accountability Office
-  Title: Data Analysis: Science and Policy Considerations
+  Author: Research Institute
+  Title: Annual Research Summary
   Type: report
-  Number: GAO-25-107328
+  Number: RI-2024-001
   Year: 2024
-  URL: https://www.gao.gov/products/gao-25-107328
+  URL: https://example.org/reports/ri-2024-001
 ```
 
 ### Patent
 ```markdown
-- Author: Schaefer, Vincent J. and Vonnegut, Bernard
-  Title: Method of Crystal Formation and Precipitation
+- Author: Edison, Thomas A.
+  Title: Electric Lamp
   Type: patent
-  Number: U.S. Patent 2,527,230
-  Year: 1950
+  Number: U.S. Patent 223,898
+  Year: 1880
 ```
 
 ### Web Page
 ```markdown
 - Key: wiki:example
   Author: Wikipedia contributors
-  Title: Data analysis
+  Title: Example Topic
   Type: web
   Year: 2024
-  URL: https://en.wikipedia.org/wiki/Cloud_seeding
+  URL: https://en.wikipedia.org/wiki/Example
   Note: Accessed January 2026
 ```
 
 ### News Article
 ```markdown
 - Key: news2025
-  Author: Florida Phoenix
-  Title: Florida Senate approves ban on scientific methods
+  Author: News Outlet
+  Title: Important Development in Field
   Type: article
   Year: 2025
-  URL: https://floridaphoenix.com/2025/04/03/...
+  URL: https://example.com/news/article
 ```
 
 ---
@@ -373,24 +373,24 @@ When no `Key:` field is provided:
 
 ### BibTeX (Traditional)
 ```bibtex
-@article{research2018,
-  author = {Jiang, Shu-Ye and Ma, Ali},
-  title = {Negative Air Ions},
-  journal = {Int. J. Mol. Sci.},
-  year = {2018},
-  volume = {19},
-  pages = {2966}
+@article{jones2021,
+  author = {Jones, Robert and Smith, Alice},
+  title = {Research Methodologies},
+  journal = {Journal of Research},
+  year = {2021},
+  volume = {15},
+  pages = {100--120}
 }
 ```
 
 ### Simple Bibliography (New)
 ```markdown
-- Author: Jiang, Shu-Ye and Ma, Ali
-  Title: Negative Air Ions
-  Journal: Int. J. Mol. Sci.
-  Year: 2018
-  Volume: 19
-  Pages: 2966
+- Author: Jones, Robert and Smith, Alice
+  Title: Research Methodologies
+  Journal: Journal of Research
+  Year: 2021
+  Volume: 15
+  Pages: 100--120
 ```
 
 **Advantages of Simple Bibliography:**
@@ -440,7 +440,7 @@ If found, the section is extracted, converted to CSL-JSON, and processed.
 
 1. **Use inline for simplicity** - One file, everything together
 
-2. **Use custom keys for institutions** - `Key: report2024` is better than `usgovernmentaccountabilityoffice2024`
+2. **Use custom keys for institutions** - `Key: report2024` is better than `researchinstituteannualreport2024`
 
 3. **Put Key first** - Makes custom keys visible when scanning:
    ```markdown

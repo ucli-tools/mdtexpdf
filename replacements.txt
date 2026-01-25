@@ -1,0 +1,42 @@
+***REMOVED***
+new_text (literal string replacement)==>new_text (literal string replacement)
+***REMOVED***
+
+***REMOVED***
+The Example Book==>The Example Book
+the example book==>the example book
+THE EXAMPLE BOOK==>THE EXAMPLE BOOK
+
+***REMOVED***
+Jane Smith==>Jane Smith
+jane smith==>jane smith
+JANE SMITH==>JANE SMITH
+Smith==>Smith
+
+***REMOVED***
+Example Press==>Example Press
+example press==>example press
+EXAMPLE PRESS==>EXAMPLE PRESS
+Example==>Example
+
+***REMOVED***
+research methodology==>research methodology
+Research methodology==>Research methodology
+Research Methodology==>Research Methodology
+RESEARCH METHODOLOGY==>RESEARCH METHODOLOGY
+
+data analysis==>data analysis
+Data analysis==>Data analysis
+Data Analysis==>Data Analysis
+DATA ANALYSIS==>DATA ANALYSIS
+
+scientific methods==>scientific methods
+Scientific methods==>Scientific methods
+SCIENTIFIC METHODS==>SCIENTIFIC METHODS
+
+***REMOVED***
+smith1950==>smith1950
+report2024==>report2024
+research2018==>research2018
+news2025==>news2025
+wiki:example==>wiki:example

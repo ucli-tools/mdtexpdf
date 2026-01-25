@@ -150,7 +150,7 @@ narrator: "AI Narrator"             # Narrator name for metadata
 | Field | Type | Description | Example |
 |-------|------|-------------|---------|
 | `title` | string | Document title | "Bell's Theorem Analysis" |
-| `author` | string | Author name | "Example Press" |
+| `author` | string | Author name | "Jane Smith" |
 | `subtitle` | string | Optional subtitle shown under the title (book format front page) | "A Journey into Mathematical Psychology" |
 | `email` | string | Optional author email shown next to author on book front page only | "author@example.com" |
 | `date` | string | Publication date | "2025-01-01" |
@@ -410,7 +410,7 @@ publisher_website: "https://publisher.com"
 ```yaml
 ---
 title: "Philosophy of Mathematics"
-author: "Example Press"
+author: "Jane Smith"
 date: "2025-01-15"
 description: "Philosophical exploration of mathematical foundations"
 language: "en"

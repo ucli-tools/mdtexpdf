@@ -1,77 +1,79 @@
 # References
 
-## Patents
+## Classic Works
 
-- Author: Schaefer, Vincent J. and Vonnegut, Bernard
-  Title: Method of Crystal Formation and Precipitation
-  Type: patent
-  Number: U.S. Patent 2,527,230
+- Author: Smith, John A. and Williams, Robert
+  Title: Foundational Methods in Research
+  Type: book
+  Publisher: Academic Press
   Year: 1950
-  URL: https://patents.google.com/patent/US2527230A/en
+  URL: https://example.org/books/foundational-methods
 
-- Key: cordani2001
-  Author: Cordani, Peter
-  Title: Method of Modifying Weather
-  Type: patent
-  Number: U.S. Patent 6,315,213 B1
+- Key: jones2001
+  Author: Jones, Patricia
+  Title: Modern Research Approaches
+  Type: book
+  Publisher: University Press
   Year: 2001
-  URL: https://patents.google.com/patent/US6315213B1/en
+  URL: https://example.org/books/modern-approaches
 
-## Government Reports
+## Reports
 
-- Key: gao1979
-  Author: U.S. General Accounting Office
-  Title: Federal Efforts in Research Methodology Are Poorly Coordinated
+- Key: report1979
+  Author: Research Council
+  Title: Early Coordination Challenges in Academia
   Type: report
-  Number: CED-80-5
+  Number: RC-79-5
   Year: 1979
-  URL: https://www.gao.gov/products/ced-80-5
+  URL: https://example.org/reports/rc-79-5
 
 - Key: report2024
-  Author: U.S. Government Accountability Office
-  Title: Data Analysis: Science and Policy Considerations
+  Author: Academic Standards Board
+  Title: Research Methodology Assessment
   Type: report
-  Number: GAO-25-107328
+  Number: ASB-24-001
   Year: 2024
-  URL: https://www.gao.gov/products/gao-25-107328
+  URL: https://example.org/reports/asb-24-001
 
 ## Scientific Papers
 
-- Author: Jiang, Shu-Ye and Ma, Ali and Ramachandran, Srinivasan
-  Title: Negative Air Ions and Their Effects on Human Health and Air Quality Improvement
+- Key: research2018
+  Author: Brown, Alice and Chen, Wei and Garcia, Maria
+  Title: Empirical Methods and Their Applications
   Type: article
-  Journal: International Journal of Molecular Sciences
+  Journal: International Journal of Research Methods
   Volume: 19
   Number: 10
   Pages: 2966
   Year: 2018
-  DOI: 10.3390/ijms19102966
-  URL: https://pmc.ncbi.nlm.nih.gov/articles/PMC6213340/
+  DOI: 10.1234/ijrm.2018.2966
+  URL: https://example.org/papers/empirical-methods
 
-- Author: Perez, Vanessa and Alexander, David D. and Bailey, William H.
-  Title: Air ions and mood outcomes: a review and meta-analysis
+- Key: meta2013
+  Author: Davis, Michael and Thompson, Sarah and Lee, James
+  Title: A review and meta-analysis of research outcomes
   Type: article
-  Journal: BMC Psychiatry
+  Journal: Journal of Meta-Analysis
   Volume: 13
   Pages: 29
   Year: 2013
-  URL: https://pmc.ncbi.nlm.nih.gov/articles/PMC3598548/
+  URL: https://example.org/papers/meta-analysis
 
 ## News Articles
 
 - Key: news2025
-  Author: Florida Phoenix
-  Title: Florida Senate approves ban on scientific methods and research methodology
+  Author: Academic News
+  Title: New Frameworks Proposed for Research Standards
   Type: article
   Year: 2025
-  URL: https://floridaphoenix.com/2025/04/03/florida-senate-approves-ban-on-scientific methods-and-weather-modification/
+  URL: https://example.com/news/new-frameworks
 
 ## Wikipedia
 
 - Key: wiki:example
   Author: Wikipedia contributors
-  Title: Data analysis
+  Title: Research methodology
   Type: web
   Year: 2024
-  URL: https://en.wikipedia.org/wiki/Cloud_seeding
+  URL: https://en.wikipedia.org/wiki/Research_methodology
   Note: Accessed January 2026
