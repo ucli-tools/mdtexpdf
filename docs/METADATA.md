@@ -62,6 +62,10 @@ pageof: true                        # Show "Page X of Y"
 date_footer: "DD/MM/YY"            # Date format in footer
 no_date: false                      # Disable date in footer
 
+# Bibliography and citations
+bibliography: "references.bib"      # Path to BibTeX file (or .md for simple format)
+csl: "chicago-author-date.csl"      # Citation style (CSL file path)
+
 # =============================================================================
 # PROFESSIONAL BOOK FEATURES (mdtexpdf only - book format)
 # =============================================================================
@@ -169,6 +173,15 @@ narrator: "AI Narrator"             # Narrator name for metadata
 | `pageof` | boolean | Show "Page X of Y" | true, false |
 | `date_footer` | string | Date format in footer | "DD/MM/YY", "MM/DD/YYYY" |
 | `no_date` | boolean | Disable date in footer | true, false |
+
+#### Bibliography & Citations
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| `bibliography` | string | Path to bibliography file | "refs.bib", "refs.md" |
+| `csl` | string | Citation style file (CSL) | "chicago-author-date.csl" |
+
+See [SIMPLE_BIBLIOGRAPHY.md](SIMPLE_BIBLIOGRAPHY.md) for detailed bibliography documentation, including the human-readable Markdown bibliography format.
 
 ### Professional Book Features (book format only)
 
