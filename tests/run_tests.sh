@@ -468,6 +468,125 @@ EOF
     fi
 }
 
+# PDF with cover image test
+test_pdf_cover() {
+    test_start "PDF with cover image"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    if ! command -v pdflatex &> /dev/null && ! command -v xelatex &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: LaTeX not installed"
+        return
+    fi
+
+    # Check for cover fixture
+    local cover_fixture="$SCRIPT_DIR/fixtures/cover.jpg"
+    if [ ! -f "$cover_fixture" ]; then
+        echo -e "    ${YELLOW}SKIP${NC}: Cover fixture not found at $cover_fixture"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_cover.md"
+    local test_pdf="$TEST_OUTPUT/test_cover.pdf"
+
+    # Copy cover to test output
+    cp "$cover_fixture" "$TEST_OUTPUT/cover.jpg"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "Book With Cover"
+subtitle: "Testing Cover Generation"
+author: "Test Author"
+date: "2026-01-24"
+format: "book"
+cover_image: "cover.jpg"
+cover_overlay_opacity: 0.4
+half_title: true
+copyright_page: true
+dedication: "To all who test."
+---
+
+# Chapter 1
+
+This book has a cover image.
+
+# Chapter 2
+
+The cover should appear at the beginning of the PDF.
+EOF
+
+    rm -f "$test_pdf"
+
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata -f "Test Footer" 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF file not created"
+        fi
+    else
+        test_fail "Cover generation failed"
+    fi
+}
+
+# EPUB with cover image test
+test_epub_cover() {
+    test_start "EPUB with cover image"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    # Check for cover fixture
+    local cover_fixture="$SCRIPT_DIR/fixtures/cover.jpg"
+    if [ ! -f "$cover_fixture" ]; then
+        echo -e "    ${YELLOW}SKIP${NC}: Cover fixture not found at $cover_fixture"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_epub_cover.md"
+    local test_epub="$TEST_OUTPUT/test_epub_cover.epub"
+
+    # Copy cover to test output
+    cp "$cover_fixture" "$TEST_OUTPUT/cover.jpg"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "EPUB With Cover"
+subtitle: "Testing EPUB Cover Generation"
+author: "Test Author"
+date: "2026-01-24"
+format: "book"
+cover_image: "cover.jpg"
+cover_overlay_opacity: 0.3
+toc: true
+---
+
+# Chapter 1
+
+This EPUB has a cover image.
+
+# Chapter 2
+
+The cover should appear in the EPUB.
+EOF
+
+    rm -f "$test_epub"
+
+    if "$MDTEXPDF" convert "$test_md" --read-metadata --epub 2>&1; then
+        if assert_file_exists "$test_epub"; then
+            test_pass
+        else
+            test_fail "EPUB file not created"
+        fi
+    else
+        test_fail "EPUB cover generation failed"
+    fi
+}
+
 # PDF with page X of Y footer format
 test_pdf_pageof() {
     test_start "PDF with page X of Y format"
@@ -1035,6 +1154,7 @@ test_pdf_conversion
 test_book_frontmatter
 test_math_chemistry
 test_cjk_content
+test_pdf_cover
 
 echo -e "\n${YELLOW}--- PDF Feature Tests ---${NC}\n"
 test_pdf_pageof
@@ -1050,6 +1170,7 @@ test_epub_book_frontmatter
 test_epub_math
 test_epub_cjk
 test_epub_code
+test_epub_cover
 
 # Run module unit tests if available
 if [ -f "$SCRIPT_DIR/test_modules.sh" ]; then
@@ -1058,6 +1179,17 @@ if [ -f "$SCRIPT_DIR/test_modules.sh" ]; then
         echo -e "${GREEN}Module tests passed${NC}"
     else
         echo -e "${RED}Module tests had failures${NC}"
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+    fi
+fi
+
+# Run regression tests if available
+if [ -f "$SCRIPT_DIR/test_regression.sh" ]; then
+    echo -e "\n${YELLOW}--- Regression Tests ---${NC}\n"
+    if "$SCRIPT_DIR/test_regression.sh"; then
+        echo -e "${GREEN}Regression tests passed${NC}"
+    else
+        echo -e "${RED}Regression tests had failures${NC}"
         TESTS_FAILED=$((TESTS_FAILED + 1))
     fi
 fi

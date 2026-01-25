@@ -40,6 +40,15 @@ detect_unicode_characters() {
         return 0  # Found other complex script characters
     fi
 
+    # Check for typographic characters that cause issues with pdfLaTeX in code blocks
+    # Em-dash: U+2014, En-dash: U+2013
+    # Smart quotes: U+2018, U+2019, U+201C, U+201D
+    # Vulgar fractions: U+00BC-U+00BE (¼½¾), U+2150-U+215F (⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞)
+    # Ellipsis: U+2026
+    if grep -qP '[\x{2013}-\x{2014}\x{2018}-\x{201D}\x{2026}\x{00BC}-\x{00BE}\x{2150}-\x{215F}]' "$input_file" 2>/dev/null; then
+        return 0  # Found typographic characters
+    fi
+
     return 1  # No Unicode characters requiring special handling found
 }
 

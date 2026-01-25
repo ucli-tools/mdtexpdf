@@ -14,14 +14,14 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] A3. Improve `--help` output for all commands and flags
 - [x] A4. Document existing uninstall command
 
-### Phase B: Testing & Quality (2-4 hours)
+### Phase B: Testing & Quality (2-4 hours) ✓ COMPLETE
 - [x] B1. Shellcheck compliance - fix all warnings locally
 - [x] B2. More integration tests:
   - [x] Book with full front matter PDF
-  - [ ] Cover generation (needs cover image fixture)
+  - [x] Cover generation (with cover image fixture)
   - [x] Math/chemistry rendering
   - [x] CJK content (skips if xeCJK not installed)
-- [ ] B3. Regression tests (compare output hashes)
+- [x] B3. Regression tests (5 tests in tests/test_regression.sh)
 - [x] B4. Unit tests for modules (26 tests in tests/test_modules.sh)
 - [x] B5. Create CONTRIBUTING.md with code style guide
 
@@ -70,19 +70,29 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] EPUB spine reordering (TOC after front matter)
 - [x] `--version`, `--verbose`, `--debug` flags
 - [x] CHANGELOG.md
-- [x] Basic test suite (11 tests)
+- [x] Comprehensive test suite (57 tests total):
+  - [x] 26 integration tests (run_tests.sh)
+  - [x] 26 module unit tests (test_modules.sh)
+  - [x] 5 regression tests (test_regression.sh)
 - [x] CI/CD pipeline (GitHub Actions)
 - [x] Docker image with all dependencies
 - [x] Makefile template for book projects
-- [x] Modularization started:
+- [x] Phase A: Quick Wins - COMPLETE
+- [x] Phase B: Testing & Quality - COMPLETE
+- [x] Phase C: Documentation - COMPLETE
+- [x] Modularization:
   - [x] `lib/core.sh` - Common functions, logging, utilities
   - [x] `lib/check.sh` - Prerequisites checking
   - [x] `lib/metadata.sh` - YAML/HTML metadata parsing
   - [x] `lib/preprocess.sh` - Markdown preprocessing, Unicode detection
   - [x] `lib/epub.sh` - EPUB helpers (spine reorder, chemistry)
+- [x] Unicode detection for typographic characters (em-dash, smart quotes, fractions)
 
 ### In Progress
 - Phase D: Modularization (D1, D5 deferred - template extraction is complex)
+
+### Next Up
+- Phase E: New Features (Bibliography, Index, Custom Templates, EPUB Validation)
 
 ---
 
@@ -119,15 +129,16 @@ We take a quality-first approach, completing each phase thoroughly before moving
 
 #### 2.1 Automated Test Suite
 - [x] `tests/` directory with test runner
-- [x] Integration tests:
+- [x] Integration tests (26 tests):
   - [x] Basic article PDF
   - [x] EPUB generation
   - [x] Book with full front matter PDF
-  - [ ] Cover generation
+  - [x] Cover generation (PDF and EPUB)
   - [x] Math/chemistry rendering
   - [x] CJK content (skips if xeCJK not available)
-- [ ] Unit tests for each module
-- [ ] Regression tests (compare output hashes)
+  - [x] PDF feature tests (pageof, date-footer, no-numbers, toc-cli, header-footer-policy, no-footer)
+- [x] Unit tests for each module (26 tests in test_modules.sh)
+- [x] Regression tests (5 tests in test_regression.sh)
 - [x] Test runner script: `make test`
 
 #### 2.2 CI/CD Pipeline
@@ -352,22 +363,22 @@ We take a quality-first approach, completing each phase thoroughly before moving
 
 ## Version Targets
 
-### v1.0.0 - Stable Release
+### v1.0.0 - Stable Release ✓ ACHIEVED
 - [x] All Phase A-B items complete
 - [x] Core PDF/EPUB functionality
 - [x] Docker and CI/CD
-- [ ] Shellcheck passes
-- [ ] Comprehensive tests
+- [x] Shellcheck passes
+- [x] Comprehensive tests (57 total)
 
-### v1.1.0 - Documentation & Examples
-- [ ] Phase C complete
-- [ ] All tutorials written
-- [ ] Example documents
+### v1.1.0 - Documentation & Examples ✓ ACHIEVED
+- [x] Phase C complete
+- [x] All tutorials written
+- [x] Example documents (5 examples)
 
-### v1.2.0 - Modular Architecture
-- [ ] Phase D complete
-- [ ] Full modularization
-- [ ] Unit tests for all modules
+### v1.2.0 - Modular Architecture (IN PROGRESS)
+- [x] Phase D mostly complete (D1, D5 deferred)
+- [x] Modularization (5 modules extracted)
+- [x] Unit tests for all modules (26 tests)
 
 ### v1.3.0 - Bibliography & Index
 - [ ] Phase E1-E2 complete
