@@ -878,10 +878,21 @@ $numbering_commands
 \\begin{tikzpicture}[remember picture,overlay]
   % Background fill (in case image doesn't fully cover)
   \\fill[black] (current page.south west) rectangle (current page.north east);
-  % Background image - maintain aspect ratio, cover the page (may crop edges)
+  % Background image
+  \$if(cover_fit_cover)\$
+  % Cover mode: scale uniformly to fill page, crop overflow (like CSS background-size: cover)
+  \\begin{scope}
+    \\clip (current page.south west) rectangle (current page.north east);
+    \\node[inner sep=0pt,outer sep=0pt] at (current page.center) {
+      \\includegraphics[width=\\paperwidth]{\$cover_image\$}
+    };
+  \\end{scope}
+  \$else\$
+  % Contain mode (default): maintain aspect ratio (may have black strips)
   \\node[inner sep=0pt,outer sep=0pt] at (current page.center) {
     \\includegraphics[width=\\paperwidth,height=\\paperheight,keepaspectratio]{\$cover_image\$}
   };
+  \$endif\$
   % Optional dark overlay for text readability
   \$if(cover_overlay_opacity)\$
   \\fill[black,opacity=\$cover_overlay_opacity\$] (current page.south west) rectangle (current page.north east);
@@ -1056,10 +1067,21 @@ ISBN: \$isbn\$\\\\[0.3cm]
 \\begin{tikzpicture}[remember picture,overlay]
   % Background fill (in case image doesn't fully cover)
   \\fill[black] (current page.south west) rectangle (current page.north east);
-  % Background image - maintain aspect ratio, cover the page (may crop edges)
+  % Background image
+  \$if(cover_fit_cover)\$
+  % Cover mode: scale uniformly to fill page, crop overflow (like CSS background-size: cover)
+  \\begin{scope}
+    \\clip (current page.south west) rectangle (current page.north east);
+    \\node[inner sep=0pt,outer sep=0pt] at (current page.center) {
+      \\includegraphics[width=\\paperwidth]{\$back_cover_image\$}
+    };
+  \\end{scope}
+  \$else\$
+  % Contain mode (default): maintain aspect ratio (may have black strips)
   \\node[inner sep=0pt,outer sep=0pt] at (current page.center) {
     \\includegraphics[width=\\paperwidth,height=\\paperheight,keepaspectratio]{\$back_cover_image\$}
   };
+  \$endif\$
   % Optional dark overlay for text readability
   \$if(cover_overlay_opacity)\$
   \\fill[black,opacity=\$cover_overlay_opacity\$] (current page.south west) rectangle (current page.north east);
@@ -1658,6 +1680,8 @@ parse_yaml_metadata() {
     META_COVER_SUBTITLE_SHOW=$(yq eval '.cover_subtitle_show // "true"' "$temp_yaml" 2>/dev/null | sed 's/^null$/true/')
     META_COVER_AUTHOR_POSITION=$(yq eval '.cover_author_position // "bottom"' "$temp_yaml" 2>/dev/null | sed 's/^null$/bottom/')
     META_COVER_OVERLAY_OPACITY=$(yq eval '.cover_overlay_opacity // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    # Cover fit mode: "contain" (default, keeps ratio, may have strips) or "cover" (zoom/crop to fill, no strips)
+    META_COVER_FIT=$(yq eval '.cover_fit // "contain"' "$temp_yaml" 2>/dev/null | sed 's/^null$/contain/')
 
     # Back cover
     META_BACK_COVER_IMAGE=$(yq eval '.back_cover_image // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
@@ -3395,6 +3419,11 @@ EOF
     # Cover overlay opacity
     if [ -n "$META_COVER_OVERLAY_OPACITY" ]; then
         BOOK_FEATURE_VARS+=("--variable=cover_overlay_opacity=$META_COVER_OVERLAY_OPACITY")
+    fi
+
+    # Cover fit mode (contain or cover)
+    if [ "$META_COVER_FIT" = "cover" ]; then
+        BOOK_FEATURE_VARS+=("--variable=cover_fit_cover=true")
     fi
 
     # Back cover image (with auto-detection fallback)
