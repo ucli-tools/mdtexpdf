@@ -114,10 +114,11 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] `lib/metadata.sh` - YAML/HTML parsing and metadata handling
 - [x] `lib/preprocess.sh` - Markdown preprocessing, Unicode detection
 - [x] `lib/epub.sh` - EPUB helpers (spine reorder, frontmatter, chemistry)
+- [x] `lib/bibliography.sh` - Simple markdown bibliography format conversion
 - [ ] `lib/pdf.sh` - PDF generation logic (deferred)
 - [ ] `lib/template.sh` - LaTeX template generation (deferred - 950 lines)
 - [x] Main `mdtexpdf.sh` sources modules automatically
-- [ ] Each module independently testable
+- [x] Each module independently testable
 
 #### 1.2 Configuration
 - [ ] Support `~/.mdtexpdf/config.yaml` for user defaults
@@ -145,7 +146,7 @@ We take a quality-first approach, completing each phase thoroughly before moving
   - [x] Math/chemistry rendering
   - [x] CJK content (skips if xeCJK not available)
   - [x] PDF feature tests (pageof, date-footer, no-numbers, toc-cli, header-footer-policy, no-footer)
-- [x] Unit tests for each module (26 tests in test_modules.sh)
+- [x] Unit tests for each module (35 tests in test_modules.sh)
 - [x] Regression tests (5 tests in test_regression.sh)
 - [x] Test runner script: `make test`
 
@@ -189,6 +190,12 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] CLI: `--bibliography FILE` and `--csl FILE`
 - [x] Auto-generate References/Bibliography section
 - [x] Works in both PDF and EPUB
+- [x] Simple Markdown bibliography format (alternative to BibTeX)
+  - [x] Human-readable `.md` format for bibliographies
+  - [x] Auto-generated citation keys (author+year)
+  - [x] Custom key override with `Key:` field
+  - [x] Three modes: bibliography-only, auto-key citations, custom-key citations
+  - [x] See [SIMPLE_BIBLIOGRAPHY.md](SIMPLE_BIBLIOGRAPHY.md) for documentation
 
 #### 4.2 Index Generation
 - [x] Markup for index entries: `[index:term]` or `[index:term|subterm]`

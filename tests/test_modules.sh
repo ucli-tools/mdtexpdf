@@ -468,6 +468,196 @@ test_epub_chemistry_preprocessing() {
 }
 
 # =============================================================================
+# Bibliography Module Tests
+# =============================================================================
+
+test_bibliography_loads() {
+    test_start "bibliography.sh loads without error"
+    (
+        source "$LIB_DIR/bibliography.sh"
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "bibliography.sh failed to load"
+    fi
+}
+
+test_bibliography_generate_key_function() {
+    test_start "bibliography.sh defines generate_citation_key function"
+    (
+        source "$LIB_DIR/bibliography.sh"
+        type generate_citation_key &>/dev/null
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "generate_citation_key not defined"
+    fi
+}
+
+test_bibliography_key_generation() {
+    test_start "generate_citation_key produces correct keys"
+    (
+        source "$LIB_DIR/bibliography.sh"
+
+        local key1=$(generate_citation_key "Knuth, Donald E." "1968")
+        local key2=$(generate_citation_key "Einstein, Albert" "1905")
+        local key3=$(generate_citation_key "Van Gogh, Vincent" "1888")
+        local key4=$(generate_citation_key "U.S. Government Accountability Office" "2024")
+
+        [ "$key1" = "knuth1968" ] && \
+        [ "$key2" = "einstein1905" ] && \
+        [ "$key3" = "vangogh1888" ] && \
+        [ "$key4" = "usgovernmentaccountabilityoffice2024" ]
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "Key generation incorrect"
+    fi
+}
+
+test_bibliography_multi_author_key() {
+    test_start "generate_citation_key uses first author for multi-author works"
+    (
+        source "$LIB_DIR/bibliography.sh"
+
+        local key=$(generate_citation_key "Smith, John and Jones, Mary and Brown, Bob" "2020")
+        [ "$key" = "smith2020" ]
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "Multi-author key generation incorrect"
+    fi
+}
+
+test_bibliography_is_simple_function() {
+    test_start "bibliography.sh defines is_simple_bibliography function"
+    (
+        source "$LIB_DIR/bibliography.sh"
+        type is_simple_bibliography &>/dev/null
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "is_simple_bibliography not defined"
+    fi
+}
+
+test_bibliography_detection() {
+    test_start "is_simple_bibliography detects markdown bibliography"
+    (
+        source "$LIB_DIR/bibliography.sh"
+
+        local test_md="$TEST_OUTPUT/test_bib.md"
+        echo "- Author: Test Author" > "$test_md"
+        echo "  Title: Test Title" >> "$test_md"
+        echo "  Year: 2024" >> "$test_md"
+
+        is_simple_bibliography "$test_md"
+        local result=$?
+
+        rm -f "$test_md"
+        [ $result -eq 0 ]
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "Simple bibliography detection failed"
+    fi
+}
+
+test_bibliography_convert_function() {
+    test_start "bibliography.sh defines convert_simple_bibliography function"
+    (
+        source "$LIB_DIR/bibliography.sh"
+        type convert_simple_bibliography &>/dev/null
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "convert_simple_bibliography not defined"
+    fi
+}
+
+test_bibliography_conversion() {
+    test_start "convert_simple_bibliography produces valid JSON"
+    (
+        source "$LIB_DIR/bibliography.sh"
+
+        local test_md="$TEST_OUTPUT/test_bib_convert.md"
+        local test_json="$TEST_OUTPUT/test_bib_convert.json"
+
+        cat > "$test_md" << 'EOF'
+- Author: Knuth, Donald E.
+  Title: The Art of Computer Programming
+  Publisher: Addison-Wesley
+  Year: 1968
+
+- Key: custom-key
+  Author: Einstein, Albert
+  Title: On the Electrodynamics of Moving Bodies
+  Journal: Annalen der Physik
+  Year: 1905
+EOF
+
+        convert_simple_bibliography "$test_md" "$test_json"
+
+        # Check that output is valid JSON with expected content
+        [ -f "$test_json" ] && \
+        grep -q '"id":"knuth1968"' "$test_json" && \
+        grep -q '"id":"custom-key"' "$test_json" && \
+        grep -q '"family":"Knuth"' "$test_json" && \
+        grep -q '"family":"Einstein"' "$test_json"
+
+        local result=$?
+        rm -f "$test_md" "$test_json"
+        [ $result -eq 0 ]
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "Simple bibliography conversion failed"
+    fi
+}
+
+test_bibliography_fixture() {
+    test_start "convert_simple_bibliography handles The Example Book fixture"
+
+    # Save paths before sourcing (bibliography.sh may override SCRIPT_DIR)
+    local fixture="$SCRIPT_DIR/fixtures/simple_bibliography.md"
+    local test_json="$TEST_OUTPUT/blue_skies_bib.json"
+
+    (
+        source "$LIB_DIR/bibliography.sh"
+
+        if [ ! -f "$fixture" ]; then
+            echo "Fixture not found: $fixture"
+            exit 1
+        fi
+
+        convert_simple_bibliography "$fixture" "$test_json"
+
+        # Check for expected keys
+        [ -f "$test_json" ] && \
+        grep -q '"id":"smith1950"' "$test_json" && \
+        grep -q '"id":"report2024"' "$test_json" && \
+        grep -q '"id":"research2018"' "$test_json" && \
+        grep -q '"id":"news2025"' "$test_json" && \
+        grep -q '"id":"wiki:example"' "$test_json"
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "The Example Book fixture conversion failed"
+    fi
+
+    rm -f "$test_json"
+}
+
+# =============================================================================
 # Module Interaction Tests
 # =============================================================================
 
@@ -479,6 +669,7 @@ test_all_modules_load_together() {
         source "$LIB_DIR/metadata.sh"
         source "$LIB_DIR/preprocess.sh"
         source "$LIB_DIR/epub.sh"
+        source "$LIB_DIR/bibliography.sh"
 
         # Verify key functions from each module are available
         type log_verbose &>/dev/null && \
@@ -559,6 +750,17 @@ test_epub_spine_function
 test_epub_frontmatter_function
 test_epub_chemistry_function
 test_epub_chemistry_preprocessing
+
+echo -e "\n${YELLOW}--- Bibliography Module Tests ---${NC}\n"
+test_bibliography_loads
+test_bibliography_generate_key_function
+test_bibliography_key_generation
+test_bibliography_multi_author_key
+test_bibliography_is_simple_function
+test_bibliography_detection
+test_bibliography_convert_function
+test_bibliography_conversion
+test_bibliography_fixture
 
 echo -e "\n${YELLOW}--- Module Interaction Tests ---${NC}\n"
 test_all_modules_load_together
