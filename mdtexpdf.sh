@@ -12,19 +12,27 @@ MDTEXPDF_VERSION="$VERSION"
 # Determine script directory for module loading
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Source modules if available (for installed version, modules are in lib/)
+# Source modules if available
+# Check script dir first (dev), then /usr/local/share/mdtexpdf (installed)
+LIB_DIR=""
 if [ -d "$SCRIPT_DIR/lib" ]; then
+    LIB_DIR="$SCRIPT_DIR/lib"
+elif [ -d "/usr/local/share/mdtexpdf/lib" ]; then
+    LIB_DIR="/usr/local/share/mdtexpdf/lib"
+fi
+
+if [ -n "$LIB_DIR" ]; then
     # Source in order of dependency
-    [ -f "$SCRIPT_DIR/lib/core.sh" ] && source "$SCRIPT_DIR/lib/core.sh"
-    [ -f "$SCRIPT_DIR/lib/check.sh" ] && source "$SCRIPT_DIR/lib/check.sh"
-    [ -f "$SCRIPT_DIR/lib/metadata.sh" ] && source "$SCRIPT_DIR/lib/metadata.sh"
-    [ -f "$SCRIPT_DIR/lib/preprocess.sh" ] && source "$SCRIPT_DIR/lib/preprocess.sh"
-    [ -f "$SCRIPT_DIR/lib/epub.sh" ] && source "$SCRIPT_DIR/lib/epub.sh"
-    [ -f "$SCRIPT_DIR/lib/bibliography.sh" ] && source "$SCRIPT_DIR/lib/bibliography.sh"
-    [ -f "$SCRIPT_DIR/lib/template.sh" ] && source "$SCRIPT_DIR/lib/template.sh"
-    [ -f "$SCRIPT_DIR/lib/pdf.sh" ] && source "$SCRIPT_DIR/lib/pdf.sh"
-    [ -f "$SCRIPT_DIR/lib/convert.sh" ] && source "$SCRIPT_DIR/lib/convert.sh"
-    [ -f "$SCRIPT_DIR/lib/args.sh" ] && source "$SCRIPT_DIR/lib/args.sh"
+    [ -f "$LIB_DIR/core.sh" ] && source "$LIB_DIR/core.sh"
+    [ -f "$LIB_DIR/check.sh" ] && source "$LIB_DIR/check.sh"
+    [ -f "$LIB_DIR/metadata.sh" ] && source "$LIB_DIR/metadata.sh"
+    [ -f "$LIB_DIR/preprocess.sh" ] && source "$LIB_DIR/preprocess.sh"
+    [ -f "$LIB_DIR/epub.sh" ] && source "$LIB_DIR/epub.sh"
+    [ -f "$LIB_DIR/bibliography.sh" ] && source "$LIB_DIR/bibliography.sh"
+    [ -f "$LIB_DIR/template.sh" ] && source "$LIB_DIR/template.sh"
+    [ -f "$LIB_DIR/pdf.sh" ] && source "$LIB_DIR/pdf.sh"
+    [ -f "$LIB_DIR/convert.sh" ] && source "$LIB_DIR/convert.sh"
+    [ -f "$LIB_DIR/args.sh" ] && source "$LIB_DIR/args.sh"
 fi
 
 # =============================================================================
@@ -258,13 +266,21 @@ install() {
         # Create directories for templates and resources
         sudo mkdir -p /usr/local/share/mdtexpdf/templates
         sudo mkdir -p /usr/local/share/mdtexpdf/examples
+        sudo mkdir -p /usr/local/share/mdtexpdf/lib
 
         # Copy the script to /usr/local/bin
         sudo cp "$0" /usr/local/bin/mdtexpdf
         sudo chmod 755 /usr/local/bin/mdtexpdf
 
-        # Copy the Lua filters if they exist
+        # Copy module libraries
         SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+        if [ -d "$SCRIPT_DIR/lib" ]; then
+            sudo cp "$SCRIPT_DIR/lib"/*.sh /usr/local/share/mdtexpdf/lib/
+            sudo chmod 644 /usr/local/share/mdtexpdf/lib/*.sh
+            echo -e "${GREEN}✓ Installed module libraries${NC}"
+        fi
+
+        # Copy the Lua filters if they exist
 
         # Copy heading fix filter
         if [ -f "$SCRIPT_DIR/heading_fix_filter.lua" ]; then
