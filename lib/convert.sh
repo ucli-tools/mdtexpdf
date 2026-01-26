@@ -319,117 +319,67 @@ EOF
 # =============================================================================
 # Helper: Setup Lua Filters
 # =============================================================================
-# Discovers and configures Lua filters for pandoc.
+# Discovers and configures Lua filters for pandoc using find_lua_filter()
+# from lib/pdf.sh.
 # Sets: _PDF_FILTER_OPTION
-# Uses: ARG_FORMAT, ARG_INDEX, META_DROP_CAPS
+# Uses: ARG_FORMAT, ARG_INDEX, META_DROP_CAPS, find_lua_filter()
 # Returns: 0 always
+
+# Internal: Find a filter and add it to the LUA_FILTERS array with logging.
+# Arguments: $1=filter_name, $2=description, $3=warning_if_missing
+_add_lua_filter() {
+    local filter_name="$1"
+    local description="$2"
+    local warning="$3"
+
+    local path
+    path=$(find_lua_filter "$filter_name")
+    if [ -n "$path" ]; then
+        _PDF_LUA_FILTERS+=("$path")
+        echo -e "${BLUE}Using Lua filter for ${description}: $path${NC}"
+    else
+        echo -e "${YELLOW}Warning: ${filter_name} not found. ${warning}${NC}"
+    fi
+}
+
 setup_lua_filters() {
-    local SCRIPT_DIR
-    SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-    local -a LUA_FILTERS=()
+    _PDF_LUA_FILTERS=()
 
-    # Check for heading fix filter (add this first to process headings before other filters)
-    if [ -f "$(pwd)/heading_fix_filter.lua" ]; then
-        LUA_FILTERS+=("$(pwd)/heading_fix_filter.lua")
-        echo -e "${BLUE}Using Lua filter for heading line break fix: $(pwd)/heading_fix_filter.lua${NC}"
-    elif [ -f "$SCRIPT_DIR/heading_fix_filter.lua" ]; then
-        LUA_FILTERS+=("$SCRIPT_DIR/heading_fix_filter.lua")
-        echo -e "${BLUE}Using Lua filter for heading line break fix: $SCRIPT_DIR/heading_fix_filter.lua${NC}"
-    elif [ -f "/usr/local/share/mdtexpdf/heading_fix_filter.lua" ]; then
-        LUA_FILTERS+=("/usr/local/share/mdtexpdf/heading_fix_filter.lua")
-        echo -e "${BLUE}Using Lua filter for heading line break fix: /usr/local/share/mdtexpdf/heading_fix_filter.lua${NC}"
-    else
-        echo -e "${YELLOW}Warning: heading_fix_filter.lua not found. Level 4 and 5 headings may run inline.${NC}"
-    fi
+    # Core filters (always attempted)
+    _add_lua_filter "heading_fix_filter.lua" \
+        "heading line break fix" \
+        "Level 4 and 5 headings may run inline."
 
-    # Check for long equation filter
-    if [ -f "$(pwd)/filters/long_equation_filter.lua" ]; then
-        LUA_FILTERS+=("$(pwd)/filters/long_equation_filter.lua")
-        echo -e "${BLUE}Using Lua filter for long equation handling: $(pwd)/filters/long_equation_filter.lua${NC}"
-    elif [ -f "$SCRIPT_DIR/filters/long_equation_filter.lua" ]; then
-        LUA_FILTERS+=("$SCRIPT_DIR/filters/long_equation_filter.lua")
-        echo -e "${BLUE}Using Lua filter for long equation handling: $SCRIPT_DIR/filters/long_equation_filter.lua${NC}"
-    elif [ -f "/usr/local/share/mdtexpdf/filters/long_equation_filter.lua" ]; then
-        LUA_FILTERS+=("/usr/local/share/mdtexpdf/filters/long_equation_filter.lua")
-        echo -e "${BLUE}Using Lua filter for long equation handling: /usr/local/share/mdtexpdf/filters/long_equation_filter.lua${NC}"
-    else
-        echo -e "${YELLOW}Warning: long_equation_filter.lua not found. Long equations may not wrap properly.${NC}"
-    fi
+    _add_lua_filter "long_equation_filter.lua" \
+        "long equation handling" \
+        "Long equations may not wrap properly."
 
-    # Check for image size filter
-    if [ -f "$(pwd)/image_size_filter.lua" ]; then
-        LUA_FILTERS+=("$(pwd)/image_size_filter.lua")
-        echo -e "${BLUE}Using Lua filter for automatic image sizing: $(pwd)/image_size_filter.lua${NC}"
-    elif [ -f "$SCRIPT_DIR/image_size_filter.lua" ]; then
-        LUA_FILTERS+=("$SCRIPT_DIR/image_size_filter.lua")
-        echo -e "${BLUE}Using Lua filter for automatic image sizing: $SCRIPT_DIR/image_size_filter.lua${NC}"
-    elif [ -f "/usr/local/share/mdtexpdf/image_size_filter.lua" ]; then
-        LUA_FILTERS+=("/usr/local/share/mdtexpdf/image_size_filter.lua")
-        echo -e "${BLUE}Using Lua filter for automatic image sizing: /usr/local/share/mdtexpdf/image_size_filter.lua${NC}"
-    else
-        echo -e "${YELLOW}Warning: image_size_filter.lua not found. Images may not be properly sized.${NC}"
-    fi
+    _add_lua_filter "image_size_filter.lua" \
+        "automatic image sizing" \
+        "Images may not be properly sized."
 
-    # Add book structure filter if format is book
+    # Conditional filters
     if [ "$ARG_FORMAT" = "book" ]; then
-        local book_filter_path=""
-        if [ -f "$(pwd)/filters/book_structure.lua" ]; then
-            book_filter_path="$(pwd)/filters/book_structure.lua"
-        elif [ -f "$SCRIPT_DIR/filters/book_structure.lua" ]; then
-            book_filter_path="$SCRIPT_DIR/filters/book_structure.lua"
-        elif [ -f "/usr/local/share/mdtexpdf/book_structure.lua" ]; then
-            book_filter_path="/usr/local/share/mdtexpdf/book_structure.lua"
-        fi
-
-        if [ -n "$book_filter_path" ]; then
-            LUA_FILTERS+=("$book_filter_path")
-            echo -e "${BLUE}Using Lua filter for book structure: $book_filter_path${NC}"
-        else
-            echo -e "${YELLOW}Warning: book_structure.lua not found. Book format may not work correctly.${NC}"
-        fi
+        _add_lua_filter "book_structure.lua" \
+            "book structure" \
+            "Book format may not work correctly."
     fi
 
-    # Add index filter if --index is enabled
     if [ "$ARG_INDEX" = true ]; then
-        local index_filter_path=""
-        if [ -f "$(pwd)/filters/index_filter.lua" ]; then
-            index_filter_path="$(pwd)/filters/index_filter.lua"
-        elif [ -f "$SCRIPT_DIR/filters/index_filter.lua" ]; then
-            index_filter_path="$SCRIPT_DIR/filters/index_filter.lua"
-        elif [ -f "/usr/local/share/mdtexpdf/filters/index_filter.lua" ]; then
-            index_filter_path="/usr/local/share/mdtexpdf/filters/index_filter.lua"
-        fi
-
-        if [ -n "$index_filter_path" ]; then
-            LUA_FILTERS+=("$index_filter_path")
-            echo -e "${BLUE}Using Lua filter for index generation: $index_filter_path${NC}"
-        else
-            echo -e "${YELLOW}Warning: index_filter.lua not found. Index markers will not be processed.${NC}"
-        fi
+        _add_lua_filter "index_filter.lua" \
+            "index generation" \
+            "Index markers will not be processed."
     fi
 
-    # Add drop caps filter if drop_caps is enabled
     if [ "$META_DROP_CAPS" = "true" ]; then
-        local drop_caps_filter_path=""
-        if [ -f "$(pwd)/filters/drop_caps_filter.lua" ]; then
-            drop_caps_filter_path="$(pwd)/filters/drop_caps_filter.lua"
-        elif [ -f "$SCRIPT_DIR/filters/drop_caps_filter.lua" ]; then
-            drop_caps_filter_path="$SCRIPT_DIR/filters/drop_caps_filter.lua"
-        elif [ -f "/usr/local/share/mdtexpdf/drop_caps_filter.lua" ]; then
-            drop_caps_filter_path="/usr/local/share/mdtexpdf/drop_caps_filter.lua"
-        fi
-
-        if [ -n "$drop_caps_filter_path" ]; then
-            LUA_FILTERS+=("$drop_caps_filter_path")
-            echo -e "${BLUE}Using Lua filter for drop caps: $drop_caps_filter_path${NC}"
-        else
-            echo -e "${YELLOW}Warning: drop_caps_filter.lua not found. Drop caps will not be applied.${NC}"
-        fi
+        _add_lua_filter "drop_caps_filter.lua" \
+            "drop caps" \
+            "Drop caps will not be applied."
     fi
 
-    # Build filter options
+    # Build filter options string
     _PDF_FILTER_OPTION=""
-    for filter in "${LUA_FILTERS[@]}"; do
+    for filter in "${_PDF_LUA_FILTERS[@]}"; do
         _PDF_FILTER_OPTION="$_PDF_FILTER_OPTION --lua-filter=$filter"
     done
 
@@ -439,157 +389,87 @@ setup_lua_filters() {
 # =============================================================================
 # Helper: Build Pandoc Variables
 # =============================================================================
-# Assembles pandoc variables for footer, header/footer policy, and book features.
-# Sets: _PDF_TOC_OPTION, _PDF_SECTION_NUMBERING_OPTION, _PDF_FOOTER_VARS,
-#       _PDF_HEADER_FOOTER_VARS, _PDF_BOOK_FEATURE_VARS
-# Uses: ARG_TOC, ARG_SECTION_NUMBERS, ARG_NO_FOOTER, ARG_FOOTER, ARG_PAGE_OF,
-#       ARG_HEADER_FOOTER_POLICY, ARG_FORMAT, ARG_INDEX, META_*, INPUT_FILE
-# Returns: 0 always
-build_pandoc_vars() {
-    # Run pandoc with the selected PDF engine
-    echo -e "${BLUE}Using enhanced equation line breaking for text-heavy equations${NC}"
 
-    # Add TOC option if requested
-    _PDF_TOC_OPTION=""
-    if [ "$ARG_TOC" = true ]; then
-        _PDF_TOC_OPTION="--toc"
-    fi
-
-    # Generate section numbering variable for pandoc if needed
-    _PDF_SECTION_NUMBERING_OPTION=""
-    if [ "$ARG_SECTION_NUMBERS" = false ]; then
-        _PDF_SECTION_NUMBERING_OPTION="--variable=numbersections=false"
-    fi
-
+# Internal: Build footer and header/footer policy variables.
+# Sets: _PDF_FOOTER_VARS, _PDF_HEADER_FOOTER_VARS
+_build_footer_vars() {
     _PDF_FOOTER_VARS=()
     if [ "$ARG_NO_FOOTER" = true ]; then
         _PDF_FOOTER_VARS+=("--variable=no_footer=true")
     else
-        # Center footer content from -f option
-        if [ -n "$ARG_FOOTER" ]; then # ARG_FOOTER is the value from -f option
-             _PDF_FOOTER_VARS+=("--variable=center_footer_content=$ARG_FOOTER")
-        fi
-
-        # Page X of Y format for right footer
-        if [ "$ARG_PAGE_OF" = true ]; then
-            _PDF_FOOTER_VARS+=("--variable=page_of_format=true")
-        fi
-
-        # Left footer content (date)
-        if [ -n "$_PDF_DATE_FOOTER_TEXT" ]; then
-            _PDF_FOOTER_VARS+=("--variable=date_footer_content=$_PDF_DATE_FOOTER_TEXT")
-        fi
+        [ -n "$ARG_FOOTER" ] && _PDF_FOOTER_VARS+=("--variable=center_footer_content=$ARG_FOOTER")
+        [ "$ARG_PAGE_OF" = true ] && _PDF_FOOTER_VARS+=("--variable=page_of_format=true")
+        [ -n "$_PDF_DATE_FOOTER_TEXT" ] && _PDF_FOOTER_VARS+=("--variable=date_footer_content=$_PDF_DATE_FOOTER_TEXT")
     fi
 
-    # Add header/footer policy variables
     _PDF_HEADER_FOOTER_VARS=()
     if [ "$ARG_HEADER_FOOTER_POLICY" = "all" ]; then
         _PDF_HEADER_FOOTER_VARS+=("--variable=header_footer_policy_all=true")
     elif [ "$ARG_HEADER_FOOTER_POLICY" = "partial" ]; then
         _PDF_HEADER_FOOTER_VARS+=("--variable=header_footer_policy_partial=true")
     else
-        # default policy - no special variables needed (plain pages will have no headers/footers)
         _PDF_HEADER_FOOTER_VARS+=("--variable=header_footer_policy_default=true")
     fi
 
-    # Add format variable for template logic
     if [ "$ARG_FORMAT" = "book" ]; then
         _PDF_HEADER_FOOTER_VARS+=("--variable=format_book=true")
     else
         _PDF_HEADER_FOOTER_VARS+=("--variable=format_article=true")
     fi
+}
 
-    # Professional book features (passed to template)
-    _PDF_BOOK_FEATURE_VARS=()
-
-    # Index generation
-    if [ "$ARG_INDEX" = true ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=index=true")
+# Internal: Helper to conditionally add a pandoc variable from a META_* value.
+# Arguments: $1=variable_name, $2=meta_value
+_add_meta_var() {
+    if [ -n "$2" ] && [ "$2" != "null" ]; then
+        _PDF_BOOK_FEATURE_VARS+=("--variable=$1=$2")
     fi
+}
 
-    # Half-title page
-    if [ "$META_HALF_TITLE" = "true" ] || [ "$META_HALF_TITLE" = "True" ] || [ "$META_HALF_TITLE" = "TRUE" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=half_title=true")
+# Internal: Helper to conditionally add a boolean pandoc variable from a META_* value.
+# Arguments: $1=variable_name, $2=meta_value
+_add_meta_bool() {
+    if [ "$2" = "true" ] || [ "$2" = "True" ] || [ "$2" = "TRUE" ]; then
+        _PDF_BOOK_FEATURE_VARS+=("--variable=$1=true")
     fi
+}
 
-    # Copyright page
-    if [ "$META_COPYRIGHT_PAGE" = "true" ] || [ "$META_COPYRIGHT_PAGE" = "True" ] || [ "$META_COPYRIGHT_PAGE" = "TRUE" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=copyright_page=true")
+# Internal: Build book feature variables (front matter, publishing, authorship).
+# Appends to: _PDF_BOOK_FEATURE_VARS
+_build_book_feature_vars() {
+    [ "$ARG_INDEX" = true ] && _PDF_BOOK_FEATURE_VARS+=("--variable=index=true")
+
+    # Front matter
+    _add_meta_bool "half_title" "$META_HALF_TITLE"
+    _add_meta_bool "copyright_page" "$META_COPYRIGHT_PAGE"
+    _add_meta_var "dedication" "$META_DEDICATION"
+    _add_meta_var "epigraph" "$META_EPIGRAPH"
+    _add_meta_var "epigraph_source" "$META_EPIGRAPH_SOURCE"
+    _add_meta_bool "chapters_on_recto" "$META_CHAPTERS_ON_RECTO"
+    _add_meta_bool "drop_caps" "$META_DROP_CAPS"
+
+    # Publishing
+    _add_meta_var "publisher" "$META_PUBLISHER"
+    _add_meta_var "isbn" "$META_ISBN"
+    _add_meta_var "edition" "$META_EDITION"
+    _add_meta_var "copyright_year" "$META_COPYRIGHT_YEAR"
+    _add_meta_var "copyright_holder" "$META_COPYRIGHT_HOLDER"
+    _add_meta_var "edition_date" "$META_EDITION_DATE"
+    _add_meta_var "printing" "$META_PRINTING"
+    _add_meta_var "publisher_address" "$META_PUBLISHER_ADDRESS"
+    _add_meta_var "publisher_website" "$META_PUBLISHER_WEBSITE"
+
+    # Authorship & support
+    if [ -n "$META_AUTHOR_PUBKEY" ] && [ "$META_AUTHOR_PUBKEY" != "null" ]; then
+        _PDF_BOOK_FEATURE_VARS+=("--variable=author_pubkey=$META_AUTHOR_PUBKEY")
+        _PDF_BOOK_FEATURE_VARS+=("--variable=author_pubkey_type=$META_AUTHOR_PUBKEY_TYPE")
     fi
+    [ -n "$META_DONATION_WALLETS" ] && _PDF_BOOK_FEATURE_VARS+=("--variable=donation_wallets=$META_DONATION_WALLETS")
+}
 
-    # Dedication (from metadata - string value)
-    if [ -n "$META_DEDICATION" ] && [ "$META_DEDICATION" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=dedication=$META_DEDICATION")
-    fi
-
-    # Epigraph (from metadata - string value)
-    if [ -n "$META_EPIGRAPH" ] && [ "$META_EPIGRAPH" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=epigraph=$META_EPIGRAPH")
-    fi
-
-    # Epigraph source
-    if [ -n "$META_EPIGRAPH_SOURCE" ] && [ "$META_EPIGRAPH_SOURCE" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=epigraph_source=$META_EPIGRAPH_SOURCE")
-    fi
-
-    # Chapters on recto (odd pages only)
-    if [ "$META_CHAPTERS_ON_RECTO" = "true" ] || [ "$META_CHAPTERS_ON_RECTO" = "True" ] || [ "$META_CHAPTERS_ON_RECTO" = "TRUE" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=chapters_on_recto=true")
-    fi
-
-    # Drop caps
-    if [ "$META_DROP_CAPS" = "true" ] || [ "$META_DROP_CAPS" = "True" ] || [ "$META_DROP_CAPS" = "TRUE" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=drop_caps=true")
-    fi
-
-    # Publisher
-    if [ -n "$META_PUBLISHER" ] && [ "$META_PUBLISHER" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=publisher=$META_PUBLISHER")
-    fi
-
-    # ISBN
-    if [ -n "$META_ISBN" ] && [ "$META_ISBN" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=isbn=$META_ISBN")
-    fi
-
-    # Edition
-    if [ -n "$META_EDITION" ] && [ "$META_EDITION" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=edition=$META_EDITION")
-    fi
-
-    # Copyright year
-    if [ -n "$META_COPYRIGHT_YEAR" ] && [ "$META_COPYRIGHT_YEAR" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=copyright_year=$META_COPYRIGHT_YEAR")
-    fi
-
-    # Copyright holder (takes precedence over publisher and author)
-    if [ -n "$META_COPYRIGHT_HOLDER" ] && [ "$META_COPYRIGHT_HOLDER" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=copyright_holder=$META_COPYRIGHT_HOLDER")
-    fi
-
-    # Enhanced copyright page fields (industry standard)
-    # Edition date
-    if [ -n "$META_EDITION_DATE" ] && [ "$META_EDITION_DATE" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=edition_date=$META_EDITION_DATE")
-    fi
-
-    # Printing info
-    if [ -n "$META_PRINTING" ] && [ "$META_PRINTING" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=printing=$META_PRINTING")
-    fi
-
-    # Publisher address
-    if [ -n "$META_PUBLISHER_ADDRESS" ] && [ "$META_PUBLISHER_ADDRESS" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=publisher_address=$META_PUBLISHER_ADDRESS")
-    fi
-
-    # Publisher website
-    if [ -n "$META_PUBLISHER_WEBSITE" ] && [ "$META_PUBLISHER_WEBSITE" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=publisher_website=$META_PUBLISHER_WEBSITE")
-    fi
-
-    # === COVER SYSTEM VARIABLES ===
-    # Get input file directory for auto-detection
+# Internal: Build cover system variables (front cover, back cover).
+# Appends to: _PDF_BOOK_FEATURE_VARS
+_build_cover_vars() {
     local INPUT_DIR
     INPUT_DIR=$(dirname "$INPUT_FILE")
 
@@ -597,14 +477,11 @@ build_pandoc_vars() {
     local COVER_IMAGE_PATH="$META_COVER_IMAGE"
     if [ -z "$COVER_IMAGE_PATH" ]; then
         COVER_IMAGE_PATH=$(detect_cover_image "$INPUT_DIR" "cover")
-        if [ -n "$COVER_IMAGE_PATH" ]; then
-            echo -e "${GREEN}Auto-detected front cover image: $COVER_IMAGE_PATH${NC}"
-        fi
+        [ -n "$COVER_IMAGE_PATH" ] && echo -e "${GREEN}Auto-detected front cover image: $COVER_IMAGE_PATH${NC}"
     fi
     if [ -n "$COVER_IMAGE_PATH" ] && [ -f "$COVER_IMAGE_PATH" ]; then
         _PDF_BOOK_FEATURE_VARS+=("--variable=cover_image=$COVER_IMAGE_PATH")
     elif [ -n "$META_COVER_IMAGE" ]; then
-        # Try relative to input file
         local RELATIVE_COVER="$INPUT_DIR/$META_COVER_IMAGE"
         if [ -f "$RELATIVE_COVER" ]; then
             _PDF_BOOK_FEATURE_VARS+=("--variable=cover_image=$RELATIVE_COVER")
@@ -613,43 +490,24 @@ build_pandoc_vars() {
         fi
     fi
 
-    # Cover title color
-    if [ -n "$META_COVER_TITLE_COLOR" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=cover_title_color=$META_COVER_TITLE_COLOR")
-    fi
-
-    # Cover subtitle show
-    if [ "$META_COVER_SUBTITLE_SHOW" = "true" ] || [ "$META_COVER_SUBTITLE_SHOW" = "True" ] || [ "$META_COVER_SUBTITLE_SHOW" = "TRUE" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=cover_subtitle_show=true")
-    fi
-
-    # Cover author position
+    # Cover styling
+    [ -n "$META_COVER_TITLE_COLOR" ] && _PDF_BOOK_FEATURE_VARS+=("--variable=cover_title_color=$META_COVER_TITLE_COLOR")
+    _add_meta_bool "cover_subtitle_show" "$META_COVER_SUBTITLE_SHOW"
     if [ -n "$META_COVER_AUTHOR_POSITION" ] && [ "$META_COVER_AUTHOR_POSITION" != "none" ]; then
         _PDF_BOOK_FEATURE_VARS+=("--variable=cover_author_position=$META_COVER_AUTHOR_POSITION")
     fi
-
-    # Cover overlay opacity
-    if [ -n "$META_COVER_OVERLAY_OPACITY" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=cover_overlay_opacity=$META_COVER_OVERLAY_OPACITY")
-    fi
-
-    # Cover fit mode (contain or cover)
-    if [ "$META_COVER_FIT" = "cover" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=cover_fit_cover=true")
-    fi
+    [ -n "$META_COVER_OVERLAY_OPACITY" ] && _PDF_BOOK_FEATURE_VARS+=("--variable=cover_overlay_opacity=$META_COVER_OVERLAY_OPACITY")
+    [ "$META_COVER_FIT" = "cover" ] && _PDF_BOOK_FEATURE_VARS+=("--variable=cover_fit_cover=true")
 
     # Back cover image (with auto-detection fallback)
     local BACK_COVER_IMAGE_PATH="$META_BACK_COVER_IMAGE"
     if [ -z "$BACK_COVER_IMAGE_PATH" ]; then
         BACK_COVER_IMAGE_PATH=$(detect_cover_image "$INPUT_DIR" "back")
-        if [ -n "$BACK_COVER_IMAGE_PATH" ]; then
-            echo -e "${GREEN}Auto-detected back cover image: $BACK_COVER_IMAGE_PATH${NC}"
-        fi
+        [ -n "$BACK_COVER_IMAGE_PATH" ] && echo -e "${GREEN}Auto-detected back cover image: $BACK_COVER_IMAGE_PATH${NC}"
     fi
     if [ -n "$BACK_COVER_IMAGE_PATH" ] && [ -f "$BACK_COVER_IMAGE_PATH" ]; then
         _PDF_BOOK_FEATURE_VARS+=("--variable=back_cover_image=$BACK_COVER_IMAGE_PATH")
     elif [ -n "$META_BACK_COVER_IMAGE" ]; then
-        # Try relative to input file
         local RELATIVE_BACK_COVER="$INPUT_DIR/$META_BACK_COVER_IMAGE"
         if [ -f "$RELATIVE_BACK_COVER" ]; then
             _PDF_BOOK_FEATURE_VARS+=("--variable=back_cover_image=$RELATIVE_BACK_COVER")
@@ -658,57 +516,34 @@ build_pandoc_vars() {
         fi
     fi
 
-    # Back cover content type
-    if [ -n "$META_BACK_COVER_CONTENT" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=back_cover_content=$META_BACK_COVER_CONTENT")
-    fi
+    # Back cover content
+    _add_meta_var "back_cover_content" "$META_BACK_COVER_CONTENT"
+    _add_meta_var "back_cover_quote" "$META_BACK_COVER_QUOTE"
+    _add_meta_var "back_cover_quote_source" "$META_BACK_COVER_QUOTE_SOURCE"
+    _add_meta_var "back_cover_summary" "$META_BACK_COVER_SUMMARY"
+    _add_meta_var "back_cover_text" "$META_BACK_COVER_TEXT"
+    _add_meta_bool "back_cover_author_bio" "$META_BACK_COVER_AUTHOR_BIO"
+    _add_meta_var "back_cover_author_bio_text" "$META_BACK_COVER_AUTHOR_BIO_TEXT"
+    _add_meta_bool "back_cover_isbn_barcode" "$META_BACK_COVER_ISBN_BARCODE"
+}
 
-    # Back cover quote
-    if [ -n "$META_BACK_COVER_QUOTE" ] && [ "$META_BACK_COVER_QUOTE" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=back_cover_quote=$META_BACK_COVER_QUOTE")
-    fi
+# Assembles all pandoc variables for PDF generation.
+# Sets: _PDF_TOC_OPTION, _PDF_SECTION_NUMBERING_OPTION, _PDF_FOOTER_VARS,
+#       _PDF_HEADER_FOOTER_VARS, _PDF_BOOK_FEATURE_VARS
+# Returns: 0 always
+build_pandoc_vars() {
+    echo -e "${BLUE}Using enhanced equation line breaking for text-heavy equations${NC}"
 
-    # Back cover quote source
-    if [ -n "$META_BACK_COVER_QUOTE_SOURCE" ] && [ "$META_BACK_COVER_QUOTE_SOURCE" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=back_cover_quote_source=$META_BACK_COVER_QUOTE_SOURCE")
-    fi
+    _PDF_TOC_OPTION=""
+    [ "$ARG_TOC" = true ] && _PDF_TOC_OPTION="--toc"
 
-    # Back cover summary
-    if [ -n "$META_BACK_COVER_SUMMARY" ] && [ "$META_BACK_COVER_SUMMARY" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=back_cover_summary=$META_BACK_COVER_SUMMARY")
-    fi
+    _PDF_SECTION_NUMBERING_OPTION=""
+    [ "$ARG_SECTION_NUMBERS" = false ] && _PDF_SECTION_NUMBERING_OPTION="--variable=numbersections=false"
 
-    # Back cover custom text
-    if [ -n "$META_BACK_COVER_TEXT" ] && [ "$META_BACK_COVER_TEXT" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=back_cover_text=$META_BACK_COVER_TEXT")
-    fi
-
-    # Back cover author bio
-    if [ "$META_BACK_COVER_AUTHOR_BIO" = "true" ] || [ "$META_BACK_COVER_AUTHOR_BIO" = "True" ] || [ "$META_BACK_COVER_AUTHOR_BIO" = "TRUE" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=back_cover_author_bio=true")
-    fi
-
-    # Back cover author bio text
-    if [ -n "$META_BACK_COVER_AUTHOR_BIO_TEXT" ] && [ "$META_BACK_COVER_AUTHOR_BIO_TEXT" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=back_cover_author_bio_text=$META_BACK_COVER_AUTHOR_BIO_TEXT")
-    fi
-
-    # Back cover ISBN barcode placeholder
-    if [ "$META_BACK_COVER_ISBN_BARCODE" = "true" ] || [ "$META_BACK_COVER_ISBN_BARCODE" = "True" ] || [ "$META_BACK_COVER_ISBN_BARCODE" = "TRUE" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=back_cover_isbn_barcode=true")
-    fi
-
-    # === AUTHORSHIP & SUPPORT SYSTEM VARIABLES ===
-    # Author public key
-    if [ -n "$META_AUTHOR_PUBKEY" ] && [ "$META_AUTHOR_PUBKEY" != "null" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=author_pubkey=$META_AUTHOR_PUBKEY")
-        _PDF_BOOK_FEATURE_VARS+=("--variable=author_pubkey_type=$META_AUTHOR_PUBKEY_TYPE")
-    fi
-
-    # Donation wallets (pre-formatted LaTeX string)
-    if [ -n "$META_DONATION_WALLETS" ]; then
-        _PDF_BOOK_FEATURE_VARS+=("--variable=donation_wallets=$META_DONATION_WALLETS")
-    fi
+    _build_footer_vars
+    _PDF_BOOK_FEATURE_VARS=()
+    _build_book_feature_vars
+    _build_cover_vars
 
     return 0
 }

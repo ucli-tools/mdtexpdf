@@ -21,6 +21,10 @@ template.tex
 .DS_Store
 Thumbs.db
 
+# Backup files
+*.backup
+*.bak
+
 # Editor specific files
 .vscode/
 .idea/

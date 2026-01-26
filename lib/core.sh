@@ -73,45 +73,8 @@ check_latex_package() {
     fi
 }
 
-# Truncate long addresses/keys for display
-truncate_address() {
-    local address="$1"
-    local max_length="${2:-40}"
-
-    if [ ${#address} -gt $max_length ]; then
-        local half=$(( (max_length - 3) / 2 ))
-        echo "${address:0:$half}...${address: -$half}"
-    else
-        echo "$address"
-    fi
-}
-
-# Get the directory where mdtexpdf is installed
-get_mdtexpdf_dir() {
-    local script_path
-    script_path="$(readlink -f "${BASH_SOURCE[0]}")"
-    dirname "$(dirname "$script_path")"
-}
-
-# Get path to a filter
-get_filter_path() {
-    local filter_name="$1"
-    local mdtexpdf_dir
-    mdtexpdf_dir="$(get_mdtexpdf_dir)"
-
-    # Check multiple locations
-    for path in \
-        "$mdtexpdf_dir/filters/$filter_name" \
-        "/usr/local/share/mdtexpdf/filters/$filter_name" \
-        "./filters/$filter_name"; do
-        if [ -f "$path" ]; then
-            echo "$path"
-            return 0
-        fi
-    done
-
-    return 1
-}
+# Note: truncate_address() is in lib/pdf.sh
+# Note: filter path lookup is handled by find_lua_filter() in lib/pdf.sh
 
 # =============================================================================
 # Default Configuration

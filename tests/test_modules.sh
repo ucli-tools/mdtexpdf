@@ -315,19 +315,6 @@ test_preprocess_loads() {
     fi
 }
 
-test_preprocess_unicode_function() {
-    test_start "preprocess.sh defines detect_unicode_characters function"
-    (
-        source "$LIB_DIR/preprocess.sh"
-        type detect_unicode_characters &>/dev/null
-    )
-    if [ $? -eq 0 ]; then
-        test_pass
-    else
-        test_fail "detect_unicode_characters not defined"
-    fi
-}
-
 test_preprocess_markdown_function() {
     test_start "preprocess.sh defines preprocess_markdown function"
     (
@@ -341,56 +328,7 @@ test_preprocess_markdown_function() {
     fi
 }
 
-test_preprocess_cover_function() {
-    test_start "preprocess.sh defines detect_cover_image function"
-    (
-        source "$LIB_DIR/preprocess.sh"
-        type detect_cover_image &>/dev/null
-    )
-    if [ $? -eq 0 ]; then
-        test_pass
-    else
-        test_fail "detect_cover_image not defined"
-    fi
-}
 
-test_preprocess_unicode_detection_cjk() {
-    test_start "detect_unicode_characters finds CJK content"
-
-    local test_md="$TEST_OUTPUT/test_cjk.md"
-    echo "这是中文内容" > "$test_md"
-
-    (
-        source "$LIB_DIR/preprocess.sh"
-        detect_unicode_characters "$test_md"
-    )
-    if [ $? -eq 0 ]; then
-        test_pass
-    else
-        test_fail "Failed to detect CJK characters"
-    fi
-
-    rm -f "$test_md"
-}
-
-test_preprocess_unicode_detection_ascii() {
-    test_start "detect_unicode_characters returns false for ASCII"
-
-    local test_md="$TEST_OUTPUT/test_ascii.md"
-    echo "This is plain ASCII content" > "$test_md"
-
-    (
-        source "$LIB_DIR/preprocess.sh"
-        ! detect_unicode_characters "$test_md"
-    )
-    if [ $? -eq 0 ]; then
-        test_pass
-    else
-        test_fail "Incorrectly detected Unicode in ASCII content"
-    fi
-
-    rm -f "$test_md"
-}
 
 # =============================================================================
 # EPUB Module Tests
@@ -952,6 +890,44 @@ test_pdf_truncate_address_output() {
     fi
 }
 
+test_pdf_unicode_detection_cjk() {
+    test_start "detect_unicode_characters finds CJK content"
+
+    local test_md="$TEST_OUTPUT/test_cjk.md"
+    echo "这是中文内容" > "$test_md"
+
+    (
+        source "$LIB_DIR/pdf.sh"
+        detect_unicode_characters "$test_md"
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "Failed to detect CJK characters"
+    fi
+
+    rm -f "$test_md"
+}
+
+test_pdf_unicode_detection_ascii() {
+    test_start "detect_unicode_characters returns false for ASCII"
+
+    local test_md="$TEST_OUTPUT/test_ascii.md"
+    echo "This is plain ASCII content" > "$test_md"
+
+    (
+        source "$LIB_DIR/pdf.sh"
+        ! detect_unicode_characters "$test_md"
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "Incorrectly detected Unicode in ASCII content"
+    fi
+
+    rm -f "$test_md"
+}
+
 test_pdf_find_lua_filter_function() {
     test_start "pdf.sh defines find_lua_filter function"
     (
@@ -965,18 +941,7 @@ test_pdf_find_lua_filter_function() {
     fi
 }
 
-test_pdf_cleanup_function() {
-    test_start "pdf.sh defines cleanup_pdf_generation function"
-    (
-        source "$LIB_DIR/pdf.sh"
-        type cleanup_pdf_generation &>/dev/null
-    )
-    if [ $? -eq 0 ]; then
-        test_pass
-    else
-        test_fail "cleanup_pdf_generation not defined"
-    fi
-}
+
 
 # =============================================================================
 # Module Interaction Tests
@@ -1063,11 +1028,7 @@ test_metadata_init_clears_values
 
 echo -e "\n${YELLOW}--- Preprocess Module Tests ---${NC}\n"
 test_preprocess_loads
-test_preprocess_unicode_function
 test_preprocess_markdown_function
-test_preprocess_cover_function
-test_preprocess_unicode_detection_cjk
-test_preprocess_unicode_detection_ascii
 
 echo -e "\n${YELLOW}--- EPUB Module Tests ---${NC}\n"
 test_epub_loads
@@ -1104,8 +1065,10 @@ test_pdf_detect_unicode_function
 test_pdf_detect_cover_function
 test_pdf_truncate_address_function
 test_pdf_truncate_address_output
+test_pdf_unicode_detection_cjk
+test_pdf_unicode_detection_ascii
 test_pdf_find_lua_filter_function
-test_pdf_cleanup_function
+
 
 echo -e "\n${YELLOW}--- Module Interaction Tests ---${NC}\n"
 test_all_modules_load_together

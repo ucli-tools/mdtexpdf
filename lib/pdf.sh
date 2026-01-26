@@ -8,8 +8,8 @@
 #   - detect_unicode_characters() - Check if document needs Unicode engine
 #   - detect_cover_image() - Auto-detect cover images
 #   - truncate_address() - Truncate long addresses for display
-#   - preprocess_markdown() - Prepare markdown for LaTeX
-#   - build_pandoc_pdf_command() - Build pandoc command for PDF output
+#   - select_pdf_engine() - Select best LaTeX engine based on content
+#   - find_lua_filter() - Find Lua filter path across search locations
 #
 # Dependencies: lib/core.sh (for logging functions)
 # =============================================================================
@@ -165,17 +165,28 @@ select_pdf_engine() {
 }
 
 # Function to find Lua filter path
+# Searches in order: pwd, pwd/filters, SCRIPT_DIR, SCRIPT_DIR/filters,
+#                    /usr/local/share/mdtexpdf, /usr/local/share/mdtexpdf/filters
 # Arguments:
 #   $1 - filter_name: Name of the filter file (e.g., "index_filter.lua")
 # Returns: Full path to filter, or empty string if not found
 find_lua_filter() {
     local filter_name="$1"
+    local script_dir
+    script_dir="$(dirname "$(readlink -f "$0")")"
 
-    # Check various locations
-    if [ -f "$(pwd)/filters/$filter_name" ]; then
+    # Check root-level locations (e.g., heading_fix_filter.lua, image_size_filter.lua)
+    if [ -f "$(pwd)/$filter_name" ]; then
+        echo "$(pwd)/$filter_name"
+    elif [ -f "$script_dir/$filter_name" ]; then
+        echo "$script_dir/$filter_name"
+    elif [ -f "/usr/local/share/mdtexpdf/$filter_name" ]; then
+        echo "/usr/local/share/mdtexpdf/$filter_name"
+    # Check filters/ subdirectory (e.g., long_equation_filter.lua, book_structure.lua)
+    elif [ -f "$(pwd)/filters/$filter_name" ]; then
         echo "$(pwd)/filters/$filter_name"
-    elif [ -f "$SCRIPT_DIR/filters/$filter_name" ]; then
-        echo "$SCRIPT_DIR/filters/$filter_name"
+    elif [ -f "$script_dir/filters/$filter_name" ]; then
+        echo "$script_dir/filters/$filter_name"
     elif [ -f "/usr/local/share/mdtexpdf/filters/$filter_name" ]; then
         echo "/usr/local/share/mdtexpdf/filters/$filter_name"
     else
@@ -183,46 +194,9 @@ find_lua_filter() {
     fi
 }
 
-# Function to cleanup after PDF generation
-# Arguments:
-#   $1 - backup_file: Path to backup file
-#   $2 - input_file: Path to input file
-#   $3 - combined_file: Path to combined file (for multi-file projects)
-#   $4 - bib_temp_dir: Path to bibliography temp directory
-cleanup_pdf_generation() {
-    local backup_file="$1"
-    local input_file="$2"
-    local combined_file="$3"
-    local bib_temp_dir="$4"
-
-    # Clean up bibliography temp directory
-    if [ -n "$bib_temp_dir" ] && [ -d "$bib_temp_dir" ]; then
-        rm -rf "$bib_temp_dir"
-    fi
-
-    # Clean up: Remove template.tex file if it was created in the current directory
-    if [ -f "$(pwd)/template.tex" ]; then
-        log_verbose "Cleaning up: Removing template.tex"
-        rm -f "$(pwd)/template.tex"
-    fi
-
-    # Restore the original markdown file from backup
-    if [ -f "$backup_file" ]; then
-        log_verbose "Restoring original markdown file from backup"
-        mv "$backup_file" "$input_file"
-    fi
-
-    # Clean up combined file if multi-file project
-    if [ -n "$combined_file" ] && [ -f "$combined_file" ]; then
-        rm -f "$combined_file"
-    fi
-}
-
 # Export functions for use in main script
 export -f detect_unicode_characters 2>/dev/null || true
 export -f detect_cover_image 2>/dev/null || true
 export -f truncate_address 2>/dev/null || true
-export -f preprocess_markdown 2>/dev/null || true
 export -f select_pdf_engine 2>/dev/null || true
 export -f find_lua_filter 2>/dev/null || true
-export -f cleanup_pdf_generation 2>/dev/null || true

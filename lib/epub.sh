@@ -12,6 +12,21 @@ if [ -z "$MDTEXPDF_VERSION" ]; then
 fi
 
 # =============================================================================
+# Module-level variables (shared between helper functions)
+# =============================================================================
+_EPUB_OPTS=""
+_EPUB_TITLE=""
+_EPUB_AUTHOR=""
+_EPUB_DATE=""
+_EPUB_DESCRIPTION=""
+_EPUB_LANGUAGE=""
+_EPUB_COVER=""
+_EPUB_COVER_GENERATED=""
+_EPUB_TEMP_INPUT=""
+_EPUB_CMD=""
+_EPUB_BIB_TEMP_DIR=""
+
+# =============================================================================
 # EPUB Spine Reordering
 # =============================================================================
 
@@ -299,33 +314,14 @@ validate_epub() {
 }
 
 # =============================================================================
-# Main EPUB Generation Function
+# EPUB Generation Helpers
 # =============================================================================
 
-# Generate EPUB output
-# Uses global variables: INPUT_FILE, OUTPUT_FILE, ARG_*, META_*, BACKUP_FILE, COMBINED_FILE
-# Returns: 0 on success, 1 on failure
-generate_epub() {
-    echo -e "${YELLOW}Converting $INPUT_FILE to EPUB...${NC}"
-
-    # Build EPUB options
-    EPUB_OPTS=""
-
-    # Table of contents
-    if [ "$ARG_TOC" = true ] || [ "$META_TOC" = "true" ]; then
-        EPUB_OPTS="$EPUB_OPTS --toc"
-        local toc_depth="${ARG_TOC_DEPTH:-${META_TOC_DEPTH:-2}}"
-        EPUB_OPTS="$EPUB_OPTS --toc-depth=$toc_depth"
-        EPUB_OPTS="$EPUB_OPTS --metadata toc-title=\"Contents\""
-    fi
-
-    # Metadata
-    local epub_title="${ARG_TITLE:-$META_TITLE}"
-    local epub_author="${ARG_AUTHOR:-$META_AUTHOR}"
-    local epub_date="${ARG_DATE:-$META_DATE}"
-    local epub_description="$META_DESCRIPTION"
-    local epub_language="${META_LANGUAGE:-en}"
-
+# Detect and generate EPUB cover image with text overlay.
+# Sets: _EPUB_COVER, _EPUB_COVER_GENERATED
+# Uses: INPUT_FILE, META_COVER_IMAGE, META_*, ARG_TITLE, ARG_AUTHOR
+# Returns: 0 always
+_generate_epub_cover() {
     # Cover image - find base image first
     local epub_cover_base=""
     if [ -n "$META_COVER_IMAGE" ] && [ -f "$META_COVER_IMAGE" ]; then
@@ -344,9 +340,10 @@ generate_epub() {
         done
     fi
 
+    _EPUB_COVER=""
+    _EPUB_COVER_GENERATED=""
+
     # Generate cover with text overlay using ImageMagick (matching PDF style)
-    local epub_cover=""
-    local epub_cover_generated=""
     if [ -n "$epub_cover_base" ] && command -v convert &> /dev/null; then
         # Make paths absolute
         local input_dir
@@ -354,7 +351,7 @@ generate_epub() {
         if [[ ! "$epub_cover_base" = /* ]]; then
             epub_cover_base="$input_dir/$epub_cover_base"
         fi
-        epub_cover_generated="${INPUT_FILE%.md}_epub_cover.png"
+        _EPUB_COVER_GENERATED="${INPUT_FILE%.md}_epub_cover.png"
         local cover_title="${ARG_TITLE:-$META_TITLE}"
         local cover_subtitle="${META_SUBTITLE:-}"
         local cover_author="${ARG_AUTHOR:-$META_AUTHOR}"
@@ -422,49 +419,54 @@ generate_epub() {
         /usr/bin/convert "$temp_base" \
             "$temp_title" -gravity North -geometry +0+${title_y} -composite \
             "$temp_author" -gravity South -geometry +0+$((img_height / 10)) -composite \
-            "$epub_cover_generated"
+            "$_EPUB_COVER_GENERATED"
 
         if [ -n "$temp_subtitle" ]; then
             local title_subtitle_gap=$((img_height / 40))
             local subtitle_y=$((title_y + title_actual_height + title_subtitle_gap))
-            /usr/bin/convert "$epub_cover_generated" \
+            /usr/bin/convert "$_EPUB_COVER_GENERATED" \
                 "$temp_subtitle" -gravity North -geometry +0+${subtitle_y} -composite \
-                "$epub_cover_generated"
+                "$_EPUB_COVER_GENERATED"
         fi
 
         rm -f "$temp_base" "$temp_title" "$temp_subtitle" "$temp_author"
 
-        if [ -f "$epub_cover_generated" ]; then
-            epub_cover="$epub_cover_generated"
-            echo -e "${GREEN}Cover generated: $epub_cover_generated${NC}"
+        if [ -f "$_EPUB_COVER_GENERATED" ]; then
+            _EPUB_COVER="$_EPUB_COVER_GENERATED"
+            echo -e "${GREEN}Cover generated: $_EPUB_COVER_GENERATED${NC}"
         else
-            epub_cover="$epub_cover_base"
+            _EPUB_COVER="$epub_cover_base"
             echo -e "${YELLOW}Cover generation failed, using base image${NC}"
         fi
     elif [ -n "$epub_cover_base" ]; then
-        epub_cover="$epub_cover_base"
+        _EPUB_COVER="$epub_cover_base"
     fi
+}
 
-    # Create temporary file for EPUB preprocessing
-    local epub_temp_input="${INPUT_FILE%.md}_epub_temp.md"
-    cp "$INPUT_FILE" "$epub_temp_input"
+# Prepare EPUB content: chemistry preprocessing and front matter insertion.
+# Sets: _EPUB_TEMP_INPUT
+# Uses: INPUT_FILE, _EPUB_TITLE, _EPUB_AUTHOR, _EPUB_DATE, META_*
+# Returns: 0 always
+_prepare_epub_content() {
+    _EPUB_TEMP_INPUT="${INPUT_FILE%.md}_epub_temp.md"
+    cp "$INPUT_FILE" "$_EPUB_TEMP_INPUT"
 
     # Preprocess chemistry notation
-    preprocess_epub_chemistry "$epub_temp_input"
+    preprocess_epub_chemistry "$_EPUB_TEMP_INPUT"
 
     # Generate front matter and insert into temp file
     local epub_frontmatter_md=""
     local has_frontmatter=false
 
     # Title page
-    if [ -n "$epub_title" ]; then
+    if [ -n "$_EPUB_TITLE" ]; then
         has_frontmatter=true
         epub_frontmatter_md="$epub_frontmatter_md\n\n# ​ {.unnumbered .unlisted .title-page}\n\n"
         epub_frontmatter_md="$epub_frontmatter_md::: {.titlepage}\n"
-        epub_frontmatter_md="$epub_frontmatter_md## $epub_title {.unnumbered .unlisted}\n\n"
+        epub_frontmatter_md="$epub_frontmatter_md## $_EPUB_TITLE {.unnumbered .unlisted}\n\n"
         [ -n "${META_SUBTITLE:-}" ] && epub_frontmatter_md="$epub_frontmatter_md*${META_SUBTITLE}*\n\n"
-        [ -n "$epub_author" ] && epub_frontmatter_md="$epub_frontmatter_md$epub_author\n\n"
-        [ -n "$epub_date" ] && epub_frontmatter_md="$epub_frontmatter_md$epub_date\n"
+        [ -n "$_EPUB_AUTHOR" ] && epub_frontmatter_md="$epub_frontmatter_md$_EPUB_AUTHOR\n\n"
+        [ -n "$_EPUB_DATE" ] && epub_frontmatter_md="$epub_frontmatter_md$_EPUB_DATE\n"
         epub_frontmatter_md="$epub_frontmatter_md:::\n"
     fi
 
@@ -472,13 +474,13 @@ generate_epub() {
     if [ "$META_COPYRIGHT_PAGE" = "true" ] || [ "$META_COPYRIGHT_PAGE" = "True" ] || [ "$META_COPYRIGHT_PAGE" = "TRUE" ]; then
         has_frontmatter=true
         local epub_copyright_year="${META_COPYRIGHT_YEAR:-$(date +%Y)}"
-        local epub_copyright_holder="${META_COPYRIGHT_HOLDER:-${META_PUBLISHER:-$epub_author}}"
+        local epub_copyright_holder="${META_COPYRIGHT_HOLDER:-${META_PUBLISHER:-$_EPUB_AUTHOR}}"
 
         epub_frontmatter_md="$epub_frontmatter_md\n\n# ​ {.unnumbered .unlisted .copyright-page}\n\n"
         epub_frontmatter_md="$epub_frontmatter_md::: {.copyright}\n"
-        epub_frontmatter_md="$epub_frontmatter_md**$epub_title**\n\n"
+        epub_frontmatter_md="$epub_frontmatter_md**$_EPUB_TITLE**\n\n"
         [ -n "${META_SUBTITLE:-}" ] && epub_frontmatter_md="$epub_frontmatter_md*${META_SUBTITLE}*\n\n"
-        epub_frontmatter_md="$epub_frontmatter_md by $epub_author\n\n"
+        epub_frontmatter_md="$epub_frontmatter_md by $_EPUB_AUTHOR\n\n"
         epub_frontmatter_md="$epub_frontmatter_md---\n\n"
         epub_frontmatter_md="$epub_frontmatter_md Copyright © $epub_copyright_year $epub_copyright_holder\n\n"
         epub_frontmatter_md="$epub_frontmatter_md All rights reserved.\n\n"
@@ -532,43 +534,40 @@ generate_epub() {
     # Insert front matter into temp file
     if [ "$has_frontmatter" = true ] && [ -n "$epub_frontmatter_md" ]; then
         local yaml_end_line
-        yaml_end_line=$(awk '/^---$/{n++; if(n==2) {print NR; exit}}' "$epub_temp_input")
+        yaml_end_line=$(awk '/^---$/{n++; if(n==2) {print NR; exit}}' "$_EPUB_TEMP_INPUT")
         if [ -n "$yaml_end_line" ]; then
             local temp_with_frontmatter
             temp_with_frontmatter=$(mktemp)
-            head -n "$yaml_end_line" "$epub_temp_input" > "$temp_with_frontmatter"
+            head -n "$yaml_end_line" "$_EPUB_TEMP_INPUT" > "$temp_with_frontmatter"
             echo -e "$epub_frontmatter_md" >> "$temp_with_frontmatter"
-            tail -n +$((yaml_end_line + 1)) "$epub_temp_input" >> "$temp_with_frontmatter"
-            mv "$temp_with_frontmatter" "$epub_temp_input"
+            tail -n +$((yaml_end_line + 1)) "$_EPUB_TEMP_INPUT" >> "$temp_with_frontmatter"
+            mv "$temp_with_frontmatter" "$_EPUB_TEMP_INPUT"
         fi
     fi
+}
 
-    # Build pandoc command
-    EPUB_CMD="pandoc \"$epub_temp_input\" --from markdown --to epub3 --output \"$OUTPUT_FILE\" --epub-title-page=false --mathml"
-
-    [ -n "$epub_title" ] && EPUB_CMD="$EPUB_CMD --metadata title=\"$epub_title\""
-    [ -n "$epub_author" ] && EPUB_CMD="$EPUB_CMD --metadata author=\"$epub_author\""
-    [ -n "$epub_date" ] && EPUB_CMD="$EPUB_CMD --metadata date=\"$epub_date\""
-    [ -n "$epub_description" ] && EPUB_CMD="$EPUB_CMD --metadata description=\"$epub_description\""
-    [ -n "$epub_language" ] && EPUB_CMD="$EPUB_CMD --metadata lang=\"$epub_language\""
-    [ -n "$epub_cover" ] && EPUB_CMD="$EPUB_CMD --epub-cover-image=\"$epub_cover\""
-
-    # Handle bibliography
-    local epub_bib_temp_dir="" epub_bib_path="" epub_using_inline_bib=false
+# Setup EPUB bibliography, CSL, and custom CSS options.
+# Appends to: _EPUB_CMD
+# Uses: _EPUB_TEMP_INPUT, ARG_BIBLIOGRAPHY, ARG_CSL, ARG_EPUB_CSS, INPUT_FILE
+# Returns: 0 always
+_setup_epub_bibliography() {
+    _EPUB_BIB_TEMP_DIR=""
+    local epub_bib_path=""
+    local epub_using_inline_bib=false
 
     if [ -z "$ARG_BIBLIOGRAPHY" ] && type has_inline_bibliography &>/dev/null; then
-        if has_inline_bibliography "$epub_temp_input"; then
+        if has_inline_bibliography "$_EPUB_TEMP_INPUT"; then
             echo -e "${BLUE}Detected inline bibliography in document${NC}"
-            epub_bib_temp_dir=$(mktemp -d)
-            if epub_bib_path=$(process_inline_bibliography "$epub_temp_input" "$epub_bib_temp_dir"); then
-                cp "$epub_bib_temp_dir/content.md" "$epub_temp_input"
+            _EPUB_BIB_TEMP_DIR=$(mktemp -d)
+            if epub_bib_path=$(process_inline_bibliography "$_EPUB_TEMP_INPUT" "$_EPUB_BIB_TEMP_DIR"); then
+                cp "$_EPUB_BIB_TEMP_DIR/content.md" "$_EPUB_TEMP_INPUT"
                 epub_using_inline_bib=true
-                EPUB_CMD="$EPUB_CMD --citeproc --bibliography=\"$epub_bib_path\""
+                _EPUB_CMD="$_EPUB_CMD --citeproc --bibliography=\"$epub_bib_path\""
                 echo -e "${GREEN}Using inline bibliography${NC}"
             else
                 echo -e "${YELLOW}Warning: Could not process inline bibliography${NC}"
-                rm -rf "$epub_bib_temp_dir"
-                epub_bib_temp_dir=""
+                rm -rf "$_EPUB_BIB_TEMP_DIR"
+                _EPUB_BIB_TEMP_DIR=""
             fi
         fi
     fi
@@ -588,15 +587,15 @@ generate_epub() {
         if [ -n "$external_bib_path" ]; then
             if type is_simple_bibliography &>/dev/null && is_simple_bibliography "$external_bib_path"; then
                 echo -e "${BLUE}Converting simple markdown bibliography...${NC}"
-                [ -z "$epub_bib_temp_dir" ] && epub_bib_temp_dir=$(mktemp -d)
-                if epub_bib_path=$(process_bibliography_file "$external_bib_path" "$epub_bib_temp_dir"); then
-                    EPUB_CMD="$EPUB_CMD --citeproc --bibliography=\"$epub_bib_path\""
+                [ -z "$_EPUB_BIB_TEMP_DIR" ] && _EPUB_BIB_TEMP_DIR=$(mktemp -d)
+                if epub_bib_path=$(process_bibliography_file "$external_bib_path" "$_EPUB_BIB_TEMP_DIR"); then
+                    _EPUB_CMD="$_EPUB_CMD --citeproc --bibliography=\"$epub_bib_path\""
                     echo -e "${GREEN}Using simple bibliography: $external_bib_path${NC}"
                 else
                     echo -e "${YELLOW}Warning: Could not convert simple bibliography${NC}"
                 fi
             else
-                EPUB_CMD="$EPUB_CMD --citeproc --bibliography=\"$external_bib_path\""
+                _EPUB_CMD="$_EPUB_CMD --citeproc --bibliography=\"$external_bib_path\""
                 echo -e "${GREEN}Using bibliography: $external_bib_path${NC}"
             fi
         else
@@ -616,7 +615,7 @@ generate_epub() {
             fi
         fi
         if [ -n "$csl_path" ]; then
-            EPUB_CMD="$EPUB_CMD --csl=\"$csl_path\""
+            _EPUB_CMD="$_EPUB_CMD --csl=\"$csl_path\""
             echo -e "${GREEN}Using citation style: $csl_path${NC}"
         else
             echo -e "${YELLOW}Warning: CSL file '$ARG_CSL' not found${NC}"
@@ -636,24 +635,29 @@ generate_epub() {
             fi
         fi
         if [ -n "$css_path" ]; then
-            EPUB_CMD="$EPUB_CMD --css=\"$css_path\""
+            _EPUB_CMD="$_EPUB_CMD --css=\"$css_path\""
             echo -e "${GREEN}Using custom EPUB CSS: $css_path${NC}"
         else
             echo -e "${YELLOW}Warning: EPUB CSS file '$ARG_EPUB_CSS' not found${NC}"
         fi
     fi
+}
 
-    EPUB_CMD="$EPUB_CMD $EPUB_OPTS --standalone"
+# Execute pandoc for EPUB and perform post-processing (spine reorder, validation).
+# Uses: _EPUB_CMD, _EPUB_OPTS, _EPUB_TEMP_INPUT, _EPUB_COVER_GENERATED,
+#       _EPUB_BIB_TEMP_DIR, OUTPUT_FILE, BACKUP_FILE, COMBINED_FILE, ARG_VALIDATE
+# Returns: 0 on success, 1 on failure
+_execute_epub_pandoc() {
+    _EPUB_CMD="$_EPUB_CMD $_EPUB_OPTS --standalone"
 
-    # Execute pandoc
-    echo -e "${BLUE}Running: $EPUB_CMD${NC}"
-    eval "$EPUB_CMD"
+    echo -e "${BLUE}Running: $_EPUB_CMD${NC}"
+    eval "$_EPUB_CMD"
     local epub_result=$?
 
     # Cleanup temp files
-    rm -f "$epub_temp_input"
-    [ -n "$epub_cover_generated" ] && rm -f "$epub_cover_generated"
-    [ -n "$epub_bib_temp_dir" ] && [ -d "$epub_bib_temp_dir" ] && rm -rf "$epub_bib_temp_dir"
+    rm -f "$_EPUB_TEMP_INPUT"
+    [ -n "$_EPUB_COVER_GENERATED" ] && rm -f "$_EPUB_COVER_GENERATED"
+    [ -n "$_EPUB_BIB_TEMP_DIR" ] && [ -d "$_EPUB_BIB_TEMP_DIR" ] && rm -rf "$_EPUB_BIB_TEMP_DIR"
 
     if [ $epub_result -eq 0 ]; then
         echo -e "${GREEN}Success! EPUB created as $OUTPUT_FILE${NC}"
@@ -686,4 +690,51 @@ generate_epub() {
         fi
         return 1
     fi
+}
+
+# =============================================================================
+# Main EPUB Generation Orchestrator
+# =============================================================================
+
+# Generate EPUB output
+# Uses global variables: INPUT_FILE, OUTPUT_FILE, ARG_*, META_*, BACKUP_FILE, COMBINED_FILE
+# Returns: 0 on success, 1 on failure
+generate_epub() {
+    echo -e "${YELLOW}Converting $INPUT_FILE to EPUB...${NC}"
+
+    # Step 1: Build EPUB options
+    _EPUB_OPTS=""
+    if [ "$ARG_TOC" = true ] || [ "$META_TOC" = "true" ]; then
+        local toc_depth="${ARG_TOC_DEPTH:-${META_TOC_DEPTH:-2}}"
+        _EPUB_OPTS="--toc --toc-depth=$toc_depth --metadata toc-title=\"Contents\""
+    fi
+
+    # Step 2: Extract metadata
+    _EPUB_TITLE="${ARG_TITLE:-$META_TITLE}"
+    _EPUB_AUTHOR="${ARG_AUTHOR:-$META_AUTHOR}"
+    _EPUB_DATE="${ARG_DATE:-$META_DATE}"
+    _EPUB_DESCRIPTION="$META_DESCRIPTION"
+    _EPUB_LANGUAGE="${META_LANGUAGE:-en}"
+
+    # Step 3: Detect and generate cover image
+    _generate_epub_cover
+
+    # Step 4: Prepare content (chemistry preprocessing + front matter insertion)
+    _prepare_epub_content
+
+    # Step 5: Build base pandoc command
+    _EPUB_CMD="pandoc \"$_EPUB_TEMP_INPUT\" --from markdown --to epub3 --output \"$OUTPUT_FILE\" --epub-title-page=false --mathml"
+    [ -n "$_EPUB_TITLE" ] && _EPUB_CMD="$_EPUB_CMD --metadata title=\"$_EPUB_TITLE\""
+    [ -n "$_EPUB_AUTHOR" ] && _EPUB_CMD="$_EPUB_CMD --metadata author=\"$_EPUB_AUTHOR\""
+    [ -n "$_EPUB_DATE" ] && _EPUB_CMD="$_EPUB_CMD --metadata date=\"$_EPUB_DATE\""
+    [ -n "$_EPUB_DESCRIPTION" ] && _EPUB_CMD="$_EPUB_CMD --metadata description=\"$_EPUB_DESCRIPTION\""
+    [ -n "$_EPUB_LANGUAGE" ] && _EPUB_CMD="$_EPUB_CMD --metadata lang=\"$_EPUB_LANGUAGE\""
+    [ -n "$_EPUB_COVER" ] && _EPUB_CMD="$_EPUB_CMD --epub-cover-image=\"$_EPUB_COVER\""
+
+    # Step 6: Setup bibliography, CSL, and custom CSS
+    _setup_epub_bibliography
+
+    # Step 7: Execute pandoc and post-process
+    _execute_epub_pandoc
+    return $?
 }
