@@ -41,6 +41,7 @@ function Header(el)
 
     -- Check for "Part X: ..." pattern, case-insensitive
     if string.match(header_text, '^[Pp]art %d+:') then
+      has_parts = true  -- Set flag for TOC formatting (Header runs before Pandoc)
       local part_title = string.gsub(header_text, '^[Pp]art %d+: *', '')
       return pandoc.RawBlock('latex', '\\clearpage\\part{' .. part_title .. '}')
     end
