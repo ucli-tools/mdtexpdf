@@ -36,6 +36,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 83 module unit tests
   - 14 regression tests
 
+### Refactored
+- Deep modularization (Phase D2): `mdtexpdf.sh` reduced from 2,818 to 813 lines (71% reduction)
+  - `lib/args.sh` (NEW) - CLI argument parsing and validation (334 lines)
+  - `lib/convert.sh` (NEW) - PDF conversion: template, filters, pandoc execution (827 lines)
+  - `lib/epub.sh` expanded with `generate_epub()` function (280 → 670 lines)
+  - `lib/metadata.sh` expanded with bibliography/CSL parsing (447 → 461 lines)
+  - `convert()` refactored to 60-line thin orchestrator delegating to modules
+  - Total codebase: 5,286 lines across 11 files (10 modules + main)
+  - All 38 tests passing after each refactoring step
+
 ### Documentation
 - docs/SIMPLE_BIBLIOGRAPHY.md: Human-readable bibliography format guide
 - Expanded examples: academic paper, novel, cookbook, technical docs, multilingual

@@ -1,26 +1,22 @@
-# Modularization Plan: Phase D2
+# Modularization Plan: Phase D2 — COMPLETE
 
 ## Objective
 
 Reduce `mdtexpdf.sh` from 2,818 lines to ~600-800 lines by extracting the remaining inline logic into library modules.
 
-## Current State
+**Result: 2,818 → 813 lines (71% reduction). All 38 tests passing.**
 
-### Main Script Breakdown (2,818 lines)
+## Before / After
 
-| Function | Lines | Notes |
-|----------|-------|-------|
-| `convert()` | 1,599 | CLI parsing + EPUB + PDF generation |
-| `parse_yaml_metadata()` | 247 | Should be in lib/metadata.sh |
-| `parse_html_metadata()` | 142 | Should be in lib/metadata.sh |
-| `create()` | 133 | Template creation command |
-| `fix_epub_spine_order()` | 126 | Duplicate - already in lib/epub.sh |
-| `install()` | 123 | System installation |
-| `help()` | 104 | Help text |
-| `apply_metadata_args()` | 77 | Should be in lib/metadata.sh |
-| Small functions + main | ~267 | Logging, checks, dispatch |
+### Main Script
 
-### Inside `convert()` (1,599 lines)
+| Metric | Before | After |
+|--------|--------|-------|
+| `mdtexpdf.sh` | 2,818 lines | 813 lines |
+| `convert()` function | 1,599 lines | 60 lines (orchestrator) |
+| Total codebase | ~5,726 lines | 5,286 lines |
+
+### convert() — Before (1,599 lines inline)
 
 | Section | Lines |
 |---------|-------|
@@ -28,145 +24,105 @@ Reduce `mdtexpdf.sh` from 2,818 lines to ~600-800 lines by extracting the remain
 | EPUB generation | 453 |
 | PDF generation | 806 |
 
-## Target State
-
-### Main Script (~600-800 lines)
-
-The main script should only contain:
-- Version/constants (~20 lines)
-- Module loading (~20 lines)
-- Global flag parsing (~30 lines)
-- Command dispatch (~80 lines)
-- `convert()` orchestration (~150 lines) - calls module functions
-- `create()` command (~130 lines)
-- `install()`/`uninstall()` (~140 lines)
-- `help()` (~100 lines)
-
-### Module Changes
-
-#### 1. lib/args.sh (NEW - ~350 lines)
-Extract CLI argument parsing from `convert()`.
+### convert() — After (60-line orchestrator)
 
 ```bash
-# Functions to add:
-parse_convert_args()    # Parse --title, --author, --format, etc.
-validate_convert_args() # Validate required args, file existence
+convert() {
+    parse_convert_args "$@" || return 1      # lib/args.sh
+    validate_convert_args || return 1         # lib/args.sh
+    check_prerequisites || return 1           # lib/check.sh
+    handle_include_files || return 1          # lib/args.sh
+
+    if [ "$ARG_READ_METADATA" = true ] || [ "$ARG_EPUB" = true ]; then
+        parse_yaml_metadata "$INPUT_FILE"     # lib/metadata.sh
+        apply_metadata_args "$ARG_READ_METADATA"
+    fi
+
+    select_pdf_engine "$INPUT_FILE" || return 1  # lib/pdf.sh
+
+    # Setup backup, output file...
+
+    if [ "$ARG_EPUB" = true ]; then
+        generate_epub                         # lib/epub.sh
+        return $?
+    fi
+
+    generate_pdf                              # lib/convert.sh
+    return $?
+}
 ```
 
-#### 2. lib/metadata.sh (EXPAND - 447 → ~870 lines)
-Move metadata parsing functions from main script.
+## Final Line Counts
 
-```bash
-# Functions to move from mdtexpdf.sh:
-parse_yaml_metadata()   # 247 lines
-parse_html_metadata()   # 142 lines
-apply_metadata_args()   # 77 lines
+| File | Before | After | Change |
+|------|--------|-------|--------|
+| mdtexpdf.sh | 2,818 | 813 | -2,005 |
+| lib/args.sh | — | 334 | NEW |
+| lib/convert.sh | — | 827 | NEW |
+| lib/metadata.sh | 447 | 461 | +14 |
+| lib/epub.sh | 280 | 670 | +390 |
+| lib/bibliography.sh | 514 | 514 | — |
+| lib/template.sh | 1,041 | 1,041 | — |
+| lib/pdf.sh | 228 | 228 | — |
+| lib/preprocess.sh | 167 | 167 | — |
+| lib/core.sh | 127 | 127 | — |
+| lib/check.sh | 104 | 104 | — |
+| **Total** | **5,726** | **5,286** | **-440** |
+
+Net reduction of 440 lines (removed duplication between main script and modules).
+
+## Implementation Steps — All Complete
+
+### Step 1: Create lib/args.sh ✓
+- Created `lib/args.sh` (334 lines)
+- Functions: `init_convert_args()`, `parse_convert_args()`, `validate_convert_args()`, `show_convert_usage()`, `handle_include_files()`
+- Replaced ~250 lines of inline argument parsing in `convert()`
+- Tests: 38/38 passing
+
+### Step 2: Expand lib/metadata.sh ✓
+- Added `META_BIBLIOGRAPHY`, `META_CSL`, `META_COVER_FIT` variables
+- Added bibliography/CSL parsing to `parse_yaml_metadata()`
+- Added bibliography/CSL handling to `apply_metadata_args()`
+- Removed ~470 lines of duplicate metadata functions from main script
+- Tests: 38/38 passing
+
+### Step 3: Expand lib/epub.sh ✓
+- Added `generate_epub()` function (~390 lines) to `lib/epub.sh`
+- Handles: cover generation, chemistry preprocessing, front matter, bibliography, pandoc execution
+- Replaced ~453 lines of inline EPUB code in `convert()`
+- Tests: 38/38 passing
+
+### Step 4: Create lib/convert.sh ✓
+- Created `lib/convert.sh` (827 lines) with `generate_pdf()` function
+- Handles: template resolution, Lua filter discovery, pandoc variable assembly, bibliography, pandoc execution, cleanup
+- Replaced ~806 lines of inline PDF code in `convert()`
+- Tests: 38/38 passing
+
+### Step 5: Refactor convert() to orchestrator ✓
+- `convert()` reduced to 60-line orchestrator
+- Delegates all work to module functions
+- Clear, readable flow: parse → validate → prerequisites → metadata → dispatch
+- Tests: 38/38 passing
+
+## Module Load Order
+
+```
+lib/core.sh          # Logging, utilities (no dependencies)
+lib/check.sh         # Prerequisites checking
+lib/metadata.sh      # YAML/HTML metadata parsing
+lib/preprocess.sh    # Markdown preprocessing
+lib/epub.sh          # EPUB generation
+lib/bibliography.sh  # Bibliography format conversion
+lib/template.sh      # LaTeX template generation
+lib/pdf.sh           # PDF engine selection, cover detection
+lib/convert.sh       # PDF conversion orchestration
+lib/args.sh          # CLI argument parsing
 ```
 
-#### 3. lib/epub.sh (EXPAND - 280 → ~730 lines)
-Move EPUB generation logic from `convert()`.
+## Architecture Notes
 
-```bash
-# Functions to add:
-generate_epub()         # Main EPUB generation (~450 lines)
-
-# Already exists but duplicated in main:
-fix_epub_spine_order()  # Remove duplicate from mdtexpdf.sh
-```
-
-#### 4. lib/convert.sh (NEW - ~800 lines)
-Extract PDF generation logic from `convert()`.
-
-```bash
-# Functions to add:
-convert_to_pdf()        # Main PDF conversion
-build_pandoc_command()  # Build pandoc CLI arguments
-detect_template()       # Find/create template.tex
-setup_lua_filters()     # Configure Lua filters
-run_pandoc()            # Execute pandoc with error handling
-```
-
-## Implementation Steps
-
-### Step 1: Create lib/args.sh
-1. Create new file with argument parsing logic
-2. Extract CLI parsing from `convert()` (lines 1-340)
-3. Add `parse_convert_args()` function
-4. Update `convert()` to call `parse_convert_args "$@"`
-5. Run tests
-
-### Step 2: Expand lib/metadata.sh
-1. Move `parse_yaml_metadata()` from mdtexpdf.sh
-2. Move `parse_html_metadata()` from mdtexpdf.sh
-3. Move `apply_metadata_args()` from mdtexpdf.sh
-4. Update main script to remove these functions
-5. Run tests
-
-### Step 3: Expand lib/epub.sh
-1. Extract EPUB generation section from `convert()`
-2. Create `generate_epub()` function
-3. Remove duplicate `fix_epub_spine_order()` from main
-4. Update `convert()` to call `generate_epub()`
-5. Run tests
-
-### Step 4: Create lib/convert.sh
-1. Create new file with PDF conversion logic
-2. Extract PDF generation from `convert()` (~806 lines)
-3. Create `convert_to_pdf()` as main entry point
-4. Create helper functions for modularity
-5. Update `convert()` to call `convert_to_pdf()`
-6. Run tests
-
-### Step 5: Refactor convert() to orchestrator
-1. `convert()` becomes thin orchestration layer:
-   ```bash
-   convert() {
-       parse_convert_args "$@" || return 1
-       validate_convert_args || return 1
-       
-       if [ "$ARG_EPUB" = true ]; then
-           generate_epub
-       else
-           convert_to_pdf
-       fi
-   }
-   ```
-2. Final cleanup and testing
-
-## Expected Final Line Counts
-
-| File | Current | After |
-|------|---------|-------|
-| mdtexpdf.sh | 2,818 | ~650 |
-| lib/args.sh | - | ~350 |
-| lib/metadata.sh | 447 | ~870 |
-| lib/epub.sh | 280 | ~730 |
-| lib/convert.sh | - | ~800 |
-| lib/template.sh | 1,041 | 1,041 |
-| lib/pdf.sh | 228 | 228 |
-| lib/bibliography.sh | 514 | 514 |
-| lib/preprocess.sh | 167 | 167 |
-| lib/core.sh | 127 | 127 |
-| lib/check.sh | 104 | 104 |
-| **Total** | 5,726 | ~5,581 |
-
-## Verification
-
-After each step:
-1. Run `bash -n` syntax check on all modified files
-2. Run full test suite: `./tests/run_tests.sh`
-3. Manual smoke test: convert a sample document
-
-## Rollback Plan
-
-Keep `mdtexpdf.sh.backup` until all tests pass. If issues arise:
-```bash
-cp mdtexpdf.sh.backup mdtexpdf.sh
-```
-
-## Notes
-
-- All functions use global variables for state (existing pattern)
-- Module load order matters: core.sh must load first
-- New modules should follow existing style (header comments, function docs)
-- No new features - pure refactoring for maintainability
+- All functions use global variables for state (existing pattern: `ARG_*`, `META_*`)
+- Module load order matters: `core.sh` must load first
+- Each module has a source guard for standalone testing
+- No new features introduced — pure refactoring for maintainability
+- Main script retains: version/constants, module loading, logging, `create()`, `install()`, `help()`, command dispatch

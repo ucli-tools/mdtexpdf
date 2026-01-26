@@ -37,7 +37,7 @@ We take a quality-first approach, completing each phase thoroughly before moving
   - [x] Cookbook with images
   - [x] Multi-language document
 
-### Phase D: Modularization (6-10 hours) ✓ COMPLETE
+### Phase D: Modularization ✓ COMPLETE
 - [x] D1. Extract `lib/pdf.sh` - PDF generation helpers (Unicode detection, cover detection, cleanup)
 - [x] D2. Extract `lib/epub.sh` - EPUB generation logic (spine reorder, frontmatter, chemistry)
 - [x] D3. Extract `lib/metadata.sh` - YAML/HTML parsing and metadata handling
@@ -45,6 +45,15 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] D5. Extract `lib/template.sh` - LaTeX template generation (1041 lines)
 - [x] D6. Update main `mdtexpdf.sh` to source modules
 - [x] D7. Make each module independently testable (51 unit tests in tests/test_modules.sh)
+
+### Phase D2: Deep Modularization ✓ COMPLETE
+Reduced `mdtexpdf.sh` from 2,818 → 813 lines (71% reduction):
+- [x] D2.1. Extract `lib/args.sh` - CLI argument parsing (334 lines)
+- [x] D2.2. Expand `lib/metadata.sh` - Move metadata parsing functions (447 → 461 lines)
+- [x] D2.3. Expand `lib/epub.sh` - Add `generate_epub()` function (280 → 670 lines)
+- [x] D2.4. Create `lib/convert.sh` - PDF conversion logic (827 lines)
+- [x] D2.5. Refactor `convert()` to 60-line thin orchestrator
+- [x] All 38 tests passing after each step
 
 ### Phase E: New Features (4-8 hours each) ✓ COMPLETE
 - [x] E1. Bibliography & Citations support
@@ -80,18 +89,21 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] Phase A: Quick Wins - COMPLETE
 - [x] Phase B: Testing & Quality - COMPLETE
 - [x] Phase C: Documentation - COMPLETE
-- [x] Modularization (8 modules):
-  - [x] `lib/core.sh` - Common functions, logging, utilities
-  - [x] `lib/check.sh` - Prerequisites checking
-  - [x] `lib/metadata.sh` - YAML/HTML metadata parsing
-  - [x] `lib/preprocess.sh` - Markdown preprocessing, Unicode detection
-  - [x] `lib/epub.sh` - EPUB helpers (spine reorder, chemistry)
-  - [x] `lib/bibliography.sh` - Simple markdown bibliography format conversion
-  - [x] `lib/pdf.sh` - PDF generation helpers (Unicode detection, cover detection)
-  - [x] `lib/template.sh` - LaTeX template generation (1041 lines)
+- [x] Modularization (10 modules, main script 813 lines):
+  - [x] `lib/core.sh` - Common functions, logging, utilities (127 lines)
+  - [x] `lib/check.sh` - Prerequisites checking (104 lines)
+  - [x] `lib/metadata.sh` - YAML/HTML metadata parsing (461 lines)
+  - [x] `lib/preprocess.sh` - Markdown preprocessing, Unicode detection (167 lines)
+  - [x] `lib/epub.sh` - EPUB generation with cover, front matter, chemistry (670 lines)
+  - [x] `lib/bibliography.sh` - Simple markdown bibliography format conversion (514 lines)
+  - [x] `lib/pdf.sh` - PDF engine selection, cover detection (228 lines)
+  - [x] `lib/template.sh` - LaTeX template generation (1,041 lines)
+  - [x] `lib/convert.sh` - PDF conversion: template, filters, pandoc execution (827 lines)
+  - [x] `lib/args.sh` - CLI argument parsing and validation (334 lines)
 - [x] Unicode detection for typographic characters (em-dash, smart quotes, fractions)
 
 - [x] Phase D: Modularization - COMPLETE (8 lib modules, 51 unit tests)
+- [x] Phase D2: Deep Modularization - COMPLETE (10 lib modules, main script 71% smaller)
 - [x] Phase E: New Features - ALL COMPLETE
   - [x] E1: Bibliography & Citations (--bibliography, --csl flags)
   - [x] E2: Index Generation (--index flag, [index:term] markers, Lua filter)
@@ -111,17 +123,21 @@ We take a quality-first approach, completing each phase thoroughly before moving
 
 ### 1. Code Architecture
 
-#### 1.1 Modularization ✓ COMPLETE
-- [x] `lib/core.sh` - Common functions, color codes, utilities
-- [x] `lib/check.sh` - Prerequisites checking
-- [x] `lib/metadata.sh` - YAML/HTML parsing and metadata handling
-- [x] `lib/preprocess.sh` - Markdown preprocessing, Unicode detection
-- [x] `lib/epub.sh` - EPUB helpers (spine reorder, frontmatter, chemistry)
-- [x] `lib/bibliography.sh` - Simple markdown bibliography format conversion
-- [x] `lib/pdf.sh` - PDF generation helpers (Unicode detection, cover detection, cleanup)
-- [x] `lib/template.sh` - LaTeX template generation (1041 lines)
-- [x] Main `mdtexpdf.sh` sources modules automatically
+#### 1.1 Modularization ✓ COMPLETE (Phase D + D2)
+- [x] `lib/core.sh` - Common functions, color codes, utilities (127 lines)
+- [x] `lib/check.sh` - Prerequisites checking (104 lines)
+- [x] `lib/metadata.sh` - YAML/HTML parsing and metadata handling (461 lines)
+- [x] `lib/preprocess.sh` - Markdown preprocessing, Unicode detection (167 lines)
+- [x] `lib/epub.sh` - EPUB generation with cover, front matter, chemistry (670 lines)
+- [x] `lib/bibliography.sh` - Simple markdown bibliography format conversion (514 lines)
+- [x] `lib/pdf.sh` - PDF engine selection, cover detection (228 lines)
+- [x] `lib/template.sh` - LaTeX template generation (1,041 lines)
+- [x] `lib/convert.sh` - PDF conversion: template, filters, pandoc execution (827 lines)
+- [x] `lib/args.sh` - CLI argument parsing and validation (334 lines)
+- [x] Main `mdtexpdf.sh` reduced to 813-line orchestrator (from 2,818)
+- [x] `convert()` is a 60-line thin orchestrator delegating to modules
 - [x] Each module independently testable (51 unit tests)
+- [x] Total codebase: 5,286 lines across 11 files
 
 #### 1.2 Configuration
 - [ ] Support `~/.mdtexpdf/config.yaml` for user defaults

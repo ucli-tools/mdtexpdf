@@ -258,24 +258,43 @@ preprocess_epub_chemistry() {
 validate_epub() {
     local epub_file="$1"
 
+    if [ ! -f "$epub_file" ]; then
+        echo -e "${RED}Error: EPUB file not found for validation${NC}"
+        return 1
+    fi
+
     if ! command -v epubcheck &> /dev/null; then
-        echo -e "${YELLOW}epubcheck not installed, skipping validation${NC}"
-        return 0
+        echo -e "${YELLOW}Warning: epubcheck not installed. Install with: sudo apt install epubcheck${NC}"
+        echo -e "${YELLOW}Skipping EPUB validation.${NC}"
+        return 2
     fi
 
     echo -e "${BLUE}Validating EPUB with epubcheck...${NC}"
 
-    local result
-    result=$(epubcheck "$epub_file" 2>&1)
-    local exit_code=$?
+    local validation_output
+    local validation_result
+    validation_output=$(epubcheck "$epub_file" 2>&1)
+    validation_result=$?
 
-    if [ $exit_code -eq 0 ]; then
-        echo -e "${GREEN}EPUB validation passed${NC}"
+    if [ $validation_result -eq 0 ]; then
+        echo -e "${GREEN}✓ EPUB validation passed - no errors found${NC}"
         return 0
     else
-        echo -e "${YELLOW}EPUB validation warnings/errors:${NC}"
-        echo "$result" | grep -E "(ERROR|WARNING)" | head -20
-        return 1
+        echo -e "${YELLOW}EPUB validation completed with issues:${NC}"
+        echo "$validation_output" | grep -E "(ERROR|WARNING)" | head -20
+        local error_count
+        local warning_count
+        error_count=$(echo "$validation_output" | grep -c "ERROR" || echo "0")
+        warning_count=$(echo "$validation_output" | grep -c "WARNING" || echo "0")
+        echo -e "${YELLOW}Summary: $error_count errors, $warning_count warnings${NC}"
+
+        if [ "$error_count" -gt 0 ]; then
+            echo -e "${RED}✗ EPUB has validation errors${NC}"
+            return 1
+        else
+            echo -e "${GREEN}✓ EPUB valid (warnings only)${NC}"
+            return 0
+        fi
     fi
 }
 
