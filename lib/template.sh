@@ -181,6 +181,19 @@ BOOK_CMDS_EOF
     \\usepackage[version=4]{mhchem}
     \\usepackage{framed}   % For snugshade environment
     \\usepackage[titles]{tocloft}  % For TOC customization (titles option for titlesec compatibility)
+
+    % TOC page number formatting (book format only — article has no \chapter)
+    \$if(format_book)\$
+    % Part-level entries always get bold/large page numbers
+    \\renewcommand{\\cftpartpagefont}{\\bfseries\\large}
+    \$if(has_parts)\$
+    % With parts: chapter entries keep default page number font
+    \$else\$
+    % Without parts: all entries are chapter-level, make them bold/large
+    \\renewcommand{\\cftchappagefont}{\\bfseries\\large}
+    \$endif\$
+    \$endif\$
+
     \\usepackage{hyphenat}  % For \\nohyphens command (disable hyphenation in titles)
 
     % TikZ for cover pages (full-bleed images with text overlay)

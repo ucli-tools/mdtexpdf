@@ -176,6 +176,12 @@ function Pandoc(doc)
     -- First pass: detect if document has Parts
     detect_parts(doc)
 
+    -- Expose has_parts to the Pandoc template as a metadata variable
+    -- This allows the LaTeX template to conditionally format TOC page numbers
+    if has_parts then
+        doc.meta.has_parts = true
+    end
+
     local new_blocks = {}
     local i = 1
 
