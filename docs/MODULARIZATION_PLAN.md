@@ -4,17 +4,18 @@
 
 Reduce `mdtexpdf.sh` from 2,818 lines to ~600-800 lines by extracting the remaining inline logic into library modules.
 
-**Result: 2,818 → 813 lines (71% reduction). All 38 tests passing.**
+**Result: 2,818 → 574 lines (80% reduction). All 38 tests passing.**
 
 ## Before / After
 
 ### Main Script
 
-| Metric | Before | After |
-|--------|--------|-------|
-| `mdtexpdf.sh` | 2,818 lines | 813 lines |
-| `convert()` function | 1,599 lines | 60 lines (orchestrator) |
-| Total codebase | ~5,726 lines | 5,286 lines |
+| Metric | Before | After D2 | After D2+ |
+|--------|--------|----------|-----------|
+| `mdtexpdf.sh` | 2,818 lines | 813 lines | 574 lines |
+| `convert()` function | 1,599 lines | 60 lines | 60 lines (orchestrator) |
+| `generate_pdf()` function | 806 lines (inline) | 806 lines (in lib/convert.sh) | 25 lines (orchestrator) |
+| Total codebase | ~5,726 lines | 5,286 lines | 5,157 lines |
 
 ### convert() — Before (1,599 lines inline)
 
@@ -54,22 +55,22 @@ convert() {
 
 ## Final Line Counts
 
-| File | Before | After | Change |
-|------|--------|-------|--------|
-| mdtexpdf.sh | 2,818 | 813 | -2,005 |
-| lib/args.sh | — | 334 | NEW |
-| lib/convert.sh | — | 827 | NEW |
-| lib/metadata.sh | 447 | 461 | +14 |
-| lib/epub.sh | 280 | 670 | +390 |
-| lib/bibliography.sh | 514 | 514 | — |
-| lib/template.sh | 1,041 | 1,041 | — |
-| lib/pdf.sh | 228 | 228 | — |
-| lib/preprocess.sh | 167 | 167 | — |
-| lib/core.sh | 127 | 127 | — |
-| lib/check.sh | 104 | 104 | — |
-| **Total** | **5,726** | **5,286** | **-440** |
+| File | Before | After D2 | After D2+ | Change |
+|------|--------|----------|-----------|--------|
+| mdtexpdf.sh | 2,818 | 813 | 574 | -2,244 |
+| lib/args.sh | — | 334 | 334 | NEW |
+| lib/convert.sh | — | 827 | 918 | NEW (+91 from helper decomposition) |
+| lib/metadata.sh | 447 | 461 | 461 | +14 |
+| lib/epub.sh | 280 | 670 | 689 | +409 |
+| lib/bibliography.sh | 514 | 514 | 514 | — |
+| lib/template.sh | 1,041 | 1,041 | 1,041 | — |
+| lib/pdf.sh | 228 | 228 | 228 | — |
+| lib/preprocess.sh | 167 | 167 | 167 | — |
+| lib/core.sh | 127 | 127 | 127 | — |
+| lib/check.sh | 104 | 104 | 104 | — |
+| **Total** | **5,726** | **5,286** | **5,157** | **-569** |
 
-Net reduction of 440 lines (removed duplication between main script and modules).
+Net reduction of 569 lines (removed duplication and dead code across both phases).
 
 ## Implementation Steps — All Complete
 
@@ -102,6 +103,30 @@ Net reduction of 440 lines (removed duplication between main script and modules)
 - `convert()` reduced to 60-line orchestrator
 - Delegates all work to module functions
 - Clear, readable flow: parse → validate → prerequisites → metadata → dispatch
+- Tests: 38/38 passing
+
+### Step 6: Remove duplicate functions from mdtexpdf.sh ✓
+- Removed 9 duplicate functions from main script (now provided by modules)
+  - Logging functions (`log_verbose`, `log_debug`, `log_error`, `log_warn`, `log_success`)
+  - `check_command()`, `check_latex_package()`
+  - `validate_epub()`, `fix_epub_spine_order()`
+  - Color codes and constants
+- Updated `validate_epub()` in `lib/epub.sh` with the richer version (45 lines vs 23)
+- `mdtexpdf.sh` reduced from 813 → 574 lines
+- Tests: 38/38 passing
+
+### Step 7: Decompose generate_pdf() into helper functions ✓
+- Extracted 5 helper functions + 2 internal helpers from the 806-line `generate_pdf()`:
+  - `resolve_pdf_template()` (~120 lines) — template resolution and creation
+  - `_resolve_template_interactive()` (~130 lines) — interactive template creation flow
+  - `setup_lua_filters()` (~110 lines) — Lua filter discovery across search paths
+  - `build_pandoc_vars()` (~265 lines) — footer, header, book feature, cover variables
+  - `setup_pdf_bibliography()` (~85 lines) — bibliography/citation configuration
+  - `execute_pandoc()` (~40 lines) — pandoc command execution
+  - `_cleanup_pdf_artifacts()` (~20 lines) — temp file cleanup and backup restoration
+- `generate_pdf()` reduced to 25-line thin orchestrator
+- Functions communicate via `_PDF_*` module-level variables
+- `lib/convert.sh` grew from 827 → 918 lines (added function headers, docstrings, helper separation)
 - Tests: 38/38 passing
 
 ## Module Load Order

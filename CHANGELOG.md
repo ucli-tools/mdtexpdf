@@ -37,13 +37,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 14 regression tests
 
 ### Refactored
-- Deep modularization (Phase D2): `mdtexpdf.sh` reduced from 2,818 to 813 lines (71% reduction)
+- Deep modularization (Phase D2): `mdtexpdf.sh` reduced from 2,818 to 574 lines (80% reduction)
   - `lib/args.sh` (NEW) - CLI argument parsing and validation (334 lines)
-  - `lib/convert.sh` (NEW) - PDF conversion: template, filters, pandoc execution (827 lines)
-  - `lib/epub.sh` expanded with `generate_epub()` function (280 → 670 lines)
+  - `lib/convert.sh` (NEW) - PDF conversion: template, filters, pandoc execution (918 lines)
+  - `lib/epub.sh` expanded with `generate_epub()` function (280 → 689 lines)
   - `lib/metadata.sh` expanded with bibliography/CSL parsing (447 → 461 lines)
   - `convert()` refactored to 60-line thin orchestrator delegating to modules
-  - Total codebase: 5,286 lines across 11 files (10 modules + main)
+  - Removed 9 duplicate functions from main script (rely on module-provided versions)
+  - `generate_pdf()` decomposed from 806-line monolith into 25-line orchestrator with 7 helpers:
+    `resolve_pdf_template()`, `setup_lua_filters()`, `build_pandoc_vars()`,
+    `setup_pdf_bibliography()`, `execute_pandoc()`, `_resolve_template_interactive()`,
+    `_cleanup_pdf_artifacts()`
+  - Total codebase: 5,157 lines across 11 files (10 modules + main)
   - All 38 tests passing after each refactoring step
 
 ### Documentation

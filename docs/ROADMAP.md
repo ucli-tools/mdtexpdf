@@ -47,12 +47,14 @@ We take a quality-first approach, completing each phase thoroughly before moving
 - [x] D7. Make each module independently testable (51 unit tests in tests/test_modules.sh)
 
 ### Phase D2: Deep Modularization ✓ COMPLETE
-Reduced `mdtexpdf.sh` from 2,818 → 813 lines (71% reduction):
+Reduced `mdtexpdf.sh` from 2,818 → 574 lines (80% reduction):
 - [x] D2.1. Extract `lib/args.sh` - CLI argument parsing (334 lines)
 - [x] D2.2. Expand `lib/metadata.sh` - Move metadata parsing functions (447 → 461 lines)
-- [x] D2.3. Expand `lib/epub.sh` - Add `generate_epub()` function (280 → 670 lines)
-- [x] D2.4. Create `lib/convert.sh` - PDF conversion logic (827 lines)
+- [x] D2.3. Expand `lib/epub.sh` - Add `generate_epub()` function (280 → 689 lines)
+- [x] D2.4. Create `lib/convert.sh` - PDF conversion logic (918 lines)
 - [x] D2.5. Refactor `convert()` to 60-line thin orchestrator
+- [x] D2.6. Remove 9 duplicate functions from main script (813 → 574 lines)
+- [x] D2.7. Decompose `generate_pdf()` (806 lines) into 7 helper functions (25-line orchestrator)
 - [x] All 38 tests passing after each step
 
 ### Phase E: New Features (4-8 hours each) ✓ COMPLETE
@@ -89,21 +91,21 @@ Reduced `mdtexpdf.sh` from 2,818 → 813 lines (71% reduction):
 - [x] Phase A: Quick Wins - COMPLETE
 - [x] Phase B: Testing & Quality - COMPLETE
 - [x] Phase C: Documentation - COMPLETE
-- [x] Modularization (10 modules, main script 813 lines):
+- [x] Modularization (10 modules, main script 574 lines):
   - [x] `lib/core.sh` - Common functions, logging, utilities (127 lines)
   - [x] `lib/check.sh` - Prerequisites checking (104 lines)
   - [x] `lib/metadata.sh` - YAML/HTML metadata parsing (461 lines)
   - [x] `lib/preprocess.sh` - Markdown preprocessing, Unicode detection (167 lines)
-  - [x] `lib/epub.sh` - EPUB generation with cover, front matter, chemistry (670 lines)
+  - [x] `lib/epub.sh` - EPUB generation with cover, front matter, chemistry (689 lines)
   - [x] `lib/bibliography.sh` - Simple markdown bibliography format conversion (514 lines)
   - [x] `lib/pdf.sh` - PDF engine selection, cover detection (228 lines)
   - [x] `lib/template.sh` - LaTeX template generation (1,041 lines)
-  - [x] `lib/convert.sh` - PDF conversion: template, filters, pandoc execution (827 lines)
+  - [x] `lib/convert.sh` - PDF conversion: template, filters, pandoc execution (918 lines, 7 helpers)
   - [x] `lib/args.sh` - CLI argument parsing and validation (334 lines)
 - [x] Unicode detection for typographic characters (em-dash, smart quotes, fractions)
 
 - [x] Phase D: Modularization - COMPLETE (8 lib modules, 51 unit tests)
-- [x] Phase D2: Deep Modularization - COMPLETE (10 lib modules, main script 71% smaller)
+- [x] Phase D2: Deep Modularization - COMPLETE (10 lib modules, main script 80% smaller, both orchestrators decomposed)
 - [x] Phase E: New Features - ALL COMPLETE
   - [x] E1: Bibliography & Citations (--bibliography, --csl flags)
   - [x] E2: Index Generation (--index flag, [index:term] markers, Lua filter)
@@ -132,12 +134,13 @@ Reduced `mdtexpdf.sh` from 2,818 → 813 lines (71% reduction):
 - [x] `lib/bibliography.sh` - Simple markdown bibliography format conversion (514 lines)
 - [x] `lib/pdf.sh` - PDF engine selection, cover detection (228 lines)
 - [x] `lib/template.sh` - LaTeX template generation (1,041 lines)
-- [x] `lib/convert.sh` - PDF conversion: template, filters, pandoc execution (827 lines)
+- [x] `lib/convert.sh` - PDF conversion: template, filters, pandoc execution (918 lines, 7 helpers)
 - [x] `lib/args.sh` - CLI argument parsing and validation (334 lines)
-- [x] Main `mdtexpdf.sh` reduced to 813-line orchestrator (from 2,818)
+- [x] Main `mdtexpdf.sh` reduced to 574-line orchestrator (from 2,818 — 80% reduction)
 - [x] `convert()` is a 60-line thin orchestrator delegating to modules
+- [x] `generate_pdf()` is a 25-line thin orchestrator delegating to 5 helpers
 - [x] Each module independently testable (51 unit tests)
-- [x] Total codebase: 5,286 lines across 11 files
+- [x] Total codebase: 5,157 lines across 11 files
 
 #### 1.2 Configuration
 - [ ] Support `~/.mdtexpdf/config.yaml` for user defaults
