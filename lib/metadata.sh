@@ -64,12 +64,17 @@ init_metadata_vars() {
     META_PUBLISHER_ADDRESS=""
     META_PUBLISHER_WEBSITE=""
 
+    # Bibliography and citations
+    META_BIBLIOGRAPHY=""
+    META_CSL=""
+
     # Cover system (Front cover - Première de couverture)
     META_COVER_IMAGE=""
     META_COVER_TITLE_COLOR="white"
     META_COVER_SUBTITLE_SHOW="true"
     META_COVER_AUTHOR_POSITION="bottom"
     META_COVER_OVERLAY_OPACITY=""
+    META_COVER_FIT="contain"
 
     # Back cover (Quatrième de couverture)
     META_BACK_COVER_IMAGE=""
@@ -234,6 +239,10 @@ parse_yaml_metadata() {
     META_FOOTER=$(yq eval '.footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_HEADER_FOOTER_POLICY=$(yq eval '.header_footer_policy // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
 
+    # Bibliography and citations
+    META_BIBLIOGRAPHY=$(yq eval '.bibliography // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_CSL=$(yq eval '.csl // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+
     # Boolean flags (convert true/false to appropriate values)
     local section_numbers_val no_numbers_val
     section_numbers_val=$(yq eval '.section_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
@@ -283,6 +292,7 @@ parse_yaml_metadata() {
     META_COVER_SUBTITLE_SHOW=$(yq eval '.cover_subtitle_show // "true"' "$temp_yaml" 2>/dev/null | sed 's/^null$/true/')
     META_COVER_AUTHOR_POSITION=$(yq eval '.cover_author_position // "bottom"' "$temp_yaml" 2>/dev/null | sed 's/^null$/bottom/')
     META_COVER_OVERLAY_OPACITY=$(yq eval '.cover_overlay_opacity // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_COVER_FIT=$(yq eval '.cover_fit // "contain"' "$temp_yaml" 2>/dev/null | sed 's/^null$/contain/')
 
     # Back cover
     META_BACK_COVER_IMAGE=$(yq eval '.back_cover_image // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
@@ -404,6 +414,10 @@ apply_metadata_args() {
         if [ "$ARG_HEADER_FOOTER_POLICY" = "default" ] && [ -n "$META_HEADER_FOOTER_POLICY" ]; then
             ARG_HEADER_FOOTER_POLICY="$META_HEADER_FOOTER_POLICY"
         fi
+
+        # Apply bibliography and CSL
+        [ -z "$ARG_BIBLIOGRAPHY" ] && [ -n "$META_BIBLIOGRAPHY" ] && ARG_BIBLIOGRAPHY="$META_BIBLIOGRAPHY"
+        [ -z "$ARG_CSL" ] && [ -n "$META_CSL" ] && ARG_CSL="$META_CSL"
 
         # Handle boolean flags - only apply if not explicitly set via CLI
         if [ "$ARG_TOC" = "$DEFAULT_TOC" ] && [ -n "$META_TOC" ]; then
