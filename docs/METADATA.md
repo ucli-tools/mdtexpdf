@@ -121,6 +121,12 @@ back_cover_text_background_opacity: 0.18  # Opacity of frosted rectangles (0.0-1
 back_cover_text_color: "white"      # Text color on back cover (default: inherits cover_title_color)
 
 # =============================================================================
+# PRINT FORMAT (Lulu.com Print-Ready Output)
+# =============================================================================
+trim_size: "5.5x8.5"               # Trim size: 5.5x8.5 (Digest), 6x9 (US Trade), 7x10 (Executive), a5 (A5)
+paper_stock: "cream60"              # Paper stock: cream60, white60, white80
+
+# =============================================================================
 # AUTHORSHIP & SUPPORT SYSTEM
 # =============================================================================
 # Author verification (PGP/GPG key for cryptographic authorship proof)
@@ -270,6 +276,38 @@ See [SIMPLE_BIBLIOGRAPHY.md](SIMPLE_BIBLIOGRAPHY.md) for detailed bibliography d
 back_cover_text: "Euler's identity $e^{i\\pi} + 1 = 0$ reveals deep mathematical beauty."
 ```
 Use `\\textit{}` for italics and other LaTeX commands. Note: backslashes must be doubled (`\\`) in YAML strings.
+
+### Print Format (Lulu.com Print-Ready Output)
+
+These fields control the physical book dimensions when generating Lulu.com print-ready output via `mdtexpdf convert --lulu`. They affect the interior PDF page size, the cover spread dimensions, and the spine width calculation. The values are also written to the `lulu_info.txt` setup guide.
+
+| Field | Type | Description | Values |
+|-------|------|-------------|--------|
+| `trim_size` | string | Book trim size | `"5.5x8.5"` (Digest), `"6x9"` (US Trade), `"7x10"` (Executive), `"a5"` (A5) |
+| `paper_stock` | string | Paper stock for spine width calculation | `"cream60"` (default), `"white60"`, `"white80"` |
+
+**Trim Size Guide:**
+
+| Preset | Dimensions | Lulu Format Name | Best For |
+|--------|-----------|-----------------|----------|
+| `5.5x8.5` | 5.5 x 8.5 in (140 x 216 mm) | Digest | Fiction, philosophy, general non-fiction |
+| `6x9` | 6 x 9 in (152 x 229 mm) | US Trade | Most common trade paperback, longer non-fiction |
+| `7x10` | 7 x 10 in (178 x 254 mm) | Executive | Textbooks, technical, math-heavy content |
+| `a5` | 5.83 x 8.27 in (148 x 210 mm) | A5 | European standard |
+
+**Paper Stock Guide:**
+
+| Stock | Description | Best For |
+|-------|-------------|----------|
+| `cream60` | Cream uncoated 60# (default) | Narrative, philosophy — easier on the eyes |
+| `white60` | White uncoated 60# | Math, technical — crisper contrast for notation |
+| `white80` | White coated 80# (premium) | Color images, photography |
+
+**Example:**
+```yaml
+trim_size: "6x9"
+paper_stock: "cream60"
+```
 
 ### Authorship & Support System
 
@@ -480,6 +518,10 @@ back_cover_author_bio_text: "Author Name writes about topics of interest."
 back_cover_text_background: true
 back_cover_text_background_opacity: 0.18
 back_cover_text_color: "white"
+
+# Print format (Lulu.com)
+trim_size: "6x9"
+paper_stock: "cream60"
 
 # Authorship & support
 author_pubkey: "4A2B 8C3D E9F1 7A6B 2C4D 9E8F 1A3B 5C7D 8E9F 0A1B"
