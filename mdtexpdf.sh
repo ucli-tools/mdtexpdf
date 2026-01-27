@@ -32,6 +32,7 @@ if [ -n "$LIB_DIR" ]; then
     [ -f "$LIB_DIR/template.sh" ] && source "$LIB_DIR/template.sh"
     [ -f "$LIB_DIR/pdf.sh" ] && source "$LIB_DIR/pdf.sh"
     [ -f "$LIB_DIR/convert.sh" ] && source "$LIB_DIR/convert.sh"
+    [ -f "$LIB_DIR/lulu.sh" ] && source "$LIB_DIR/lulu.sh"
     [ -f "$LIB_DIR/args.sh" ] && source "$LIB_DIR/args.sh"
 fi
 
@@ -115,6 +116,15 @@ convert() {
         return $?
     fi
     # ============== END EPUB OUTPUT ==============
+
+    # ============== LULU PRINT-READY OUTPUT ==============
+    if [ "$ARG_LULU" = true ]; then
+        # Lulu mode: generate interior PDF + cover spread into output directory
+        local base_name
+        base_name=$(basename "$INPUT_FILE" .md)
+        generate_lulu_output "$INPUT_FILE" "$base_name"
+        return $?
+    fi
 
     # ============== PDF OUTPUT ==============
     # PDF generation is handled by lib/convert.sh

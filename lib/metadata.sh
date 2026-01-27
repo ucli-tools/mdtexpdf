@@ -87,6 +87,10 @@ init_metadata_vars() {
     META_BACK_COVER_AUTHOR_BIO_TEXT=""
     META_BACK_COVER_ISBN_BARCODE=""
 
+    # Print-ready / Lulu settings
+    META_TRIM_SIZE=""           # e.g., "5.5x8.5", "6x9", "7x10", "a5", "a4"
+    META_PAPER_STOCK="cream60"  # cream60, white60, white80
+
     # Authorship & Support
     META_AUTHOR_PUBKEY=""
     META_AUTHOR_PUBKEY_TYPE="PGP"
@@ -304,6 +308,10 @@ parse_yaml_metadata() {
     META_BACK_COVER_AUTHOR_BIO=$(yq eval '.back_cover_author_bio // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_BACK_COVER_AUTHOR_BIO_TEXT=$(yq eval '.back_cover_author_bio_text // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_BACK_COVER_ISBN_BARCODE=$(yq eval '.back_cover_isbn_barcode // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+
+    # Print-ready / Lulu settings
+    META_TRIM_SIZE=$(yq eval '.trim_size // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_PAPER_STOCK=$(yq eval '.paper_stock // "cream60"' "$temp_yaml" 2>/dev/null | sed 's/^null$/cream60/')
 
     # Authorship & Support
     META_AUTHOR_PUBKEY=$(yq eval '.author_pubkey // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')

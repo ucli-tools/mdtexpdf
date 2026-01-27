@@ -59,7 +59,6 @@ create_template_file() {
         docclass="book"
         # Use openright (chapters on recto/odd pages) or openany based on metadata
         # This will be controlled by Pandoc variable chapters_on_recto
-        docclass_opts="12pt"  # openany/openright handled via Pandoc conditional
         book_specific_commands=$(cat << 'BOOK_CMDS_EOF'
 % Custom styling for book format
 \usepackage{titlesec}
@@ -100,11 +99,11 @@ BOOK_CMDS_EOF
     fi
 
     cat > "$template_path" << EOF
-    % Document class with conditional openright for chapters on recto (odd pages)
+    % Document class with conditional font size and openright for chapters on recto (odd pages)
     \$if(chapters_on_recto)\$
-    \documentclass[$docclass_opts, openright]{$docclass}
+    \documentclass[\$if(trim_fontsize)\$\$trim_fontsize\$\$else\$${docclass_opts}\$endif\$, openright]{$docclass}
     \$else\$
-    \documentclass[$docclass_opts, openany]{$docclass}
+    \documentclass[\$if(trim_fontsize)\$\$trim_fontsize\$\$else\$${docclass_opts}\$endif\$, openany]{$docclass}
     \$endif\$
 
     % Conditional packages based on LaTeX engine
@@ -401,9 +400,66 @@ BOOK_CMDS_EOF
     }
 
 % Set page geometry
+\$if(trim_paperwidth)\$
+% Custom trim size geometry (Lulu print or custom dimensions)
+\\geometry{paperwidth=\$trim_paperwidth\$, paperheight=\$trim_paperheight\$, top=\$trim_top\$, bottom=\$trim_bottom\$, outer=\$trim_outer\$, inner=\$trim_inner\$}
+\$else\$
 \\geometry{a4paper, margin=1in}
+\$endif\$
 
 % Header and Footer Setup
+\$if(lulu_mode)\$
+    % Professional print book headers/footers (Lulu mode)
+    \\pagestyle{fancy}
+    \\fancyhf{} % Clear all
+    \\renewcommand{\\headrulewidth}{0pt}
+    \\renewcommand{\\footrulewidth}{0pt}
+    % Chapter mark: name only, no "CHAPTER N." prefix, normal case
+    \\renewcommand{\\chaptermark}[1]{\\markboth{#1}{}}
+    % Even (verso) pages: book title centered in header
+    \\fancyhead[CE]{\\small\\textit{$doc_title}}
+    % Odd (recto) pages: chapter title centered in header
+    \\fancyhead[CO]{\\small\\textit{\\leftmark}}
+    % Page number always centered at bottom
+    \\fancyfoot[C]{\\small \\thepage}
+    % Plain style: chapter opening pages — centered page number at bottom, no header
+    \\fancypagestyle{plain}{%
+        \\fancyhf{}%
+        \\renewcommand{\\headrulewidth}{0pt}%
+        \\renewcommand{\\footrulewidth}{0pt}%
+        \\fancyfoot[C]{\\small \\thepage}%
+    }
+    % Empty style: blank verso pages — no headers or footers at all
+    \\fancypagestyle{empty}{%
+        \\fancyhf{}%
+        \\renewcommand{\\headrulewidth}{0pt}%
+        \\renewcommand{\\footrulewidth}{0pt}%
+    }
+    % Blank pages inserted by \\cleardoublepage use empty style
+    \\makeatletter
+    \\renewcommand{\\cleardoublepage}{%
+        \\clearpage
+        \\if@twoside
+            \\ifodd\\c@page\\else
+                \\hbox{}\\thispagestyle{empty}\\newpage
+                \\if@twocolumn\\hbox{}\\newpage\\fi
+            \\fi
+        \\fi
+    }
+    \\makeatother
+    % Front matter pages — no headers or footers
+    \\fancypagestyle{frontmatter}{%
+        \\fancyhf{}%
+        \\renewcommand{\\headrulewidth}{0pt}%
+        \\renewcommand{\\footrulewidth}{0pt}%
+    }
+    % Title page — no headers or footers
+    \\fancypagestyle{titlepage}{%
+        \\fancyhf{}%
+        \\renewcommand{\\headrulewidth}{0pt}%
+        \\renewcommand{\\footrulewidth}{0pt}%
+    }
+\$else\$
     \\pagestyle{fancy}
     \\fancyhf{} % Clear all header and footer fields first
 
@@ -633,6 +689,7 @@ BOOK_CMDS_EOF
     \$endif\$
 }
 \$endif\$
+\$endif\$
 
 % Adjust paragraph spacing: add a full line skip between paragraphs
 \\setlength{\\parskip}{\\baselineskip}
@@ -799,6 +856,9 @@ $numbering_commands
 \\begin{document}
 
 % ============== FRONT COVER (Première de Couverture) ==============
+% Suppressed in Lulu mode (covers are uploaded separately to lulu.com)
+\$if(lulu_mode)\$
+\$else\$
 \$if(cover_image)\$
 \\newgeometry{margin=0pt}
 \\thispagestyle{empty}
@@ -840,6 +900,7 @@ $numbering_commands
 \\end{tikzpicture}
 \\restoregeometry
 \\clearpage
+\$endif\$
 \$endif\$
 
 % ============== FRONT MATTER PAGES (Professional Book Features) ==============
@@ -987,6 +1048,9 @@ ISBN: \$isbn\$\\\\[0.3cm]
 \$body\$
 
 % ============== BACK COVER (Quatrième de Couverture) ==============
+% Suppressed in Lulu mode (covers are uploaded separately to lulu.com)
+\$if(lulu_mode)\$
+\$else\$
 \$if(back_cover_image)\$
 \\clearpage
 \\newgeometry{margin=0pt}
@@ -1035,6 +1099,7 @@ ISBN: \$isbn\$\\\\[0.3cm]
   \$endif\$
 \\end{tikzpicture}
 \\restoregeometry
+\$endif\$
 \$endif\$
 
 % Print index if requested

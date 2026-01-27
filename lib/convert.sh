@@ -26,6 +26,7 @@ _PDF_FOOTER_VARS=()
 _PDF_HEADER_FOOTER_VARS=()
 _PDF_BOOK_FEATURE_VARS=()
 _PDF_BIBLIOGRAPHY_VARS=()
+_PDF_TRIM_VARS=()
 _PDF_PROCESSED_INPUT_FILE=""
 _PDF_BIB_TEMP_DIR=""
 
@@ -527,9 +528,112 @@ _build_cover_vars() {
     _add_meta_bool "back_cover_isbn_barcode" "$META_BACK_COVER_ISBN_BARCODE"
 }
 
+# Internal: Resolve trim size preset to geometry dimensions.
+# Sets: _PDF_TRIM_VARS array with --variable= entries for pandoc
+# Uses: ARG_TRIM_SIZE, ARG_LULU, META_TRIM_SIZE
+_build_trim_vars() {
+    _PDF_TRIM_VARS=()
+
+    # Determine effective trim size: CLI flag > metadata > default
+    local trim_size=""
+    if [ -n "$ARG_TRIM_SIZE" ]; then
+        trim_size="$ARG_TRIM_SIZE"
+    elif [ -n "$META_TRIM_SIZE" ]; then
+        trim_size="$META_TRIM_SIZE"
+    fi
+
+    # If --lulu is set but no trim size, default to 5.5x8.5 (Lulu Digest)
+    if [ "$ARG_LULU" = true ] && [ -z "$trim_size" ]; then
+        trim_size="5.5x8.5"
+    fi
+
+    # Pass lulu_mode variable if --lulu flag is set
+    if [ "$ARG_LULU" = true ]; then
+        _PDF_TRIM_VARS+=("--variable=lulu_mode=true")
+        echo -e "${BLUE}Lulu mode: covers will be suppressed from interior PDF${NC}"
+    fi
+
+    # No custom trim size — use default a4/1in geometry from template
+    if [ -z "$trim_size" ] || [ "$trim_size" = "a4" ]; then
+        return 0
+    fi
+
+    # Resolve trim size presets
+    local paper_w paper_h top bottom outer inner fontsize
+    case "$trim_size" in
+        5.5x8.5)
+            paper_w="5.5in"; paper_h="8.5in"
+            top="0.75in"; bottom="0.75in"
+            outer="0.625in"; inner="0.625in"
+            fontsize="11pt"
+            ;;
+        6x9)
+            paper_w="6in"; paper_h="9in"
+            top="0.75in"; bottom="0.75in"
+            outer="0.75in"; inner="0.75in"
+            fontsize="11pt"
+            ;;
+        7x10)
+            paper_w="7in"; paper_h="10in"
+            top="0.8in"; bottom="0.8in"
+            outer="0.75in"; inner="0.75in"
+            fontsize="12pt"
+            ;;
+        a5)
+            paper_w="5.83in"; paper_h="8.27in"
+            top="0.7in"; bottom="0.7in"
+            outer="0.6in"; inner="0.6in"
+            fontsize="11pt"
+            ;;
+        *)
+            echo -e "${YELLOW}Warning: Unknown trim size '$trim_size'. Using default geometry.${NC}"
+            return 0
+            ;;
+    esac
+
+    # Calculate gutter addition based on estimated page count
+    # Lulu gutter spec: <60pp: +0", 61-150: +0.125", 151-400: +0.5", 401-600: +0.625", 600+: +0.75"
+    local gutter_add="0"
+    if [ "$ARG_LULU" = true ]; then
+        # Estimate page count from word count (rough: ~250 words/page for smaller trim)
+        local word_count
+        word_count=$(wc -w < "$INPUT_FILE" 2>/dev/null || echo "0")
+        local est_pages=$(( word_count / 250 ))
+        if [ "$est_pages" -le 60 ]; then
+            gutter_add="0"
+        elif [ "$est_pages" -le 150 ]; then
+            gutter_add="0.125"
+        elif [ "$est_pages" -le 400 ]; then
+            gutter_add="0.5"
+        elif [ "$est_pages" -le 600 ]; then
+            gutter_add="0.625"
+        else
+            gutter_add="0.75"
+        fi
+
+        if [ "$gutter_add" != "0" ]; then
+            # Add gutter to inner margin (strip "in" suffix, add, re-add suffix)
+            local inner_val="${inner%in}"
+            inner=$(awk "BEGIN {printf \"%.3fin\", $inner_val + $gutter_add}")
+            echo -e "${BLUE}Lulu gutter: +${gutter_add}\" for ~${est_pages} estimated pages (inner margin: ${inner})${NC}"
+        fi
+    fi
+
+    echo -e "${GREEN}Trim size: ${trim_size} (${paper_w} x ${paper_h}), margins: top=${top} bottom=${bottom} outer=${outer} inner=${inner}, font=${fontsize}${NC}"
+
+    _PDF_TRIM_VARS+=("--variable=trim_paperwidth=$paper_w")
+    _PDF_TRIM_VARS+=("--variable=trim_paperheight=$paper_h")
+    _PDF_TRIM_VARS+=("--variable=trim_top=$top")
+    _PDF_TRIM_VARS+=("--variable=trim_bottom=$bottom")
+    _PDF_TRIM_VARS+=("--variable=trim_outer=$outer")
+    _PDF_TRIM_VARS+=("--variable=trim_inner=$inner")
+    _PDF_TRIM_VARS+=("--variable=trim_fontsize=$fontsize")
+    _PDF_TRIM_VARS+=("--variable=trim_size=$trim_size")
+}
+
 # Assembles all pandoc variables for PDF generation.
 # Sets: _PDF_TOC_OPTION, _PDF_SECTION_NUMBERING_OPTION, _PDF_FOOTER_VARS,
-#       _PDF_HEADER_FOOTER_VARS, _PDF_BOOK_FEATURE_VARS
+#       _PDF_HEADER_FOOTER_VARS, _PDF_BOOK_FEATURE_VARS, _PDF_TRIM_VARS
 # Returns: 0 always
 build_pandoc_vars() {
     echo -e "${BLUE}Using enhanced equation line breaking for text-heavy equations${NC}"
@@ -544,6 +648,7 @@ build_pandoc_vars() {
     _PDF_BOOK_FEATURE_VARS=()
     _build_book_feature_vars
     _build_cover_vars
+    _build_trim_vars
 
     return 0
 }
@@ -651,7 +756,7 @@ setup_pdf_bibliography() {
 # Uses: _PDF_PROCESSED_INPUT_FILE, OUTPUT_FILE, _PDF_TEMPLATE_PATH, PDF_ENGINE,
 #       _PDF_PANDOC_OPTS, _PDF_FILTER_OPTION, _PDF_BIBLIOGRAPHY_VARS,
 #       _PDF_TOC_OPTION, _PDF_SECTION_NUMBERING_OPTION, _PDF_FOOTER_VARS,
-#       _PDF_HEADER_FOOTER_VARS, _PDF_BOOK_FEATURE_VARS,
+#       _PDF_HEADER_FOOTER_VARS, _PDF_BOOK_FEATURE_VARS, _PDF_TRIM_VARS,
 #       _PDF_BIB_TEMP_DIR, BACKUP_FILE, COMBINED_FILE, INPUT_FILE
 # Returns: 0 on success, 1 on failure
 execute_pandoc() {
@@ -673,6 +778,7 @@ execute_pandoc() {
         "${_PDF_FOOTER_VARS[@]}" \
         "${_PDF_HEADER_FOOTER_VARS[@]}" \
         "${_PDF_BOOK_FEATURE_VARS[@]}" \
+        "${_PDF_TRIM_VARS[@]}" \
         --standalone; then
         echo -e "${GREEN}Success! PDF created as $OUTPUT_FILE${NC}"
 

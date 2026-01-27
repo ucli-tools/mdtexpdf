@@ -3,7 +3,7 @@
 # Copy this file to your book project directory as 'Makefile'
 # Assumes your markdown file matches the directory name (e.g., my_book/my_book.md)
 
-.PHONY: all build build-epub clean
+.PHONY: all build build-epub build-lulu clean
 
 # Path to mdtexpdf (use local dev version if available, otherwise installed)
 MDTEXPDF := $(shell if [ -f "../mdtexpdf/mdtexpdf.sh" ]; then echo "../mdtexpdf/mdtexpdf.sh"; else echo "mdtexpdf"; fi)
@@ -34,8 +34,20 @@ build-epub:
 		echo "No target file $$target_file found in $$(pwd)"; \
 	fi
 
+# Build Lulu.com print-ready files (interior PDF + cover spread)
+build-lulu:
+	@dir_name=$$(basename $$(pwd)); \
+	target_file="$$dir_name.md"; \
+	if [ -f "$$target_file" ]; then \
+		echo "Building Lulu print-ready: $$target_file"; \
+		$(MDTEXPDF) convert "$$target_file" --read-metadata --lulu; \
+	else \
+		echo "No target file $$target_file found in $$(pwd)"; \
+	fi
+
 # Clean generated files
 clean:
 	@dir_name=$$(basename $$(pwd)); \
-	rm -f "$$dir_name.pdf" "$$dir_name.epub" "$$dir_name"_epub_cover.png
+	rm -f "$$dir_name.pdf" "$$dir_name.epub" "$$dir_name"_epub_cover.png; \
+	rm -rf "$${dir_name}_lulu"
 	@echo "Cleaned generated files"
