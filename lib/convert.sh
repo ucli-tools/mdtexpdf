@@ -556,7 +556,7 @@ _build_trim_vars() {
     local trim_size=""
     if [ -n "$ARG_TRIM_SIZE" ]; then
         trim_size="$ARG_TRIM_SIZE"
-    elif [ -n "$META_TRIM_SIZE" ]; then
+    elif [ "$ARG_LULU" = true ] && [ -n "$META_TRIM_SIZE" ]; then
         trim_size="$META_TRIM_SIZE"
     fi
 
