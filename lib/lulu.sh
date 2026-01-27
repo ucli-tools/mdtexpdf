@@ -188,6 +188,16 @@ generate_cover_spread() {
     # Cover title color
     local title_color="${META_COVER_TITLE_COLOR:-white}"
 
+    # Back cover text color: back_cover_text_color > cover_title_color > white
+    local back_text_color="${META_BACK_COVER_TEXT_COLOR:-$title_color}"
+    # Auto-inverse fill color for rectangles (white text → black fill, else white fill)
+    local back_fill_color="white"
+    if [ "$back_text_color" = "white" ]; then
+        back_fill_color="black"
+    fi
+    # Background opacity (configurable, default 0.18)
+    local back_bg_opacity="${META_BACK_COVER_TEXT_BACKGROUND_OPACITY:-0.18}"
+
     # Calculate panel positions (in inches from left edge)
     # Layout: [bleed][back_cover][spine][front_cover][bleed]
     local back_left back_right spine_left spine_right front_left front_right
@@ -218,10 +228,10 @@ generate_cover_spread() {
     front_title_y=$(awk "BEGIN {printf \"%.4f\", $spread_h - $bleed - $trim_h * 0.15}")
     front_author_y=$(awk "BEGIN {printf \"%.4f\", $bleed + $trim_h * 0.12}")
 
-    # Back cover: quote/text at 25% from top, bio at 15% from bottom (more spacing to avoid overlap)
+    # Back cover: quote/text at 10% from top, bio at 12% from bottom (wide spacing to avoid overlap)
     local back_title_y back_bio_y
-    back_title_y=$(awk "BEGIN {printf \"%.4f\", $spread_h - $bleed - $trim_h * 0.25}")
-    back_bio_y=$(awk "BEGIN {printf \"%.4f\", $bleed + $trim_h * 0.15}")
+    back_title_y=$(awk "BEGIN {printf \"%.4f\", $spread_h - $bleed - $trim_h * 0.10}")
+    back_bio_y=$(awk "BEGIN {printf \"%.4f\", $bleed + $trim_h * 0.12}")
 
     # Text width for overlays (80% of trim for front, 65% for back)
     local front_text_w back_text_w
@@ -327,25 +337,55 @@ AUTHOREOF
     fi
 
     # === BACK COVER TEXT OVERLAYS ===
+    # Conditionally use frosted glass boxes (controlled by back_cover_text_background metadata)
+    local use_text_bg="${META_BACK_COVER_TEXT_BACKGROUND:-true}"
+
     if [ -n "$back_text" ]; then
-        cat >> "$tex_file" << BACKTEXTEOF
-% Back cover text (upper-middle area)
-\\node[text=${title_color}, font=\\footnotesize, align=center, text width=${back_text_w}in, anchor=north]
+        if [ "$use_text_bg" = "true" ]; then
+            cat >> "$tex_file" << BACKTEXTEOF
+% Back cover quote with frosted glass background
+\\node[fill=${back_fill_color}, fill opacity=${back_bg_opacity}, text opacity=1, rounded corners=6pt,
+  inner sep=0.25in, text=${back_text_color}, font=\\footnotesize, align=center,
+  text width=${back_text_w}in, anchor=north]
   at (${back_cx}, ${back_title_y}) {
   ${back_text}
 };
 BACKTEXTEOF
+        else
+            cat >> "$tex_file" << BACKTEXTEOF
+% Back cover quote (no background)
+\\node[text=${back_text_color}, font=\\footnotesize, align=center,
+  text width=${back_text_w}in, anchor=north]
+  at (${back_cx}, ${back_title_y}) {
+  ${back_text}
+};
+BACKTEXTEOF
+        fi
     fi
 
     if [ -n "$back_bio" ]; then
-        cat >> "$tex_file" << BACKBIOEOF
-% Back cover author bio (lower portion)
-\\node[text=${title_color}, font=\\scriptsize, align=left, text width=${back_text_w}in, anchor=south]
+        if [ "$use_text_bg" = "true" ]; then
+            cat >> "$tex_file" << BACKBIOEOF
+% Back cover bio with frosted glass background
+\\node[fill=${back_fill_color}, fill opacity=${back_bg_opacity}, text opacity=1, rounded corners=6pt,
+  inner sep=0.25in, text=${back_text_color}, font=\\scriptsize, align=left,
+  text width=${back_text_w}in, anchor=south]
   at (${back_cx}, ${back_bio_y}) {
   {\\small\\bfseries About the Author}\\\\[0.15cm]
   ${back_bio}
 };
 BACKBIOEOF
+        else
+            cat >> "$tex_file" << BACKBIOEOF
+% Back cover bio (no background)
+\\node[text=${back_text_color}, font=\\scriptsize, align=left,
+  text width=${back_text_w}in, anchor=south]
+  at (${back_cx}, ${back_bio_y}) {
+  {\\small\\bfseries About the Author}\\\\[0.15cm]
+  ${back_bio}
+};
+BACKBIOEOF
+        fi
     fi
 
     # Close TikZ and document

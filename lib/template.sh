@@ -1077,9 +1077,13 @@ ISBN: \$isbn\$\\\\[0.3cm]
   \$if(cover_overlay_opacity)\$
   \\fill[black,opacity=\$cover_overlay_opacity\$] (current page.south west) rectangle (current page.north east);
   \$endif\$
+  % --- Back cover text color resolution ---
+  % Priority: back_cover_text_color > cover_title_color > white
+  % Rectangle fill is auto-inversed: white text → black fill, black text → white fill
+  %
   % Content box - quote, summary, or custom text
-  % Positioned in upper portion of image area (0.20\\paperheight from top, matching front cover)
-  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\large,align=center,text width=0.7\\paperwidth,anchor=north] at ([yshift=-0.20\\paperheight]current page.north) {
+  % Positioned in upper portion of back cover (0.08\\paperheight from top)
+  \\node[\$if(back_cover_text_background)\$fill=\$if(back_cover_text_color)\$\$if(back_cover_text_color_is_white)\$black\$else\$white\$endif\$\$elseif(cover_title_color_is_white)\$black\$else\$white\$endif\$, fill opacity=\$if(back_cover_text_background_opacity)\$\$back_cover_text_background_opacity\$\$else\$0.18\$endif\$, text opacity=1, rounded corners=6pt, inner sep=0.25in,\$endif\$ text=\$if(back_cover_text_color)\$\$back_cover_text_color\$\$elseif(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\large,align=center,text width=0.7\\paperwidth,anchor=north] at ([yshift=-0.08\\paperheight]current page.north) {
     \$if(back_cover_quote)\$
     {\\itshape ``\$back_cover_quote\$''}
     \$if(back_cover_quote_source)\$\\\\[0.5cm]--- \$back_cover_quote_source\$\$endif\$
@@ -1090,9 +1094,9 @@ ISBN: \$isbn\$\\\\[0.3cm]
     \$endif\$
   };
   % Author bio section (if enabled)
-  % Positioned in lower portion of image area (0.20\\paperheight from bottom, matching front cover)
+  % Positioned in lower portion of back cover (0.12\\paperheight from bottom)
   \$if(back_cover_author_bio)\$
-  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\normalsize,align=left,text width=0.7\\paperwidth,anchor=south] at ([yshift=0.20\\paperheight]current page.south) {
+  \\node[\$if(back_cover_text_background)\$fill=\$if(back_cover_text_color)\$\$if(back_cover_text_color_is_white)\$black\$else\$white\$endif\$\$elseif(cover_title_color_is_white)\$black\$else\$white\$endif\$, fill opacity=\$if(back_cover_text_background_opacity)\$\$back_cover_text_background_opacity\$\$else\$0.18\$endif\$, text opacity=1, rounded corners=6pt, inner sep=0.25in,\$endif\$ text=\$if(back_cover_text_color)\$\$back_cover_text_color\$\$elseif(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\normalsize,align=left,text width=0.7\\paperwidth,anchor=south] at ([yshift=0.12\\paperheight]current page.south) {
     {\\bfseries About the Author}\\\\[0.3cm]
     \$if(back_cover_author_bio_text)\$\$back_cover_author_bio_text\$\$endif\$
   };

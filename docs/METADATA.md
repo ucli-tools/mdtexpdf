@@ -116,6 +116,9 @@ back_cover_text: "Custom text..."   # Custom text (when content: custom)
 back_cover_author_bio: true         # Include author bio section
 back_cover_author_bio_text: "Bio"   # Author biography text
 back_cover_isbn_barcode: true       # Reserve space for ISBN barcode
+back_cover_text_background: true    # Show subtle frosted rectangles behind text (default: true)
+back_cover_text_background_opacity: 0.18  # Opacity of frosted rectangles (0.0-1.0, default: 0.18)
+back_cover_text_color: "white"      # Text color on back cover (default: inherits cover_title_color)
 
 # =============================================================================
 # AUTHORSHIP & SUPPORT SYSTEM
@@ -258,6 +261,9 @@ See [SIMPLE_BIBLIOGRAPHY.md](SIMPLE_BIBLIOGRAPHY.md) for detailed bibliography d
 | `back_cover_author_bio` | boolean | Include author bio section | true, false |
 | `back_cover_author_bio_text` | string | Author biography text | "John is a researcher..." |
 | `back_cover_isbn_barcode` | boolean | Reserve space for ISBN barcode | true, false |
+| `back_cover_text_background` | boolean | Show frosted rectangles behind back cover text | true (default), false |
+| `back_cover_text_background_opacity` | number | Opacity of frosted rectangles (0.0-1.0) | 0.18 (default) |
+| `back_cover_text_color` | string | Text color on back cover (rectangle fill auto-inverts) | Inherits `cover_title_color`, default "white" |
 
 **LaTeX and Math in Back Cover Text**: You can include inline LaTeX math in `back_cover_quote`, `back_cover_summary`, or `back_cover_text` using escaped backslashes:
 ```yaml

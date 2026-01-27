@@ -526,6 +526,21 @@ _build_cover_vars() {
     _add_meta_bool "back_cover_author_bio" "$META_BACK_COVER_AUTHOR_BIO"
     _add_meta_var "back_cover_author_bio_text" "$META_BACK_COVER_AUTHOR_BIO_TEXT"
     _add_meta_bool "back_cover_isbn_barcode" "$META_BACK_COVER_ISBN_BARCODE"
+    _add_meta_bool "back_cover_text_background" "$META_BACK_COVER_TEXT_BACKGROUND"
+    _add_meta_var "back_cover_text_background_opacity" "$META_BACK_COVER_TEXT_BACKGROUND_OPACITY"
+    _add_meta_var "back_cover_text_color" "$META_BACK_COVER_TEXT_COLOR"
+
+    # Helper booleans for template fill-color inversion logic
+    # (white text → black rectangle, non-white text → white rectangle)
+    local _effective_title_color="${META_COVER_TITLE_COLOR:-white}"
+    if [ "$_effective_title_color" = "white" ]; then
+        _PDF_BOOK_FEATURE_VARS+=("--variable=cover_title_color_is_white=true")
+    fi
+    if [ -n "$META_BACK_COVER_TEXT_COLOR" ]; then
+        if [ "$META_BACK_COVER_TEXT_COLOR" = "white" ]; then
+            _PDF_BOOK_FEATURE_VARS+=("--variable=back_cover_text_color_is_white=true")
+        fi
+    fi
 }
 
 # Internal: Resolve trim size preset to geometry dimensions.

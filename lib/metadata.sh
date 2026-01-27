@@ -293,7 +293,7 @@ parse_yaml_metadata() {
     # Cover system
     META_COVER_IMAGE=$(yq eval '.cover_image // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_COVER_TITLE_COLOR=$(yq eval '.cover_title_color // "white"' "$temp_yaml" 2>/dev/null | sed 's/^null$/white/')
-    META_COVER_SUBTITLE_SHOW=$(yq eval '.cover_subtitle_show // "true"' "$temp_yaml" 2>/dev/null | sed 's/^null$/true/')
+    META_COVER_SUBTITLE_SHOW=$(yq eval '.cover_subtitle_show' "$temp_yaml" 2>/dev/null | sed 's/^null$/true/')
     META_COVER_AUTHOR_POSITION=$(yq eval '.cover_author_position // "bottom"' "$temp_yaml" 2>/dev/null | sed 's/^null$/bottom/')
     META_COVER_OVERLAY_OPACITY=$(yq eval '.cover_overlay_opacity // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_COVER_FIT=$(yq eval '.cover_fit // "contain"' "$temp_yaml" 2>/dev/null | sed 's/^null$/contain/')
@@ -308,6 +308,9 @@ parse_yaml_metadata() {
     META_BACK_COVER_AUTHOR_BIO=$(yq eval '.back_cover_author_bio // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_BACK_COVER_AUTHOR_BIO_TEXT=$(yq eval '.back_cover_author_bio_text // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_BACK_COVER_ISBN_BARCODE=$(yq eval '.back_cover_isbn_barcode // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_BACK_COVER_TEXT_BACKGROUND=$(yq eval '.back_cover_text_background' "$temp_yaml" 2>/dev/null | sed 's/^null$/true/')
+    META_BACK_COVER_TEXT_BACKGROUND_OPACITY=$(yq eval '.back_cover_text_background_opacity // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_BACK_COVER_TEXT_COLOR=$(yq eval '.back_cover_text_color // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
 
     # Print-ready / Lulu settings
     META_TRIM_SIZE=$(yq eval '.trim_size // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
