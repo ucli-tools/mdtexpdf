@@ -125,6 +125,7 @@ back_cover_text_color: "white"      # Text color on back cover (default: inherit
 # =============================================================================
 trim_size: "5.5x8.5"               # Trim size: 5.5x8.5 (Digest), 6x9 (US Trade), 7x10 (Executive), a5 (A5)
 paper_stock: "cream60"              # Paper stock: cream60, white60, white80
+spine_text: "auto"                  # Spine text on cover spread: "auto" (default), "true", "false"
 
 # =============================================================================
 # AUTHORSHIP & SUPPORT SYSTEM
@@ -285,6 +286,7 @@ These fields control the physical book dimensions when generating Lulu.com print
 |-------|------|-------------|--------|
 | `trim_size` | string | Book trim size | `"5.5x8.5"` (Digest), `"6x9"` (US Trade), `"7x10"` (Executive), `"a5"` (A5) |
 | `paper_stock` | string | Paper stock for spine width calculation | `"cream60"` (default), `"white60"`, `"white80"` |
+| `spine_text` | string | Spine text on cover spread | `"auto"` (default), `"true"`, `"false"` |
 
 **Trim Size Guide:**
 
@@ -303,10 +305,21 @@ These fields control the physical book dimensions when generating Lulu.com print
 | `white60` | White uncoated 60# | Math, technical — crisper contrast for notation |
 | `white80` | White coated 80# (premium) | Color images, photography |
 
+**Spine Text Behavior:**
+
+The `spine_text` field controls whether the book title and author appear on the spine of the cover spread. The front cover image extends seamlessly through the spine, so narrow spines show a continuous image rather than a text strip.
+
+| Value | Behavior |
+|-------|----------|
+| `"auto"` (default) | Spine text appears only if spine width >= 0.5" (~200 pages on cream60) |
+| `"true"` | Force spine text on. Skipped with a warning if spine < 0.25" (physically too narrow) |
+| `"false"` | Never show spine text, regardless of spine width |
+
 **Example:**
 ```yaml
 trim_size: "6x9"
 paper_stock: "cream60"
+spine_text: "auto"
 ```
 
 ### Authorship & Support System
@@ -522,6 +535,7 @@ back_cover_text_color: "white"
 # Print format (Lulu.com)
 trim_size: "6x9"
 paper_stock: "cream60"
+spine_text: "auto"
 
 # Authorship & support
 author_pubkey: "4A2B 8C3D E9F1 7A6B 2C4D 9E8F 1A3B 5C7D 8E9F 0A1B"

@@ -530,6 +530,9 @@ _build_cover_vars() {
     _add_meta_var "back_cover_text_background_opacity" "$META_BACK_COVER_TEXT_BACKGROUND_OPACITY"
     _add_meta_var "back_cover_text_color" "$META_BACK_COVER_TEXT_COLOR"
 
+    # Spine text control (mainly used in lulu.sh, but available as variable)
+    _add_meta_var "spine_text" "$META_SPINE_TEXT"
+
     # Helper booleans for template fill-color inversion logic
     # (white text → black rectangle, non-white text → white rectangle)
     local _effective_title_color="${META_COVER_TITLE_COLOR:-white}"

@@ -238,22 +238,21 @@ generate_cover_spread() {
     front_text_w=$(awk "BEGIN {printf \"%.4f\", $trim_w * 0.8}")
     back_text_w=$(awk "BEGIN {printf \"%.4f\", $trim_w * 0.65}")
 
-    # Each image fills its half of the spread (back half = 0 to spine center,
-    # front half = spine center to spread_w). Images are scaled by width to fill
-    # their half (CSS cover-like), with height overflow clipped.
-    # This gives seamless color continuity through the spine — no black/grey strip.
-    local spine_mid
-    spine_mid=$(awk "BEGIN {printf \"%.4f\", ($spine_left + $spine_right) / 2}")
+    # Image layout strategy:
+    # - Back cover image: fills from 0 to spine_left (back panel only)
+    # - Front cover image: fills from spine_left to spread_w (front panel + spine)
+    #   This makes the front cover image extend seamlessly through the spine,
+    #   so narrow spines show a continuous image rather than a jarring split.
 
-    # Back half: 0 to spine_mid; center of back half
+    # Back half: 0 to spine_left
     local back_half_w back_half_cx
-    back_half_w=$(awk "BEGIN {printf \"%.4f\", $spine_mid}")
-    back_half_cx=$(awk "BEGIN {printf \"%.4f\", $spine_mid / 2}")
+    back_half_w=$(awk "BEGIN {printf \"%.4f\", $spine_left}")
+    back_half_cx=$(awk "BEGIN {printf \"%.4f\", $spine_left / 2}")
 
-    # Front half: spine_mid to spread_w; center of front half
+    # Front half: spine_left to spread_w (covers spine + front panel + right bleed)
     local front_half_w front_half_cx
-    front_half_w=$(awk "BEGIN {printf \"%.4f\", $spread_w - $spine_mid}")
-    front_half_cx=$(awk "BEGIN {printf \"%.4f\", $spine_mid + ($spread_w - $spine_mid) / 2}")
+    front_half_w=$(awk "BEGIN {printf \"%.4f\", $spread_w - $spine_left}")
+    front_half_cx=$(awk "BEGIN {printf \"%.4f\", $spine_left + ($spread_w - $spine_left) / 2}")
 
     cat > "$tex_file" << COVEREOF
 \\documentclass[12pt]{article}
@@ -268,31 +267,65 @@ generate_cover_spread() {
 \\noindent%
 \\begin{tikzpicture}[x=1in, y=1in, every node/.style={inner sep=0pt, outer sep=0pt}]
 
-% === BACK COVER IMAGE (fills left half of spread, extending through spine) ===
+% === BACK COVER IMAGE (fills back panel: 0 to spine_left) ===
 \\begin{scope}
-  \\clip (0, 0) rectangle (${spine_mid}, ${spread_h});
+  \\clip (0, 0) rectangle (${spine_left}, ${spread_h});
   \\node at (${back_half_cx}, ${back_cy}) {
     \\includegraphics[width=${back_half_w}in]{${back_cover_path}}
   };
 \\end{scope}
 
-% === FRONT COVER IMAGE (fills right half of spread, extending through spine) ===
+% === FRONT COVER IMAGE (extends from spine_left through spine and front panel) ===
 \\begin{scope}
-  \\clip (${spine_mid}, 0) rectangle (${spread_w}, ${spread_h});
+  \\clip (${spine_left}, 0) rectangle (${spread_w}, ${spread_h});
   \\node at (${front_half_cx}, ${front_cy}) {
     \\includegraphics[width=${front_half_w}in]{${front_cover_path}}
   };
 \\end{scope}
 COVEREOF
 
-    # Add spine text — title and author (standard book spine convention)
-    local spine_text_ok
-    spine_text_ok=$(awk "BEGIN {print ($spine_w >= 0.25) ? 1 : 0}")
-    if [ "$spine_text_ok" = "1" ]; then
-        # For narrow spines, use smaller font
+    # === SPINE TEXT LOGIC ===
+    # spine_text metadata: "auto" (default), "true" (force on), "false" (force off)
+    # auto: show spine text only if spine width >= 0.5"
+    # true: force spine text on, but warn and skip if spine < 0.25" (physically impossible)
+    # false: never show spine text
+    local spine_text_setting="${META_SPINE_TEXT:-auto}"
+    local render_spine_text=false
+
+    case "$spine_text_setting" in
+        false)
+            echo -e "${BLUE}Spine text: disabled by metadata (spine_text: false)${NC}"
+            render_spine_text=false
+            ;;
+        true)
+            local spine_hard_min
+            spine_hard_min=$(awk "BEGIN {print ($spine_w >= 0.25) ? 1 : 0}")
+            if [ "$spine_hard_min" = "1" ]; then
+                render_spine_text=true
+                echo -e "${BLUE}Spine text: forced on by metadata (spine width: ${spine_w}\")${NC}"
+            else
+                echo -e "${YELLOW}Warning: spine_text: true but spine width ${spine_w}\" is below hard minimum (0.25\"). Skipping spine text.${NC}"
+                render_spine_text=false
+            fi
+            ;;
+        auto|*)
+            local spine_auto_ok
+            spine_auto_ok=$(awk "BEGIN {print ($spine_w >= 0.5) ? 1 : 0}")
+            if [ "$spine_auto_ok" = "1" ]; then
+                render_spine_text=true
+                echo -e "${BLUE}Spine text: auto-enabled (spine width: ${spine_w}\" >= 0.5\")${NC}"
+            else
+                echo -e "${BLUE}Spine text: auto-skipped (spine width: ${spine_w}\" < 0.5\")${NC}"
+                render_spine_text=false
+            fi
+            ;;
+    esac
+
+    if [ "$render_spine_text" = "true" ]; then
+        # Choose font size based on spine width
         local spine_font="\\small\\bfseries"
         local spine_narrow
-        spine_narrow=$(awk "BEGIN {print ($spine_w < 0.5) ? 1 : 0}")
+        spine_narrow=$(awk "BEGIN {print ($spine_w < 0.75) ? 1 : 0}")
         if [ "$spine_narrow" = "1" ]; then
             spine_font="\\scriptsize\\bfseries"
         fi
@@ -485,6 +518,31 @@ _generate_lulu_info() {
     local spine_width
     spine_width=$(calculate_spine_width "$page_count" "$paper_stock")
 
+    # Determine spine text status for the info file
+    local spine_text_info
+    local spine_text_setting="${META_SPINE_TEXT:-auto}"
+    case "$spine_text_setting" in
+        false) spine_text_info="Disabled (spine_text: false)" ;;
+        true)
+            local _st_ok
+            _st_ok=$(awk "BEGIN {print ($spine_width >= 0.25) ? 1 : 0}")
+            if [ "$_st_ok" = "1" ]; then
+                spine_text_info="Forced on (spine_text: true)"
+            else
+                spine_text_info="Forced on but skipped — spine too narrow (< 0.25\")"
+            fi
+            ;;
+        *)
+            local _st_auto
+            _st_auto=$(awk "BEGIN {print ($spine_width >= 0.5) ? 1 : 0}")
+            if [ "$_st_auto" = "1" ]; then
+                spine_text_info="Auto-enabled (spine >= 0.5\")"
+            else
+                spine_text_info="Auto-skipped (spine < 0.5\")"
+            fi
+            ;;
+    esac
+
     cat > "$info_file" << INFOEOF
 ================================================================================
   LULU.COM PRINT SETUP GUIDE
@@ -536,6 +594,7 @@ _generate_lulu_info() {
 
   Trim Size:    ${lulu_dimensions_in} (${lulu_dimensions_mm})
   Spine Width:  ${spine_width}" (calculated from ${page_count} pages on ${paper_stock})
+  Spine Text:   ${spine_text_info}
   Bleed:        0.125" (3.175mm) on all edges
   Cover Spread: Back + Spine + Front in a single PDF
 

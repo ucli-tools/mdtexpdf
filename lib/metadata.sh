@@ -90,6 +90,7 @@ init_metadata_vars() {
     # Print-ready / Lulu settings
     META_TRIM_SIZE=""           # e.g., "5.5x8.5", "6x9", "7x10", "a5", "a4"
     META_PAPER_STOCK="cream60"  # cream60, white60, white80
+    META_SPINE_TEXT="auto"      # auto, true, false — controls spine text on cover spread
 
     # Authorship & Support
     META_AUTHOR_PUBKEY=""
@@ -315,6 +316,7 @@ parse_yaml_metadata() {
     # Print-ready / Lulu settings
     META_TRIM_SIZE=$(yq eval '.trim_size // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_PAPER_STOCK=$(yq eval '.paper_stock // "cream60"' "$temp_yaml" 2>/dev/null | sed 's/^null$/cream60/')
+    META_SPINE_TEXT=$(yq eval '.spine_text' "$temp_yaml" 2>/dev/null | sed 's/^null$/auto/')
 
     # Authorship & Support
     META_AUTHOR_PUBKEY=$(yq eval '.author_pubkey // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
