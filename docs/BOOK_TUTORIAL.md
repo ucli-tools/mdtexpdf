@@ -214,6 +214,9 @@ Add a back cover with quote or summary:
 back_cover_image: "img/back.jpg"
 back_cover_quote: "A must-read for anyone who wants to write."
 back_cover_quote_source: "Famous Reviewer"
+back_cover_text_background: true           # frosted rectangle behind text (default: true)
+back_cover_text_background_opacity: 0.18   # rectangle opacity 0.0-1.0 (default: 0.18)
+back_cover_text_color: "white"             # text color; rectangle fill auto-inverts
 ```
 
 ### Authorship Verification

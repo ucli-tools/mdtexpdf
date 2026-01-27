@@ -477,6 +477,9 @@ back_cover_quote: "A compelling quote from the book that draws readers in."
 back_cover_quote_source: "From the Preface"
 back_cover_author_bio: true
 back_cover_author_bio_text: "Author Name writes about topics of interest."
+back_cover_text_background: true
+back_cover_text_background_opacity: 0.18
+back_cover_text_color: "white"
 
 # Authorship & support
 author_pubkey: "4A2B 8C3D E9F1 7A6B 2C4D 9E8F 1A3B 5C7D 8E9F 0A1B"
