@@ -560,6 +560,7 @@ $x_0$, $x_1$, $x^2$, $x^{-1}$
 | Arrows in math | `$\rightarrow$` |
 | Subscript numbers | `$x_1$` not `x₁` |
 | Superscript numbers | `$x^2$` not `x²` |
+| Degree symbol | `$30^\circ$` not `$30°$` |
 
 #### CJK (Chinese, Japanese, Korean) Support
 
@@ -812,6 +813,7 @@ mdtexpdf convert book_name.md -t "Title" -a "Author" --no-numbers
 5. Using `---` or `***` for section breaks
 6. Adding subtitles or epigraphs directly under part/chapter headings
 7. Forgetting blank lines around display equations
+8. Using the Unicode degree symbol `°` instead of `^\circ` in math mode (renders incorrectly as `ř` in PDF)
 
 ---
 
