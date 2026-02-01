@@ -309,6 +309,53 @@ BOOK_CMDS_EOF
         \\newunicodechar{Ύ}{\\ensuremath{\\acute{\\Upsilon}}}
         \\newunicodechar{Ώ}{\\ensuremath{\\acute{\\Omega}}}
 
+        % Greek Extended block (U+1F00-U+1FFF) - polytonic diacritics
+        % Vowels with smooth breathing (psili)
+        \\newunicodechar{ἀ}{\\ensuremath{\\alpha}}
+        \\newunicodechar{ἐ}{\\ensuremath{\\varepsilon}}
+        \\newunicodechar{ἠ}{\\ensuremath{\\eta}}
+        \\newunicodechar{ἰ}{\\ensuremath{\\iota}}
+        \\newunicodechar{ὀ}{\\ensuremath{o}}
+        \\newunicodechar{ὐ}{\\ensuremath{\\upsilon}}
+        \\newunicodechar{ὠ}{\\ensuremath{\\omega}}
+        % Vowels with rough breathing (dasia)
+        \\newunicodechar{ἁ}{\\ensuremath{\\alpha}}
+        \\newunicodechar{ἑ}{\\ensuremath{\\varepsilon}}
+        \\newunicodechar{ἡ}{\\ensuremath{\\eta}}
+        \\newunicodechar{ἱ}{\\ensuremath{\\iota}}
+        \\newunicodechar{ὁ}{\\ensuremath{o}}
+        \\newunicodechar{ὑ}{\\ensuremath{\\upsilon}}
+        \\newunicodechar{ὡ}{\\ensuremath{\\omega}}
+        % Vowels with perispomeni (circumflex)
+        \\newunicodechar{ᾶ}{\\ensuremath{\\hat{\\alpha}}}
+        \\newunicodechar{ῆ}{\\ensuremath{\\hat{\\eta}}}
+        \\newunicodechar{ῖ}{\\ensuremath{\\hat{\\iota}}}
+        \\newunicodechar{ῦ}{\\ensuremath{\\hat{\\upsilon}}}
+        \\newunicodechar{ῶ}{\\ensuremath{\\hat{\\omega}}}
+        % Vowels with acute accent (oxia)
+        \\newunicodechar{ά}{\\ensuremath{\\acute{\\alpha}}}
+        \\newunicodechar{έ}{\\ensuremath{\\acute{\\varepsilon}}}
+        \\newunicodechar{ή}{\\ensuremath{\\acute{\\eta}}}
+        \\newunicodechar{ί}{\\ensuremath{\\acute{\\iota}}}
+        \\newunicodechar{ό}{\\ensuremath{\\acute{o}}}
+        \\newunicodechar{ύ}{\\ensuremath{\\acute{\\upsilon}}}
+        \\newunicodechar{ώ}{\\ensuremath{\\acute{\\omega}}}
+        % Vowels with grave accent (varia)
+        \\newunicodechar{ὰ}{\\ensuremath{\\grave{\\alpha}}}
+        \\newunicodechar{ὲ}{\\ensuremath{\\grave{\\varepsilon}}}
+        \\newunicodechar{ὴ}{\\ensuremath{\\grave{\\eta}}}
+        \\newunicodechar{ὶ}{\\ensuremath{\\grave{\\iota}}}
+        \\newunicodechar{ὸ}{\\ensuremath{\\grave{o}}}
+        \\newunicodechar{ὺ}{\\ensuremath{\\grave{\\upsilon}}}
+        \\newunicodechar{ὼ}{\\ensuremath{\\grave{\\omega}}}
+        % Rho with breathing marks
+        \\newunicodechar{ῤ}{\\ensuremath{\\rho}}
+        \\newunicodechar{ῥ}{\\ensuremath{\\rho}}
+        % Iota subscript forms
+        \\newunicodechar{ᾳ}{\\ensuremath{\\alpha}}
+        \\newunicodechar{ῃ}{\\ensuremath{\\eta}}
+        \\newunicodechar{ῳ}{\\ensuremath{\\omega}}
+
         % Define Unicode box-drawing characters for pdfLaTeX
         \\newunicodechar{├}{\\texttt{|--}}
         \\newunicodechar{│}{\\texttt{|}}

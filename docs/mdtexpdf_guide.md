@@ -501,6 +501,24 @@ mdtexpdf supports various Unicode characters, but for best results, use LaTeX co
 Or in math mode: $\alpha$, $\beta$, $\gamma$, etc.
 ```
 
+**Greek Etymologies** - For inline Greek roots and etymological references:
+
+- Use **monotonic** Greek (modern standard since 1982), not polytonic (ancient diacritics)
+- Format: Greek script, then italicized transliteration, then English meaning in quotes
+- Use macrons for long vowels in transliteration: ē (eta), ō (omega)
+
+```markdown
+τηλε (*tēle*, "distant")     ← Correct (monotonic)
+τῆλε (*tēle*, "distant")     ← Incorrect (polytonic, uses Greek Extended U+1F00-U+1FFF)
+```
+
+**Supported Greek character ranges:**
+
+- Basic Greek: U+0370-U+03FF (α-ω, Α-Ω) - fully supported
+- Greek tonos accents: ά, έ, ή, ί, ό, ύ, ώ - fully supported
+- Greek variant forms: ϑ, ϕ, ϖ, ϱ, ς, ϵ, ϰ - fully supported
+- Greek Extended: U+1F00-U+1FFF (polytonic diacritics: ῆ, ῶ, ἀ, etc.) - supported (breathing marks, perispomeni, grave/acute, iota subscript)
+
 **Mathematical Symbols** - Supported in text and math:
 
 ```markdown
