@@ -195,9 +195,12 @@ BOOK_CMDS_EOF
 
     \\usepackage{hyphenat}  % For \\nohyphens command (disable hyphenation in titles)
 
-    % TikZ for cover pages (full-bleed images with text overlay)
+    % TikZ for cover pages, diagrams, and mathematical illustrations
     \\usepackage{tikz}
-    \\usetikzlibrary{positioning}
+    \\usetikzlibrary{positioning,arrows.meta,decorations.markings,calc}
+    \\usepackage{pgfplots}
+    \\pgfplotsset{compat=1.17}
+    \\usepgfplotslibrary{fillbetween}
 
     % Rotating package for margin provenance text
     \\usepackage{rotating}
@@ -899,6 +902,11 @@ $numbering_commands
 \$if(index)\$
 \\makeindex
 \$endif\$
+
+% Custom header includes from document metadata
+\$for(header-includes)\$
+\$header-includes\$
+\$endfor\$
 
 \\begin{document}
 
