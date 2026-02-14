@@ -175,6 +175,7 @@ BOOK_CMDS_EOF
     \\usepackage{fancyvrb}
     \\usepackage{listings}
     \\usepackage{float}
+    \\raggedbottom
     \\usepackage[protrusion=false,expansion=false]{microtype}  % Disable font expansion
     \\usepackage{enumitem}
     \\usepackage[version=4]{mhchem}
@@ -197,7 +198,7 @@ BOOK_CMDS_EOF
 
     % TikZ for cover pages, diagrams, and mathematical illustrations
     \\usepackage{tikz}
-    \\usetikzlibrary{positioning,arrows.meta,decorations.markings,calc}
+    \\usetikzlibrary{positioning,arrows.meta,decorations.markings,calc,patterns}
     \\usepackage{pgfplots}
     \\pgfplotsset{compat=1.17}
     \\usepgfplotslibrary{fillbetween}
