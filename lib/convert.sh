@@ -378,6 +378,12 @@ setup_lua_filters() {
             "Drop caps will not be applied."
     fi
 
+    if [ "$META_EQUATION_NUMBERS" = "true" ]; then
+        _add_lua_filter "equation_number_filter.lua" \
+            "equation numbering" \
+            "Equation numbering will not be applied."
+    fi
+
     # Build filter options string
     _PDF_FILTER_OPTION=""
     for filter in "${_PDF_LUA_FILTERS[@]}"; do
@@ -448,6 +454,7 @@ _build_book_feature_vars() {
     _add_meta_var "epigraph_source" "$META_EPIGRAPH_SOURCE"
     _add_meta_bool "chapters_on_recto" "$META_CHAPTERS_ON_RECTO"
     _add_meta_bool "drop_caps" "$META_DROP_CAPS"
+    _add_meta_bool "equation_numbers" "$META_EQUATION_NUMBERS"
 
     # Publishing
     _add_meta_var "publisher" "$META_PUBLISHER"

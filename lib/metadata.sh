@@ -54,6 +54,7 @@ init_metadata_vars() {
     META_EPIGRAPH_SOURCE=""
     META_CHAPTERS_ON_RECTO=""
     META_DROP_CAPS=""
+    META_EQUATION_NUMBERS=""
     META_PUBLISHER=""
     META_ISBN=""
     META_EDITION=""
@@ -281,6 +282,7 @@ parse_yaml_metadata() {
     META_EPIGRAPH_SOURCE=$(yq eval '.epigraph_source // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_CHAPTERS_ON_RECTO=$(yq eval '.chapters_on_recto // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_DROP_CAPS=$(yq eval '.drop_caps // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_EQUATION_NUMBERS=$(yq eval '.equation_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_PUBLISHER=$(yq eval '.publisher // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_ISBN=$(yq eval '.isbn // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_EDITION=$(yq eval '.edition // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
@@ -383,6 +385,7 @@ _display_metadata_found() {
     [ -n "$META_EPIGRAPH_SOURCE" ] && echo -e "${GREEN}Found metadata - epigraph_source: $META_EPIGRAPH_SOURCE${NC}"
     [ -n "$META_CHAPTERS_ON_RECTO" ] && echo -e "${GREEN}Found metadata - chapters_on_recto: $META_CHAPTERS_ON_RECTO${NC}"
     [ -n "$META_DROP_CAPS" ] && echo -e "${GREEN}Found metadata - drop_caps: $META_DROP_CAPS${NC}"
+    [ -n "$META_EQUATION_NUMBERS" ] && echo -e "${GREEN}Found metadata - equation_numbers: $META_EQUATION_NUMBERS${NC}"
     [ -n "$META_PUBLISHER" ] && echo -e "${GREEN}Found metadata - publisher: $META_PUBLISHER${NC}"
     [ -n "$META_ISBN" ] && echo -e "${GREEN}Found metadata - isbn: $META_ISBN${NC}"
     [ -n "$META_EDITION" ] && echo -e "${GREEN}Found metadata - edition: $META_EDITION${NC}"

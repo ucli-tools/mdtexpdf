@@ -198,7 +198,7 @@ BOOK_CMDS_EOF
 
     % TikZ for cover pages, diagrams, and mathematical illustrations
     \\usepackage{tikz}
-    \\usetikzlibrary{positioning,arrows.meta,decorations.markings,calc,patterns}
+    \\usetikzlibrary{positioning,arrows.meta,decorations.markings,decorations.pathreplacing,calc,patterns}
     \\usepackage{pgfplots}
     \\pgfplotsset{compat=1.17}
     \\usepgfplotslibrary{fillbetween}
@@ -766,6 +766,11 @@ BOOK_CMDS_EOF
 
 % Configure equation handling for better line breaking
 % Using the amsmath package which is already loaded
+
+% Equation numbering (chapter-based if enabled)
+\$if(equation_numbers)\$
+\\numberwithin{equation}{chapter}
+\$endif\$
 
 % Adjust the text size for display math to fit more content
 \\everymath{\\displaystyle\\small}
