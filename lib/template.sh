@@ -1108,6 +1108,50 @@ ISBN: \$isbn\$\\\\[0.3cm]
 
 \$body\$
 
+% ============== BACK MATTER: List of Figures / List of Tables ==============
+\$if(lof)\$
+\\clearpage
+\\addcontentsline{toc}{chapter}{List of Figures}
+\\listoffigures
+\$endif\$
+
+\$if(lot)\$
+\\clearpage
+\\addcontentsline{toc}{chapter}{List of Tables}
+\\listoftables
+\$endif\$
+
+% Print index if requested
+\$if(index)\$
+\\clearpage
+\\addcontentsline{toc}{chapter}{Index}
+\\printindex
+\$endif\$
+
+% ============== ACKNOWLEDGMENTS ==============
+\$if(acknowledgments)\$
+\\clearpage
+\\thispagestyle{plain}
+\\addcontentsline{toc}{chapter}{Acknowledgments}
+\\begin{center}
+{\\LARGE\\bfseries Acknowledgments}
+\\end{center}
+\\vspace{1em}
+\\noindent \$acknowledgments\$
+\$endif\$
+
+% ============== ABOUT THE AUTHOR ==============
+\$if(about-author)\$
+\\clearpage
+\\thispagestyle{plain}
+\\addcontentsline{toc}{chapter}{About the Author}
+\\begin{center}
+{\\LARGE\\bfseries About the Author}
+\\end{center}
+\\vspace{1em}
+\\noindent \$about-author\$
+\$endif\$
+
 % ============== BACK COVER (Quatrième de Couverture) ==============
 % Suppressed in Lulu mode (covers are uploaded separately to lulu.com)
 \$if(lulu_mode)\$
@@ -1165,13 +1209,6 @@ ISBN: \$isbn\$\\\\[0.3cm]
 \\end{tikzpicture}
 \\restoregeometry
 \$endif\$
-\$endif\$
-
-% Print index if requested
-\$if(index)\$
-\\clearpage
-\\addcontentsline{toc}{chapter}{Index}
-\\printindex
 \$endif\$
 
 \\end{document}

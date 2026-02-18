@@ -1,88 +1,162 @@
 -- index_filter.lua
 -- Processes [index:term] markers in markdown and converts them to LaTeX \index{term} commands
--- For EPUB, it collects index terms and can generate an index appendix
+-- Handles multi-word terms that pandoc splits across Str/Space elements
+-- For EPUB/HTML, collects terms and generates an index appendix
 
--- Store index entries for EPUB index generation
 local index_entries = {}
-local format = FORMAT
-
--- Pattern to match index markers: [index:term] or [index:term|subterm]
+local output_format = FORMAT
 local index_pattern = "%[index:([^%]]+)%]"
 
--- Process inline strings to find and replace index markers
-function Str(el)
-    local text = el.text
+-- Convert an index term to the appropriate output format
+local function make_index_inline(term)
+    local main_term, sub_term = term:match("^([^|]+)|?(.*)$")
 
-    -- Check if this string contains an index marker
-    if text:match(index_pattern) then
-        local result = {}
-        local last_end = 1
+    -- Track for EPUB index generation
+    if not index_entries[main_term] then
+        index_entries[main_term] = {}
+    end
+    if sub_term and sub_term ~= "" then
+        table.insert(index_entries[main_term], sub_term)
+    end
 
-        for term in text:gmatch(index_pattern) do
-            local start_pos, end_pos = text:find("%[index:" .. term:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1") .. "%]", last_end)
-
-            -- Add text before the marker
-            if start_pos > last_end then
-                table.insert(result, pandoc.Str(text:sub(last_end, start_pos - 1)))
-            end
-
-            -- Process the term (handle subterms with |)
-            local main_term, sub_term = term:match("([^|]+)|?(.*)")
-            if sub_term and sub_term ~= "" then
-                -- Store for index
-                if not index_entries[main_term] then
-                    index_entries[main_term] = {}
-                end
-                table.insert(index_entries[main_term], sub_term)
-            else
-                -- Simple term
-                if not index_entries[main_term] then
-                    index_entries[main_term] = {}
-                end
-            end
-
-            -- Output format-specific index marker
-            if format:match("latex") or format:match("pdf") then
-                -- LaTeX: use \index{term} or \index{term!subterm}
-                local latex_term = main_term
-                if sub_term and sub_term ~= "" then
-                    latex_term = main_term .. "!" .. sub_term
-                end
-                table.insert(result, pandoc.RawInline("latex", "\\index{" .. latex_term .. "}"))
-            else
-                -- For other formats (EPUB, HTML), we just remove the marker
-                -- The index will be generated separately
-            end
-
-            last_end = end_pos + 1
+    -- LaTeX output
+    if output_format:match("latex") or output_format:match("pdf") then
+        local latex_term = main_term
+        if sub_term and sub_term ~= "" then
+            latex_term = main_term .. "!" .. sub_term
         end
+        return pandoc.RawInline("latex", "\\index{" .. latex_term .. "}")
+    end
 
-        -- Add any remaining text
-        if last_end <= #text then
-            table.insert(result, pandoc.Str(text:sub(last_end)))
-        end
+    -- For other formats, return nothing (marker is silently removed)
+    return nil
+end
 
-        if #result > 0 then
-            return result
+-- Process a text string that may contain one or more [index:...] markers
+-- Returns a list of pandoc inline elements
+local function process_text(text)
+    local result = pandoc.List()
+    local pos = 1
+
+    while pos <= #text do
+        local s, e, term = text:find(index_pattern, pos)
+
+        if s then
+            -- Add any text before this marker
+            if s > pos then
+                local before = text:sub(pos, s - 1)
+                -- Reconstruct Str/Space sequence from plain text
+                local first = true
+                for word in before:gmatch("%S+") do
+                    if not first then
+                        result:insert(pandoc.Space())
+                    end
+                    result:insert(pandoc.Str(word))
+                    first = false
+                end
+                -- Preserve trailing space
+                if before:match("%s$") then
+                    result:insert(pandoc.Space())
+                end
+            end
+
+            -- Add the index command
+            local idx = make_index_inline(term)
+            if idx then
+                result:insert(idx)
+            end
+
+            pos = e + 1
+        else
+            -- No more markers; add remaining text
+            local remaining = text:sub(pos)
+            if remaining ~= "" then
+                local first = true
+                for word in remaining:gmatch("%S+") do
+                    if not first then
+                        result:insert(pandoc.Space())
+                    end
+                    result:insert(pandoc.Str(word))
+                    first = false
+                end
+                if remaining:match("%s$") then
+                    result:insert(pandoc.Space())
+                end
+            end
+            break
         end
     end
 
-    return el
+    return result
 end
 
--- Also check for index markers in plain text within paragraphs
-function Para(el)
-    return pandoc.walk_block(el, {Str = Str})
+-- Check if text has an unclosed [index: marker (opening bracket with no closing bracket after it)
+local function has_unclosed_marker(text)
+    return text:match("%[index:[^%]]*$") ~= nil
 end
 
--- For EPUB: Generate an index section at the end
+-- Process a list of inline elements, reassembling [index:...] markers
+-- that pandoc split across multiple Str/Space nodes
+function Inlines(inlines)
+    -- Quick check: does any Str contain "[index:"?
+    local has_marker = false
+    for _, el in ipairs(inlines) do
+        if el.t == "Str" and el.text:find("%[index:") then
+            has_marker = true
+            break
+        end
+    end
+
+    if not has_marker then
+        return nil -- no changes
+    end
+
+    local result = pandoc.List()
+    local i = 1
+
+    while i <= #inlines do
+        local el = inlines[i]
+
+        if el.t == "Str" and el.text:find("%[index:") then
+            -- Found start of marker(s). Collect text until all markers are closed.
+            local parts = {el.text}
+            local j = i + 1
+            local full = el.text
+
+            while has_unclosed_marker(full) and j <= #inlines do
+                local nxt = inlines[j]
+                if nxt.t == "Str" then
+                    table.insert(parts, nxt.text)
+                    full = table.concat(parts)
+                elseif nxt.t == "Space" or nxt.t == "SoftBreak" then
+                    table.insert(parts, " ")
+                    full = table.concat(parts)
+                else
+                    -- Hit a non-text element (Emph, Strong, etc.); stop collecting
+                    break
+                end
+                j = j + 1
+            end
+
+            -- Process the collected text (may contain multiple markers + trailing text)
+            local processed = process_text(full)
+            result:extend(processed)
+            i = j
+        else
+            result:insert(el)
+            i = i + 1
+        end
+    end
+
+    return result
+end
+
+-- For EPUB/HTML: generate an index appendix at the end of the document
 function Pandoc(doc)
-    -- Only generate index appendix for non-LaTeX formats
-    if format:match("latex") or format:match("pdf") then
+    if output_format:match("latex") or output_format:match("pdf") then
         return doc
     end
 
-    -- Check if we have any index entries
     local has_entries = false
     for _ in pairs(index_entries) do
         has_entries = true
@@ -93,34 +167,25 @@ function Pandoc(doc)
         return doc
     end
 
-    -- Generate index section for EPUB/HTML
     local index_blocks = {}
     table.insert(index_blocks, pandoc.Header(1, pandoc.Str("Index")))
 
-    -- Sort entries alphabetically
     local sorted_terms = {}
     for term in pairs(index_entries) do
         table.insert(sorted_terms, term)
     end
     table.sort(sorted_terms)
 
-    -- Create definition list for index
-    local items = {}
     local current_letter = ""
-
     for _, term in ipairs(sorted_terms) do
         local first_letter = term:sub(1, 1):upper()
-
-        -- Add letter header if new letter
         if first_letter ~= current_letter then
             current_letter = first_letter
             table.insert(index_blocks, pandoc.Header(2, pandoc.Str(current_letter)))
         end
 
-        -- Add term
         local subterms = index_entries[term]
         if #subterms > 0 then
-            -- Term with subterms
             local subitems = {}
             for _, sub in ipairs(subterms) do
                 table.insert(subitems, pandoc.Plain({pandoc.Str(sub)}))
@@ -128,12 +193,10 @@ function Pandoc(doc)
             table.insert(index_blocks, pandoc.Para({pandoc.Strong({pandoc.Str(term)})}))
             table.insert(index_blocks, pandoc.BulletList({{pandoc.Plain(subitems)}}))
         else
-            -- Simple term
             table.insert(index_blocks, pandoc.Para({pandoc.Str(term)}))
         end
     end
 
-    -- Append index to document
     for _, block in ipairs(index_blocks) do
         table.insert(doc.blocks, block)
     end
@@ -142,7 +205,6 @@ function Pandoc(doc)
 end
 
 return {
-    {Str = Str},
-    {Para = Para},
+    {Inlines = Inlines},
     {Pandoc = Pandoc}
 }

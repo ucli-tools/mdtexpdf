@@ -786,6 +786,15 @@ setup_pdf_bibliography() {
 # Returns: 0 on success, 1 on failure
 execute_pandoc() {
     # shellcheck disable=SC2086 # Word splitting is intentional for _PDF_PANDOC_OPTS/_PDF_FILTER_OPTION/_PDF_TOC_OPTION/_PDF_SECTION_NUMBERING_OPTION
+
+    # When --index is used, we need a multi-step build: pandoc→latex, then
+    # xelatex + makeindex + xelatex to generate the index with page numbers.
+    # Pandoc's --to pdf doesn't run makeindex between LaTeX passes.
+    if [ "$ARG_INDEX" = true ]; then
+        _execute_pandoc_with_index
+        return $?
+    fi
+
     if pandoc "$_PDF_PROCESSED_INPUT_FILE" \
         --from markdown \
         --to pdf \
@@ -816,6 +825,89 @@ execute_pandoc() {
         return 0
     else
         echo -e "${RED}Error: PDF conversion failed.${NC}"
+        _cleanup_pdf_artifacts
+        return 1
+    fi
+}
+
+# Internal: Multi-step build for documents with an index.
+# Works in the source directory so xelatex can find images and fonts.
+# 1. pandoc → .tex  2. xelatex (pass 1)  3. makeindex  4. xelatex (pass 2+3)
+_execute_pandoc_with_index() {
+    local src_dir
+    src_dir=$(dirname "$_PDF_PROCESSED_INPUT_FILE")
+    local base_name="${OUTPUT_FILE%.pdf}"
+    local tex_file="${base_name}.tex"
+    local job_name
+    job_name=$(basename "$base_name")
+
+    echo -e "${BLUE}Index enabled: using multi-step LaTeX build${NC}"
+
+    # Step 1: Generate .tex file via pandoc (in the source directory)
+    if ! pandoc "$_PDF_PROCESSED_INPUT_FILE" \
+        --from markdown \
+        --to latex \
+        --output "$tex_file" \
+        --template="$_PDF_TEMPLATE_PATH" \
+        $_PDF_PANDOC_OPTS \
+        $_PDF_FILTER_OPTION \
+        "${_PDF_BIBLIOGRAPHY_VARS[@]}" \
+        --variable=geometry:margin=1in \
+        --highlight-style=tango \
+        --listings \
+        $_PDF_TOC_OPTION \
+        $_PDF_SECTION_NUMBERING_OPTION \
+        "${_PDF_FOOTER_VARS[@]}" \
+        "${_PDF_HEADER_FOOTER_VARS[@]}" \
+        "${_PDF_BOOK_FEATURE_VARS[@]}" \
+        "${_PDF_TRIM_VARS[@]}" \
+        --standalone; then
+        echo -e "${RED}Error: pandoc LaTeX generation failed.${NC}"
+        _cleanup_pdf_artifacts
+        return 1
+    fi
+
+    # Step 2: First xelatex pass (generates .idx, .aux, .toc)
+    echo -e "${BLUE}  Pass 1/4: xelatex (generating index entries)...${NC}"
+    $PDF_ENGINE -interaction=nonstopmode "$tex_file" > /dev/null 2>&1 || true
+
+    # Step 3: Run makeindex on the .idx file
+    if [ -f "${base_name}.idx" ]; then
+        echo -e "${BLUE}  Pass 2/4: makeindex (building index)...${NC}"
+        makeindex "${base_name}.idx" > /dev/null 2>&1
+    else
+        echo -e "${YELLOW}  Warning: No .idx file generated. Index may be empty.${NC}"
+    fi
+
+    # Step 4: Second xelatex pass (includes index, updates TOC)
+    echo -e "${BLUE}  Pass 3/4: xelatex (including index)...${NC}"
+    $PDF_ENGINE -interaction=nonstopmode "$tex_file" > /dev/null 2>&1 || true
+
+    # Step 5: Third xelatex pass (resolves all cross-references)
+    echo -e "${BLUE}  Pass 4/4: xelatex (finalizing references)...${NC}"
+    $PDF_ENGINE -interaction=nonstopmode "$tex_file" > /dev/null 2>&1 || true
+
+    # Check result and clean up LaTeX artifacts
+    if [ -f "$OUTPUT_FILE" ]; then
+        echo -e "${GREEN}Success! PDF created as $OUTPUT_FILE${NC}"
+
+        if detect_unicode_characters "$INPUT_FILE" >/dev/null 2>&1; then
+            echo -e "${GREEN}✓ CJK characters (Chinese, Japanese, Korean) have been properly rendered in the PDF.${NC}"
+        fi
+
+        # Clean up LaTeX intermediate files
+        rm -f "${base_name}.tex" "${base_name}.aux" "${base_name}.log" \
+              "${base_name}.toc" "${base_name}.lof" "${base_name}.lot" \
+              "${base_name}.idx" "${base_name}.ind" "${base_name}.ilg" \
+              "${base_name}.out"
+        _cleanup_pdf_artifacts
+        return 0
+    else
+        echo -e "${RED}Error: PDF was not generated.${NC}"
+        rm -f "${base_name}.tex" "${base_name}.aux" "${base_name}.log" \
+              "${base_name}.toc" "${base_name}.lof" "${base_name}.lot" \
+              "${base_name}.idx" "${base_name}.ind" "${base_name}.ilg" \
+              "${base_name}.out"
         _cleanup_pdf_artifacts
         return 1
     fi

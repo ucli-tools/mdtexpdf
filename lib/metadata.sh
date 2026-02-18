@@ -34,6 +34,7 @@ init_metadata_vars() {
     META_FOOTER=""
     META_TOC=""
     META_TOC_DEPTH=""
+    META_INDEX=""
     META_NO_NUMBERS=""
     META_NO_FOOTER=""
     META_PAGEOF=""
@@ -160,6 +161,7 @@ parse_html_metadata() {
             "footer") META_FOOTER="$value"; echo -e "${GREEN}Found metadata - footer: $value${NC}" ;;
             "toc") META_TOC="$value"; echo -e "${GREEN}Found metadata - toc: $value${NC}" ;;
             "toc_depth") META_TOC_DEPTH="$value"; echo -e "${GREEN}Found metadata - toc_depth: $value${NC}" ;;
+            "index") META_INDEX="$value"; echo -e "${GREEN}Found metadata - index: $value${NC}" ;;
             "no_numbers") META_NO_NUMBERS="$value"; echo -e "${GREEN}Found metadata - no_numbers: $value${NC}" ;;
             "no_footer") META_NO_FOOTER="$value"; echo -e "${GREEN}Found metadata - no_footer: $value${NC}" ;;
             "pageof") META_PAGEOF="$value"; echo -e "${GREEN}Found metadata - pageof: $value${NC}" ;;
@@ -242,6 +244,9 @@ parse_yaml_metadata() {
     # PDF-specific metadata
     META_TOC=$(yq eval '.toc // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_TOC_DEPTH=$(yq eval '.toc_depth // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    local index_val
+    index_val=$(yq eval '.index // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    [ "$index_val" = "true" ] && META_INDEX="true"
     META_FOOTER=$(yq eval '.footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_HEADER_FOOTER_POLICY=$(yq eval '.header_footer_policy // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
 
@@ -373,6 +378,7 @@ _display_metadata_found() {
     [ -n "$META_PAGEOF" ] && echo -e "${GREEN}Found metadata - pageof: true${NC}"
     [ -n "$META_DATE_FOOTER" ] && echo -e "${GREEN}Found metadata - date_footer: true${NC}"
     [ -n "$META_NO_DATE" ] && echo -e "${GREEN}Found metadata - no_date: true${NC}"
+    [ -n "$META_INDEX" ] && echo -e "${GREEN}Found metadata - index: true${NC}"
     [ -n "$META_GENRE" ] && echo -e "${GREEN}Found metadata - genre: $META_GENRE${NC}"
     [ -n "$META_NARRATOR_VOICE" ] && echo -e "${GREEN}Found metadata - narrator_voice: $META_NARRATOR_VOICE${NC}"
     [ -n "$META_READING_SPEED" ] && echo -e "${GREEN}Found metadata - reading_speed: $META_READING_SPEED${NC}"
@@ -445,6 +451,12 @@ apply_metadata_args() {
 
         if [ "$ARG_TOC_DEPTH" = "$DEFAULT_TOC_DEPTH" ] && [ -n "$META_TOC_DEPTH" ]; then
             ARG_TOC_DEPTH="$META_TOC_DEPTH"
+        fi
+
+        if [ "$ARG_INDEX" = false ] && [ -n "$META_INDEX" ]; then
+            case "$META_INDEX" in
+                "true"|"True"|"TRUE"|"yes"|"Yes"|"YES"|"1") ARG_INDEX=true ;;
+            esac
         fi
 
         if [ "$ARG_SECTION_NUMBERS" = "$DEFAULT_SECTION_NUMBERS" ] && [ -n "$META_NO_NUMBERS" ]; then
