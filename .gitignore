@@ -16,6 +16,9 @@ template.tex
 *.fdb_latexmk
 *.synctex.gz
 *.dvi
+*.idx
+*.ind
+*.ilg
 
 # OS specific files
 .DS_Store

@@ -51,6 +51,17 @@ slug: "document-slug"                # URL-friendly identifier
 toc: true                           # Enable table of contents
 toc_depth: 2                        # TOC depth (1-6)
 
+# Back matter lists
+lof: true                           # List of Figures (back matter)
+lot: true                           # List of Tables (back matter)
+index: true                         # Subject index (back matter, requires [index:term] markers)
+
+# Back matter content (rendered after index, before back cover)
+acknowledgments: |                  # Acknowledgments page (multi-line YAML string)
+  Thank you to all contributors.
+about-author: |                     # About the Author page (multi-line YAML string)
+  Author biography text here.
+
 # Section numbering
 no_numbers: false                   # Disable section numbering (or use section_numbers: true)
 
@@ -177,6 +188,11 @@ narrator: "AI Narrator"             # Narrator name for metadata
 | `toc` | boolean | Enable table of contents | true, false |
 | `toc_depth` | integer | TOC depth | 1-6 |
 | `no_numbers` | boolean | Disable section numbering | true, false |
+| `lof` | boolean | List of Figures in back matter | true, false |
+| `lot` | boolean | List of Tables in back matter | true, false |
+| `index` | boolean | Subject index in back matter | true, false |
+| `acknowledgments` | string | Acknowledgments page content (use YAML \| for multi-line) | See template |
+| `about-author` | string | About the Author page content (use YAML \| for multi-line) | See template |
 | `header_footer_policy` | string | Header/footer policy | "default", "partial", "all" |
 | `footer` | string | Custom footer text | Any string |
 | `no_footer` | boolean | Disable footer | true, false |

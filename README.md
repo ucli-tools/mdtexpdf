@@ -35,7 +35,7 @@ mdtexpdf is a command-line tool designed to simplify the process of creating pro
 
 ```
 mdtexpdf/
-├── mdtexpdf.sh              # Main conversion script
+├── mdtexpdf.sh              # Main entry point (574 lines, orchestrator)
 ├── Makefile                 # Build, test, and Docker automation
 ├── Dockerfile               # Docker image definition
 ├── CHANGELOG.md             # Version history
@@ -44,19 +44,26 @@ mdtexpdf/
 │   └── Makefile.book        # Makefile template for book projects
 ├── lib/                     # Modular components
 │   ├── core.sh              # Common utilities and logging
-│   └── check.sh             # Prerequisites verification
+│   ├── check.sh             # Prerequisites verification
+│   ├── args.sh              # CLI argument parsing
+│   ├── metadata.sh          # YAML/HTML metadata parsing
+│   ├── preprocess.sh        # Markdown preprocessing
+│   ├── template.sh          # LaTeX template generation
+│   ├── pdf.sh               # PDF engine selection, cover detection
+│   ├── convert.sh           # PDF conversion orchestration
+│   ├── epub.sh              # EPUB generation
+│   ├── bibliography.sh      # Bibliography format conversion
+│   └── lulu.sh              # Lulu.com print-ready output
 ├── tests/
 │   └── run_tests.sh         # Automated test suite
-├── docs/
-│   ├── mdtexpdf_guide.md    # Comprehensive user guide
-│   ├── METADATA.md          # Complete metadata field reference
-│   ├── AUTHORSHIP.md        # Authorship verification guide
-│   ├── ROADMAP.md           # Planned features and improvements
-│   └── syntax.md            # Math and chemistry syntax reference
+├── docs/                    # Documentation
 ├── filters/
 │   ├── book_structure.lua       # Part/chapter/special page handling
 │   ├── drop_caps_filter.lua     # Decorative first letters
-│   └── long_equation_filter.lua # Equation line-breaking
+│   ├── long_equation_filter.lua # Equation line-breaking
+│   ├── equation_number_filter.lua # Equation numbering
+│   ├── heading_fix_filter.lua   # Heading level adjustments
+│   └── index_filter.lua        # Subject index marker processing
 ├── examples/                # Example documents with PDFs
 └── .github/workflows/       # CI/CD automation
 ```
@@ -74,10 +81,13 @@ mdtexpdf/
 
 ### Professional Book Features
 - **Front Matter Pages**: Half-title, copyright page, dedication, and epigraph
+- **Back Matter**: List of Figures, List of Tables, Subject Index, Acknowledgments, About the Author
 - **Cover System**: Front and back cover images with text overlay
 - **Authorship & Support**: Embedded PGP key verification and donation wallet addresses
 - **Drop Caps**: Decorative first letters for chapter openings
 - **Chapter Formatting**: Chapters on recto pages, part pages, special sections
+- **Subject Index**: Inline `[index:term]` markers processed into a LaTeX index with page numbers
+- **Print-Ready Output**: Lulu.com compatible PDFs with trim sizes and spine calculation
 
 ### Typography & Formatting
 - **Header/Footer Policy**: Three-tier system (default, partial, all) for page headers/footers
@@ -173,6 +183,9 @@ mdtexpdf convert -t "Title" -a "Author" doc.md  # With metadata
 | `--no-numbers` | Disable section numbering |
 | `--header-footer-policy` | `default`, `partial`, or `all` |
 | `--epub` | Output EPUB format instead of PDF |
+| `--read-metadata` | Read metadata from YAML frontmatter |
+| `--index` | Enable subject index generation |
+| `--lulu` | Generate Lulu.com print-ready output |
 
 ### Header/Footer Policy
 
@@ -192,9 +205,14 @@ subtitle: "Optional subtitle"           # Book format only
 date: "January 2026"
 format: "book"                          # "article" or "book"
 toc: true
+lof: true                               # List of Figures in back matter
+lot: true                               # List of Tables in back matter
+index: true                             # Subject index in back matter
 header_footer_policy: "all"
 footer: "© 2026 Author. All rights reserved."
 pageof: true                            # Page X of Y
+acknowledgments: "Thank you to..."      # Acknowledgments page in back matter
+about-author: "Author bio text..."      # About the Author page in back matter
 ---
 ```
 
@@ -387,9 +405,12 @@ For complete syntax reference, see [docs/syntax.md](docs/syntax.md).
 | [docs/mdtexpdf_guide.md](docs/mdtexpdf_guide.md) | Comprehensive user guide |
 | [docs/METADATA.md](docs/METADATA.md) | Complete metadata field reference |
 | [docs/AUTHORSHIP.md](docs/AUTHORSHIP.md) | Authorship verification guide |
+| [docs/BACK_MATTER_ORDER.md](docs/BACK_MATTER_ORDER.md) | Back matter ordering reference |
+| [docs/SIMPLE_BIBLIOGRAPHY.md](docs/SIMPLE_BIBLIOGRAPHY.md) | Simple bibliography format guide |
 | [docs/syntax.md](docs/syntax.md) | Math and chemistry syntax reference |
 | [docs/FAQ.md](docs/FAQ.md) | Frequently asked questions |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and solutions |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Planned features and improvements |
 
 ## Examples
 

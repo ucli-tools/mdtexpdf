@@ -95,9 +95,11 @@ resolve_pdf_template() {
         fi
     fi
 
-    # Debug output to show which template is being used
-    echo -e "${BLUE}Debug: Template path is $_PDF_TEMPLATE_PATH${NC}"
-    echo -e "${BLUE}Debug: Template in current dir: $_PDF_TEMPLATE_IN_CURRENT_DIR${NC}"
+    # Log template path when verbose mode is enabled
+    if [ "$ARG_VERBOSE" = true ]; then
+        echo -e "${BLUE}Template path: $_PDF_TEMPLATE_PATH${NC}"
+        echo -e "${BLUE}Template in current dir: $_PDF_TEMPLATE_IN_CURRENT_DIR${NC}"
+    fi
 
     # Check if we found a template in the current directory or custom template
     if [ "$_PDF_CUSTOM_TEMPLATE_USED" = true ]; then
@@ -127,7 +129,9 @@ resolve_pdf_template() {
             CREATE_TEMPLATE=${CREATE_TEMPLATE:-"y"}
         fi
 
-        echo -e "${BLUE}Debug: User chose to create template: $CREATE_TEMPLATE${NC}"
+        if [ "$ARG_VERBOSE" = true ]; then
+            echo -e "${BLUE}User chose to create template: $CREATE_TEMPLATE${NC}"
+        fi
 
         # Create template if user chose to
         if [[ $CREATE_TEMPLATE =~ ^[Yy]$ ]]; then
@@ -150,7 +154,9 @@ resolve_pdf_template() {
 # Internal helper: Interactive template creation flow
 # Called when no template exists and user opts to create one
 _resolve_template_interactive() {
-    echo -e "${BLUE}Debug: Creating template...${NC}"
+    if [ "$ARG_VERBOSE" = true ]; then
+        echo -e "${BLUE}Creating template...${NC}"
+    fi
     # Get document details for both template and YAML frontmatter
     echo -e "${YELLOW}Setting up document preferences...${NC}"
 

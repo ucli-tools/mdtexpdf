@@ -1,5 +1,7 @@
 # Modularization Plan: Phase D2 — COMPLETE
 
+> **Note:** This is a historical document recording the completed refactoring of mdtexpdf from a monolithic script to a modular architecture. Retained for architectural reference.
+
 ## Objective
 
 Reduce `mdtexpdf.sh` from 2,818 lines to ~600-800 lines by extracting the remaining inline logic into library modules.

@@ -746,7 +746,6 @@ BOOK_CMDS_EOF
 \\setlength{\\parskip}{\\baselineskip}
 % Remove paragraph indentation
 \\setlength{\\parindent}{0pt}
-\\setlength{\\parindent}{0pt}
 
 % Configure list appearance using enumitem
 \\renewlist{itemize}{itemize}{6}  % Explicitly redefine itemize to allow 6 levels
@@ -898,7 +897,6 @@ $numbering_commands
   \\fi
   \\setlength{\\parskip}{#2\\cslentryspacingunit}}
  {}
-\\usepackage{calc}
 \\newcommand{\\CSLBlock}[1]{#1\\hfill\\break}
 \\newcommand{\\CSLLeftMargin}[1]{\\parbox[t]{\\cslhangindent}{#1}}
 \\newcommand{\\CSLRightInline}[1]{\\parbox[t]{\\linewidth - \\cslhangindent}{#1}\\break}

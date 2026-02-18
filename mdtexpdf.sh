@@ -199,8 +199,9 @@ create() {
 
     echo -e "${GREEN}Created new template file: $TEMPLATE_PATH${NC}"
 
-    # Debug output to show which template is being used
-    echo -e "${BLUE}Debug: Template path is $TEMPLATE_PATH${NC}"
+    if [ "$ARG_VERBOSE" = true ]; then
+        echo -e "${BLUE}Template path: $TEMPLATE_PATH${NC}"
+    fi
 
     # Create the markdown file with YAML frontmatter and example content
     cat > "$OUTPUT_FILE" << EOF

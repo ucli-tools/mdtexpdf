@@ -32,8 +32,6 @@ function Header(el)
     local header_text = pandoc.utils.stringify(el.content)
     local toc_level = get_backmatter_toc_level()
 
-    -- Debug: print what we're processing
-    -- print("Processing header: " .. header_text .. " (has_parts: " .. tostring(has_parts) .. ")")
 
     -- ============================================
     -- PART-STYLE PAGES (full page with large title)
