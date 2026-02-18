@@ -161,8 +161,8 @@ BOOK_CMDS_EOF
     \\usepackage{amsmath}
     \\usepackage{amssymb}
     \\usepackage{amsthm}   % For theorem and proof environments
+    \\usepackage{makeidx}  % For index generation (must load before hyperref)
     \\usepackage{hyperref}
-    \\usepackage{makeidx}  % For index generation
     \\usepackage{xcolor}
     \\usepackage{longtable}
     \\usepackage{booktabs}

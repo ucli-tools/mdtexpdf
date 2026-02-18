@@ -873,24 +873,34 @@ _execute_pandoc_with_index() {
         return 1
     fi
 
-    # Step 2: First xelatex pass (generates .idx, .aux, .toc)
-    echo -e "${BLUE}  Pass 1/4: xelatex (generating index entries)...${NC}"
+    # Step 2: First xelatex pass (generates .idx, .aux, .toc with preliminary page numbers)
+    echo -e "${BLUE}  Pass 1/6: xelatex (generating index entries)...${NC}"
     $PDF_ENGINE -interaction=nonstopmode "$tex_file" > /dev/null 2>&1 || true
 
-    # Step 3: Run makeindex on the .idx file
+    # Step 3: First makeindex pass (builds index from preliminary page numbers)
     if [ -f "${base_name}.idx" ]; then
-        echo -e "${BLUE}  Pass 2/4: makeindex (building index)...${NC}"
+        echo -e "${BLUE}  Pass 2/6: makeindex (building preliminary index)...${NC}"
         makeindex "${base_name}.idx" > /dev/null 2>&1
     else
         echo -e "${YELLOW}  Warning: No .idx file generated. Index may be empty.${NC}"
     fi
 
-    # Step 4: Second xelatex pass (includes index, updates TOC)
-    echo -e "${BLUE}  Pass 3/4: xelatex (including index)...${NC}"
+    # Step 4: Second xelatex pass (includes index, which shifts pagination)
+    echo -e "${BLUE}  Pass 3/6: xelatex (including index, updating pagination)...${NC}"
     $PDF_ENGINE -interaction=nonstopmode "$tex_file" > /dev/null 2>&1 || true
 
-    # Step 5: Third xelatex pass (resolves all cross-references)
-    echo -e "${BLUE}  Pass 4/4: xelatex (finalizing references)...${NC}"
+    # Step 5: Second makeindex pass (rebuilds index with corrected page numbers)
+    if [ -f "${base_name}.idx" ]; then
+        echo -e "${BLUE}  Pass 4/6: makeindex (rebuilding with final page numbers)...${NC}"
+        makeindex "${base_name}.idx" > /dev/null 2>&1
+    fi
+
+    # Step 6: Third xelatex pass (includes corrected index)
+    echo -e "${BLUE}  Pass 5/6: xelatex (including corrected index)...${NC}"
+    $PDF_ENGINE -interaction=nonstopmode "$tex_file" > /dev/null 2>&1 || true
+
+    # Step 7: Final xelatex pass (resolves all cross-references)
+    echo -e "${BLUE}  Pass 6/6: xelatex (finalizing references)...${NC}"
     $PDF_ENGINE -interaction=nonstopmode "$tex_file" > /dev/null 2>&1 || true
 
     # Check result and clean up LaTeX artifacts
