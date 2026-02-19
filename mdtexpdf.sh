@@ -519,10 +519,9 @@ help() {
     echo -e "  - ImageMagick (optional): For EPUB cover generation with text overlay\n"
 
     echo -e "${PURPLE}Documentation:${NC}"
-    echo -e "  README.md          - Overview and quick start"
-    echo -e "  docs/METADATA.md   - Complete metadata field reference"
-    echo -e "  docs/AUTHORSHIP.md - Cryptographic authorship guide"
-    echo -e "  docs/ROADMAP.md    - Planned features\n"
+    echo -e "  README.md              - Overview and quick start"
+    echo -e "  docs/mdtexpdf_guide.md - Comprehensive guide"
+    echo -e "  docs/METADATA.md       - Complete metadata field reference\n"
 
     echo -e "${PURPLE}For more information:${NC} https://github.com/ucli-tools/mdtexpdf\n"
 }

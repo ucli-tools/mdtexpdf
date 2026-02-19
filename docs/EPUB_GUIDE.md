@@ -449,7 +449,6 @@ clean:
 
 ## See Also
 
-- [QUICKSTART.md](QUICKSTART.md) - Get started in 5 minutes
-- [BOOK_TUTORIAL.md](BOOK_TUTORIAL.md) - Full book project guide
+- [mdtexpdf_guide.md](mdtexpdf_guide.md) - Comprehensive guide
 - [METADATA.md](METADATA.md) - All metadata options
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Common issues

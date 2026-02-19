@@ -35,13 +35,12 @@ mdtexpdf is a command-line tool designed to simplify the process of creating pro
 
 ```
 mdtexpdf/
-├── mdtexpdf.sh              # Main entry point (574 lines, orchestrator)
+├── mdtexpdf.sh              # Main entry point (orchestrator)
 ├── Makefile                 # Build, test, and Docker automation
 ├── Dockerfile               # Docker image definition
-├── CHANGELOG.md             # Version history
-├── metadata_template.yaml   # Metadata template for new documents
 ├── templates/
-│   └── Makefile.book        # Makefile template for book projects
+│   ├── Makefile.book        # Makefile template for book projects
+│   └── metadata_template.yaml # YAML metadata template for new documents
 ├── lib/                     # Modular components
 │   ├── core.sh              # Common utilities and logging
 │   ├── check.sh             # Prerequisites verification
@@ -54,9 +53,18 @@ mdtexpdf/
 │   ├── epub.sh              # EPUB generation
 │   ├── bibliography.sh      # Bibliography format conversion
 │   └── lulu.sh              # Lulu.com print-ready output
-├── tests/
-│   └── run_tests.sh         # Automated test suite
-├── docs/                    # Documentation
+├── scripts/                 # Automation scripts
+│   ├── test-all.sh          # Full CI suite (lint + tests)
+│   ├── test-examples.sh     # Example document builds
+│   ├── ci-local.sh          # Run CI in Docker locally
+│   ├── docker-build.sh      # Build Docker image
+│   ├── docker-push.sh       # Push Docker image
+│   └── clean.sh             # Remove temp files
+├── tests/                   # Automated test suite
+│   ├── run_tests.sh         # Main test runner
+│   ├── test_modules.sh      # Module unit tests
+│   └── test_regression.sh   # Regression tests
+├── docs/                    # Documentation (guides, references)
 ├── filters/
 │   ├── book_structure.lua       # Part/chapter/special page handling
 │   ├── drop_caps_filter.lua     # Decorative first letters
@@ -128,26 +136,18 @@ mdtexpdf convert book.md --read-metadata --epub
 
 ### Option 2: Native Installation
 
-Requires Pandoc and LaTeX to be installed first (see Prerequisites).
-
 ```bash
+# Install dependencies (Ubuntu/Debian)
+sudo apt install pandoc texlive-latex-base texlive-latex-recommended \
+  texlive-latex-extra texlive-fonts-recommended texlive-science texlive-xetex
+
+# Install mdtexpdf
 git clone https://github.com/ucli-tools/mdtexpdf.git
 cd mdtexpdf
-make
-```
+make build
 
-This installs `mdtexpdf` to `/usr/local/bin/` for system-wide access.
-
-### Uninstalling
-
-```bash
-mdtexpdf uninstall
-```
-
-Or manually:
-```bash
-sudo rm /usr/local/bin/mdtexpdf
-sudo rm -rf /usr/local/share/mdtexpdf
+# Verify
+mdtexpdf check
 ```
 
 ## Usage
@@ -399,18 +399,14 @@ For complete syntax reference, see [docs/syntax.md](docs/syntax.md).
 
 | Document | Description |
 |----------|-------------|
-| [docs/QUICKSTART.md](docs/QUICKSTART.md) | Get started in 5 minutes |
-| [docs/BOOK_TUTORIAL.md](docs/BOOK_TUTORIAL.md) | Full book project guide |
-| [docs/EPUB_GUIDE.md](docs/EPUB_GUIDE.md) | Complete EPUB generation guide |
-| [docs/mdtexpdf_guide.md](docs/mdtexpdf_guide.md) | Comprehensive user guide |
-| [docs/METADATA.md](docs/METADATA.md) | Complete metadata field reference |
-| [docs/AUTHORSHIP.md](docs/AUTHORSHIP.md) | Authorship verification guide |
+| [docs/mdtexpdf_guide.md](docs/mdtexpdf_guide.md) | Comprehensive guide (project setup, formatting, math, EPUB) |
+| [docs/METADATA.md](docs/METADATA.md) | Complete YAML field reference |
+| [docs/syntax.md](docs/syntax.md) | Equation numbering and chemistry syntax |
+| [docs/EPUB_GUIDE.md](docs/EPUB_GUIDE.md) | EPUB generation and platform distribution |
+| [docs/AUTHORSHIP.md](docs/AUTHORSHIP.md) | PGP authorship verification and signing |
+| [docs/SIMPLE_BIBLIOGRAPHY.md](docs/SIMPLE_BIBLIOGRAPHY.md) | Simple Markdown bibliography format |
 | [docs/BACK_MATTER_ORDER.md](docs/BACK_MATTER_ORDER.md) | Back matter ordering reference |
-| [docs/SIMPLE_BIBLIOGRAPHY.md](docs/SIMPLE_BIBLIOGRAPHY.md) | Simple bibliography format guide |
-| [docs/syntax.md](docs/syntax.md) | Math and chemistry syntax reference |
-| [docs/FAQ.md](docs/FAQ.md) | Frequently asked questions |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and solutions |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Planned features and improvements |
 
 ## Examples
 

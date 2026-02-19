@@ -1,59 +1,42 @@
-# Get the script name dynamically based on sole script in repo
-SCRIPT_NAME := $(wildcard *.sh)
-INSTALL_NAME := $(basename $(SCRIPT_NAME))
+.PHONY: help build rebuild delete test test-unit test-all test-examples lint ci-local docker docker-build docker-push clean
 
-.PHONY: build rebuild delete test test-unit test-examples lint docker docker-build docker-push clean
+help: ## Show this help message
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
 
-build:
-	bash $(SCRIPT_NAME) install
+build: ## Install mdtexpdf locally
+	@bash mdtexpdf.sh install
 
-rebuild:
-	$(INSTALL_NAME) uninstall
-	bash $(SCRIPT_NAME) install
+rebuild: ## Reinstall mdtexpdf (uninstall + install)
+	@mdtexpdf uninstall
+	@bash mdtexpdf.sh install
 
-delete:
-	$(INSTALL_NAME) uninstall
+delete: ## Uninstall mdtexpdf
+	@mdtexpdf uninstall
 
-# Run unit tests
-test-unit:
-	@echo "Running unit tests..."
+test: test-unit ## Run tests (alias for test-unit)
+
+test-unit: ## Run unit tests
 	@./tests/run_tests.sh
 
-# Run example document tests (legacy)
-test-examples:
-	cd examples/ && \
-	$(INSTALL_NAME) convert example1.md -t "Test 1 Title" -a "Test Author" -d "yes" -f "© Example Name. All rights reserved. | example.com" --date-footer && \
-	$(INSTALL_NAME) convert example2.md -t "Test 2 Title" -a "Test Author" -d "no" -f "© Example Name. All rights reserved. | example.com" --date-footer "YYYY-MM-DD" && \
-	$(INSTALL_NAME) convert example3.md -t "Test 3 Title" -a "Test Author" -d "2000/01/02" -f "© Example Name. All rights reserved. | example.com" --date-footer "Month Day, Year" && \
-	$(INSTALL_NAME) convert example4.md -t "Test 4 Title" -a "Test Author" -d "YYYY-MM-DD" -f "© Example Name. All rights reserved. | example.com" --toc && \
-	$(INSTALL_NAME) convert example5.md -t "Test 5 Title" -a "Test Author" -d "YYYY-MM-DD" -f "© Example Name. All rights reserved. | example.com" --toc --toc-depth 2 && \
-	$(INSTALL_NAME) convert example6.md -t "Test 6 Title" -a "Test Author" -d "YYYY-MM-DD" -f "© Example Name. All rights reserved. | example.com" --toc --toc-depth 3 && \
-	cd .. && \
-	$(INSTALL_NAME) convert test_numbering.md -t "Section Numbering Test" -a "Test Author" -d "YYYY-MM-DD" -f "© Example Name. All rights reserved." --no-numbers && \
-	rm -f template.tex && \
-	rm -f *.bak
+test-all: ## Run full CI suite (lint + tests)
+	@bash scripts/test-all.sh
 
-# Default test target runs unit tests
-test: test-unit
+test-examples: ## Run example document builds (requires install)
+	@bash scripts/test-examples.sh
 
-# Lint with shellcheck
-lint:
-	@echo "Running shellcheck..."
-	@shellcheck -x $(SCRIPT_NAME) || echo "shellcheck not installed - install with: apt install shellcheck"
+lint: ## Run shellcheck linter
+	@shellcheck -x mdtexpdf.sh lib/*.sh
 
-# Docker targets
-docker-build:
-	docker build -t uclitools/mdtexpdf:latest .
-	docker tag uclitools/mdtexpdf:latest uclitools/mdtexpdf:$(shell grep "^VERSION=" $(SCRIPT_NAME) | cut -d'"' -f2)
+ci-local: ## Run CI in a local Docker container
+	@bash scripts/ci-local.sh
 
-docker-push:
-	docker push uclitools/mdtexpdf:latest
-	docker push uclitools/mdtexpdf:$(shell grep "^VERSION=" $(SCRIPT_NAME) | cut -d'"' -f2)
+docker-build: ## Build Docker image
+	@bash scripts/docker-build.sh
 
-docker: docker-build
+docker-push: ## Push Docker image to Docker Hub
+	@bash scripts/docker-push.sh
 
-# Clean test outputs
-clean:
-	rm -rf tests/output
-	rm -f template.tex
-	rm -f *.bak
+docker: docker-build ## Build Docker image (alias)
+
+clean: ## Clean test outputs and temp files
+	@bash scripts/clean.sh

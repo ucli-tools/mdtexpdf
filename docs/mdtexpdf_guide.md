@@ -10,28 +10,31 @@ mdtexpdf is a command-line tool that converts Markdown files to professional PDF
 
 ---
 
-## Document Structure
+## Getting Started
+
+### Create a Book Project
+
+```bash
+mkdir my_book && cd my_book
+mkdir img
+# Add a cover image (recommended: 1600x2400px, 2:3 ratio)
+cp /path/to/cover.jpg img/cover.jpg
+```
 
 ### File Organization
 
 A typical book project structure:
 
 ```
-book_name/
-├── book_name.md          # Main content file
+my_book/
+├── my_book.md            # Main content file (named after directory)
 ├── Makefile              # Build automation
-├── chapters/             # Optional: separate chapter files
-│   ├── chapter_1.md
-│   ├── chapter_2.md
-│   └── ...
-├── literature/           # Source materials
-├── rnd/                  # Research and development notes
-└── archive/              # Previous versions
+└── img/
+    ├── cover.jpg         # Front cover (auto-detected)
+    └── back.jpg          # Back cover (optional)
 ```
 
-### Single File vs. Multiple Files
-
-For most books, a single markdown file is recommended. The file should be named after the directory (e.g., `my_book.md` in `my_book/` directory).
+The markdown file should be named after the directory (e.g., `my_book.md` in `my_book/`). mdtexpdf auto-detects cover images in `img/`.
 
 ---
 
@@ -84,6 +87,13 @@ epigraph: "A fitting quote for the book."
 epigraph_source: "Author of Quote, Source"
 chapters_on_recto: true              # Chapters start on right-hand pages
 drop_caps: true                      # Decorative first letters
+
+# Back matter (YAML variables, not markdown headings)
+lof: true                            # List of Figures
+lot: true                            # List of Tables
+index: true                          # Subject index ([index:term] markers)
+acknowledgments: "Thank you to..."   # Acknowledgments page
+about-author: "Author bio here."     # About the Author page
 
 # Publisher information
 publisher: "Publisher Name"
@@ -261,6 +271,14 @@ This is `inline code` for technical terms.
 ```markdown
 > This is a block quote. It can span multiple lines and is useful
 > for quoting sources or highlighting important passages.
+```
+
+### Footnotes
+
+```markdown
+This needs clarification[^1].
+
+[^1]: Here is the footnote text.
 ```
 
 ### Horizontal Rules
@@ -725,21 +743,22 @@ Supplementary material.
 **Term Two**: Definition of the second term with more detail.
 
 **Term Three**: Another definition explaining this concept.
-
-
-# Acknowledgments
-
-Recognition of contributors and sources.
-
-
-# About the Author
-
-Author biography and background.
 ```
 
-### Back Matter Formatting
+### Back Matter
 
-The back matter sections (Glossary, Acknowledgments, About the Author) use simple markdown patterns that render well:
+**Acknowledgments** and **About the Author** are set via YAML metadata variables, not as markdown headings:
+
+```yaml
+---
+acknowledgments: "Thank you to everyone who contributed to this work."
+about-author: "Author Name is a writer and researcher."
+---
+```
+
+These render as dedicated pages in the back matter. Do not add `# Acknowledgments` or `# About the Author` headings in the markdown body.
+
+**Back matter order:** List of Figures, List of Tables, Subject Index, Acknowledgments, About the Author, Back Cover.
 
 **Glossary entries** use bold terms followed by definitions:
 ```markdown
@@ -748,36 +767,54 @@ The back matter sections (Glossary, Acknowledgments, About the Author) use simpl
 **Algorithm**: A step-by-step procedure for solving a problem or accomplishing a task.
 ```
 
-**Acknowledgments** and **About the Author** are regular prose sections that appear after the glossary.
+### Back Cover
+
+Add a back cover with a quote or summary:
+
+```yaml
+---
+back_cover_image: "img/back.jpg"
+back_cover_quote: "A must-read for anyone interested in the subject."
+back_cover_quote_source: "Reviewer Name"
+back_cover_text_background: true            # frosted rectangle behind text
+back_cover_text_background_opacity: 0.18    # rectangle opacity 0.0-1.0
+back_cover_text_color: "white"              # text color
+---
+```
 
 ---
 
 ## Build Commands
 
-### Using Makefile
-
-Most book projects include a Makefile with these targets:
-
-```bash
-make build           # Convert markdown to PDF
-make build-audiobook # Convert to audiobook (.m4b)
-make build-all       # Build both formats
-make publish         # Publish to library
-make upload          # Build and publish
-make clean           # Remove generated files
-```
-
 ### Direct Command
 
 ```bash
-mdtexpdf convert book_name.md
+mdtexpdf convert my_book.md --read-metadata
 ```
 
-With options:
+### Using Makefile
 
-```bash
-mdtexpdf convert book_name.md -t "Title" -a "Author" --no-numbers
+A project Makefile for building PDF and EPUB:
+
+```makefile
+BOOK = $(notdir $(CURDIR))
+MDTEXPDF = mdtexpdf
+
+.PHONY: all pdf epub clean
+
+all: pdf epub
+
+pdf:
+	$(MDTEXPDF) convert $(BOOK).md --read-metadata
+
+epub:
+	$(MDTEXPDF) convert $(BOOK).md --read-metadata --epub
+
+clean:
+	rm -f $(BOOK).pdf $(BOOK).epub
 ```
+
+A ready-to-use template is available at `templates/Makefile.book`.
 
 ---
 

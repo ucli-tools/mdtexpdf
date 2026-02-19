@@ -35,8 +35,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-science \
     texlive-xetex \
     texlive-luatex \
-    # For mhchem (chemistry)
-    texlive-science \
     # ImageMagick for cover generation
     imagemagick \
     # Fonts
@@ -52,6 +50,7 @@ WORKDIR /work
 
 # Copy mdtexpdf files
 COPY mdtexpdf.sh /usr/local/bin/mdtexpdf
+COPY lib/ /usr/local/share/mdtexpdf/lib/
 COPY filters/ /usr/local/share/mdtexpdf/filters/
 
 # Make executable
