@@ -1,0 +1,35 @@
+# =============================================================================
+# mdtexpdf-base Docker Image
+# =============================================================================
+# Heavy dependencies: Pandoc, TexLive, ImageMagick, fonts.
+# Rebuilt rarely (when dependencies change).
+#
+# Build:  docker build -f Dockerfile.base -t logismosis/mdtexpdf-base .
+# =============================================================================
+
+FROM ubuntu:24.04
+
+LABEL maintainer="ucli-tools"
+LABEL description="mdtexpdf-base - LaTeX/Pandoc dependencies for mdtexpdf"
+LABEL org.opencontainers.image.source="https://github.com/ucli-tools/mdtexpdf"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pandoc \
+    texlive-latex-base \
+    texlive-latex-recommended \
+    texlive-latex-extra \
+    texlive-fonts-recommended \
+    texlive-fonts-extra \
+    texlive-science \
+    texlive-xetex \
+    texlive-luatex \
+    imagemagick \
+    fonts-dejavu \
+    fonts-noto-cjk \
+    bash \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /work
