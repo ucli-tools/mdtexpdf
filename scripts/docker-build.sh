@@ -13,7 +13,7 @@ cd "$SCRIPT_DIR"
 VERSION=$(grep "^VERSION=" mdtexpdf.sh | cut -d'"' -f2)
 
 echo "=== Building Docker image (v${VERSION}) ==="
-docker build -t uclitools/mdtexpdf:latest .
-docker tag uclitools/mdtexpdf:latest "uclitools/mdtexpdf:${VERSION}"
+docker build -t logismosis/mdtexpdf:latest .
+docker tag logismosis/mdtexpdf:latest "logismosis/mdtexpdf:${VERSION}"
 
-echo "Built: uclitools/mdtexpdf:latest, uclitools/mdtexpdf:${VERSION}"
+echo "Built: logismosis/mdtexpdf:latest, logismosis/mdtexpdf:${VERSION}"

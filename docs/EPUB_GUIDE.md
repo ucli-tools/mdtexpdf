@@ -29,7 +29,7 @@ mdtexpdf convert document.md --epub
 mdtexpdf convert document.md --read-metadata --epub
 
 # With Docker
-docker run --rm -v "$(pwd):/data" uclitools/mdtexpdf convert document.md --read-metadata --epub
+docker run --rm -v "$(pwd):/data" logismosis/mdtexpdf convert document.md --read-metadata --epub
 ```
 
 Output: `document.epub`
@@ -411,7 +411,7 @@ mdtexpdf convert doc.md --read-metadata --epub
 mdtexpdf convert doc.md --read-metadata --epub --toc
 
 # Docker
-docker run --rm -v "$(pwd):/data" uclitools/mdtexpdf convert doc.md --read-metadata --epub
+docker run --rm -v "$(pwd):/data" logismosis/mdtexpdf convert doc.md --read-metadata --epub
 ```
 
 ### Minimal EPUB Metadata

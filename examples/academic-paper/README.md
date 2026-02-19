@@ -20,8 +20,8 @@ mdtexpdf convert paper.md --read-metadata
 mdtexpdf convert paper.md --read-metadata --epub
 
 # Or with Docker
-docker run --rm -v "$(pwd):/data" uclitools/mdtexpdf convert paper.md --read-metadata
-docker run --rm -v "$(pwd):/data" uclitools/mdtexpdf convert paper.md --read-metadata --epub
+docker run --rm -v "$(pwd):/data" logismosis/mdtexpdf convert paper.md --read-metadata
+docker run --rm -v "$(pwd):/data" logismosis/mdtexpdf convert paper.md --read-metadata --epub
 ```
 
 ## PDF vs EPUB for Academic Papers

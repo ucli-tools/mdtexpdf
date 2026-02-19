@@ -18,8 +18,8 @@ mdtexpdf convert api-reference.md --read-metadata
 mdtexpdf convert api-reference.md --read-metadata --epub
 
 # Or with Docker
-docker run --rm -v "$(pwd):/data" uclitools/mdtexpdf convert api-reference.md --read-metadata
-docker run --rm -v "$(pwd):/data" uclitools/mdtexpdf convert api-reference.md --read-metadata --epub
+docker run --rm -v "$(pwd):/data" logismosis/mdtexpdf convert api-reference.md --read-metadata
+docker run --rm -v "$(pwd):/data" logismosis/mdtexpdf convert api-reference.md --read-metadata --epub
 ```
 
 ## PDF vs EPUB for Technical Documentation

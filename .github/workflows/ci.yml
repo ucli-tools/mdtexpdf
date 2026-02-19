@@ -95,7 +95,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            uclitools/mdtexpdf:latest
-            uclitools/mdtexpdf:${{ steps.version.outputs.version }}
+            logismosis/mdtexpdf:latest
+            logismosis/mdtexpdf:${{ steps.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

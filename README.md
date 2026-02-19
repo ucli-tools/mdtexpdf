@@ -126,10 +126,10 @@ The easiest way to use mdtexpdf is via Docker, which includes all dependencies:
 
 ```bash
 # Run directly with Docker
-docker run --rm -v $(pwd):/work uclitools/mdtexpdf convert book.md --read-metadata
+docker run --rm -v $(pwd):/work logismosis/mdtexpdf convert book.md --read-metadata
 
 # Or create an alias for convenience
-alias mdtexpdf='docker run --rm -v $(pwd):/work uclitools/mdtexpdf'
+alias mdtexpdf='docker run --rm -v $(pwd):/work logismosis/mdtexpdf'
 mdtexpdf convert book.md --read-metadata
 mdtexpdf convert book.md --read-metadata --epub
 ```

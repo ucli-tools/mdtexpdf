@@ -8,8 +8,8 @@
 # - Fonts (DejaVu, Noto CJK)
 #
 # Usage:
-#   docker run --rm -v $(pwd):/work uclitools/mdtexpdf convert book.md --read-metadata
-#   docker run --rm -v $(pwd):/work uclitools/mdtexpdf convert book.md --read-metadata --epub
+#   docker run --rm -v $(pwd):/work logismosis/mdtexpdf convert book.md --read-metadata
+#   docker run --rm -v $(pwd):/work logismosis/mdtexpdf convert book.md --read-metadata --epub
 #
 # =============================================================================
 

@@ -25,7 +25,7 @@ Or using Docker:
 
 ```bash
 cd <example-directory>
-docker run --rm -v "$(pwd):/data" uclitools/mdtexpdf convert *.md --read-metadata
+docker run --rm -v "$(pwd):/data" logismosis/mdtexpdf convert *.md --read-metadata
 ```
 
 ## Building All Examples

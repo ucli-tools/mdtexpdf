@@ -39,7 +39,7 @@ Common issues and solutions when using mdtexpdf.
 
 3. Use Docker instead:
    ```bash
-   docker run --rm -v "$(pwd):/data" uclitools/mdtexpdf convert input.md
+   docker run --rm -v "$(pwd):/data" logismosis/mdtexpdf convert input.md
    ```
 
 ### Permission denied during install
@@ -67,7 +67,7 @@ sudo apt-get install pandoc
 brew install pandoc
 
 # Or use Docker (includes all dependencies)
-docker pull uclitools/mdtexpdf
+docker pull logismosis/mdtexpdf
 ```
 
 ### "pdflatex/xelatex/lualatex is not installed"
@@ -341,7 +341,7 @@ sudo apt-get install texlive-science
 2. Reduce image sizes
 3. Use Docker with memory limits:
    ```bash
-   docker run --memory=4g uclitools/mdtexpdf convert input.md
+   docker run --memory=4g logismosis/mdtexpdf convert input.md
    ```
 
 ### Temporary files not cleaned up

@@ -13,7 +13,7 @@ cd "$SCRIPT_DIR"
 VERSION=$(grep "^VERSION=" mdtexpdf.sh | cut -d'"' -f2)
 
 echo "=== Pushing Docker image (v${VERSION}) ==="
-docker push uclitools/mdtexpdf:latest
-docker push "uclitools/mdtexpdf:${VERSION}"
+docker push logismosis/mdtexpdf:latest
+docker push "logismosis/mdtexpdf:${VERSION}"
 
-echo "Pushed: uclitools/mdtexpdf:latest, uclitools/mdtexpdf:${VERSION}"
+echo "Pushed: logismosis/mdtexpdf:latest, logismosis/mdtexpdf:${VERSION}"
