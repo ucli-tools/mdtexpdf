@@ -2,22 +2,15 @@
 -- Pandoc Lua filter to convert specific header patterns to LaTeX \part and \chapter.
 -- Enhanced version with support for Preface, Appendices, Introduction, etc.
 -- Automatically detects if document has Parts and adjusts back matter TOC level accordingly.
+--
+-- Uses a two-pass filter:
+--   Pass 1: Scan document for Part headers, set has_parts flag and metadata
+--   Pass 2: Process all headers and dedication/epigraph blocks
+-- This ordering ensures has_parts is set BEFORE any Header is processed,
+-- so Preface (which appears before Part 1) gets the correct TOC level.
 
 -- Global flag to track if document has Parts
 local has_parts = false
-
--- First pass: detect if document has Parts
-function detect_parts(doc)
-    for _, block in ipairs(doc.blocks) do
-        if block.t == "Header" then
-            local header_text = pandoc.utils.stringify(block.content)
-            if string.match(header_text, '^[Pp]art %d+:') then
-                has_parts = true
-                return  -- Found at least one Part, no need to continue
-            end
-        end
-    end
-end
 
 -- Helper function to get TOC level based on whether document has Parts
 local function get_backmatter_toc_level()
@@ -28,10 +21,36 @@ local function get_backmatter_toc_level()
     end
 end
 
-function Header(el)
+-- ============================================
+-- PASS 1: Detect Parts and set metadata
+-- ============================================
+
+local function pass1_detect_parts(doc)
+    for _, block in ipairs(doc.blocks) do
+        if block.t == "Header" then
+            local header_text = pandoc.utils.stringify(block.content)
+            if string.match(header_text, '^[Pp]art %d+:') then
+                has_parts = true
+                break
+            end
+        end
+    end
+
+    -- Expose has_parts to the Pandoc template as a metadata variable
+    if has_parts then
+        doc.meta.has_parts = true
+    end
+
+    return doc
+end
+
+-- ============================================
+-- PASS 2: Header processing
+-- ============================================
+
+local function process_header(el)
     local header_text = pandoc.utils.stringify(el.content)
     local toc_level = get_backmatter_toc_level()
-
 
     -- ============================================
     -- PART-STYLE PAGES (full page with large title)
@@ -39,7 +58,6 @@ function Header(el)
 
     -- Check for "Part X: ..." pattern, case-insensitive
     if string.match(header_text, '^[Pp]art %d+:') then
-      has_parts = true  -- Set flag for TOC formatting (Header runs before Pandoc)
       local part_title = string.gsub(header_text, '^[Pp]art %d+: *', '')
       return pandoc.RawBlock('latex', '\\clearpage\\part{' .. part_title .. '}')
     end
@@ -147,47 +165,31 @@ function Header(el)
     -- ============================================
 
     -- Dedication → Centered page with no header, italic text follows
-    -- Content after this heading will be styled by the DedicationContent environment
     if string.match(header_text, '^[Dd]edication$') then
       return pandoc.RawBlock('latex', '\\clearpage\\thispagestyle{empty}\\vspace*{\\fill}\\begin{center}\\itshape\\large')
     end
 
     -- Epigraph → Right-aligned quote page with source attribution
-    -- Content after this heading will be styled by the EpigraphContent environment
     if string.match(header_text, '^[Ee]pigraph$') then
       return pandoc.RawBlock('latex', '\\clearpage\\thispagestyle{empty}\\vspace*{\\fill}\\begin{flushright}\\itshape\\large')
     end
 
     -- Return unchanged if no pattern matches
     return el
-  end
+end
 
 -- ============================================
--- BLOCK PROCESSING
--- Handle content following special headers
+-- PASS 2: Block processing (dedication/epigraph content)
 -- ============================================
 
--- Track state for special content processing
-local in_dedication = false
-local in_epigraph = false
-
-function Pandoc(doc)
-    -- First pass: detect if document has Parts
-    detect_parts(doc)
-
-    -- Expose has_parts to the Pandoc template as a metadata variable
-    -- This allows the LaTeX template to conditionally format TOC page numbers
-    if has_parts then
-        doc.meta.has_parts = true
-    end
-
+local function pass2_process_blocks(doc)
     local new_blocks = {}
     local i = 1
 
     while i <= #doc.blocks do
         local block = doc.blocks[i]
 
-        -- Check if this is a dedication header
+        -- Check if this is a dedication or epigraph header
         if block.t == "Header" then
             local header_text = pandoc.utils.stringify(block.content)
 
@@ -207,7 +209,6 @@ function Pandoc(doc)
                 table.insert(new_blocks, pandoc.RawBlock('latex',
                     '\\end{center}\\vspace*{\\fill}\\clearpage'))
 
-                -- Don't increment i again, we're at the next header
                 goto continue
 
             elseif string.match(header_text, '^[Ee]pigraph$') then
@@ -226,7 +227,6 @@ function Pandoc(doc)
                 table.insert(new_blocks, pandoc.RawBlock('latex',
                     '\\end{flushright}\\vspace*{\\fill}\\clearpage'))
 
-                -- Don't increment i again, we're at the next header
                 goto continue
             end
         end
@@ -240,3 +240,15 @@ function Pandoc(doc)
     doc.blocks = new_blocks
     return doc
 end
+
+-- ============================================
+-- MULTI-PASS FILTER
+-- Return a list of filters applied in order:
+--   Pass 1: Detect parts (document-level scan)
+--   Pass 2: Process headers and blocks (with has_parts already set)
+-- ============================================
+
+return {
+    { Pandoc = pass1_detect_parts },
+    { Header = process_header, Pandoc = pass2_process_blocks }
+}

@@ -187,7 +187,8 @@ BOOK_CMDS_EOF
     % Part-level entries always get bold/large page numbers
     \\renewcommand{\\cftpartpagefont}{\\bfseries\\large}
     \$if(has_parts)\$
-    % With parts: chapter entries keep default page number font
+    % With parts: chapter entries get normal-weight, normal-size page numbers
+    \\renewcommand{\\cftchappagefont}{\\normalfont\\normalsize}
     \$else\$
     % Without parts: all entries are chapter-level, make them bold/large
     \\renewcommand{\\cftchappagefont}{\\bfseries\\large}
@@ -1109,20 +1110,32 @@ ISBN: \$isbn\$\\\\[0.3cm]
 % ============== BACK MATTER: List of Figures / List of Tables ==============
 \$if(lof)\$
 \\clearpage
+\$if(has_parts)\$
+\\addcontentsline{toc}{part}{List of Figures}
+\$else\$
 \\addcontentsline{toc}{chapter}{List of Figures}
+\$endif\$
 \\listoffigures
 \$endif\$
 
 \$if(lot)\$
 \\clearpage
+\$if(has_parts)\$
+\\addcontentsline{toc}{part}{List of Tables}
+\$else\$
 \\addcontentsline{toc}{chapter}{List of Tables}
+\$endif\$
 \\listoftables
 \$endif\$
 
 % Print index if requested
 \$if(index)\$
 \\clearpage
+\$if(has_parts)\$
+\\addcontentsline{toc}{part}{Index}
+\$else\$
 \\addcontentsline{toc}{chapter}{Index}
+\$endif\$
 \\printindex
 \$endif\$
 
@@ -1130,7 +1143,11 @@ ISBN: \$isbn\$\\\\[0.3cm]
 \$if(acknowledgments)\$
 \\clearpage
 \\thispagestyle{plain}
+\$if(has_parts)\$
+\\addcontentsline{toc}{part}{Acknowledgments}
+\$else\$
 \\addcontentsline{toc}{chapter}{Acknowledgments}
+\$endif\$
 \\begin{center}
 {\\LARGE\\bfseries Acknowledgments}
 \\end{center}
@@ -1142,7 +1159,11 @@ ISBN: \$isbn\$\\\\[0.3cm]
 \$if(about-author)\$
 \\clearpage
 \\thispagestyle{plain}
+\$if(has_parts)\$
+\\addcontentsline{toc}{part}{About the Author}
+\$else\$
 \\addcontentsline{toc}{chapter}{About the Author}
+\$endif\$
 \\begin{center}
 {\\LARGE\\bfseries About the Author}
 \\end{center}
