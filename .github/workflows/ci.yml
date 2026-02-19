@@ -70,7 +70,7 @@ jobs:
     needs: [test, build-examples]
     if: |
       github.ref == 'refs/heads/main' &&
-      (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.modified, 'Dockerfile.base'))
+      (github.event_name == 'workflow_dispatch' || contains(toJSON(github.event.head_commit.modified), 'Dockerfile.base') || contains(toJSON(github.event.head_commit.added), 'Dockerfile.base'))
     steps:
       - uses: actions/checkout@v4
 
