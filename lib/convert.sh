@@ -846,6 +846,8 @@ _execute_pandoc_with_index() {
     local tex_file="${base_name}.tex"
     local job_name
     job_name=$(basename "$base_name")
+    local out_dir
+    out_dir=$(dirname "$OUTPUT_FILE")
 
     echo -e "${BLUE}Index enabled: using multi-step LaTeX build${NC}"
 
@@ -875,7 +877,7 @@ _execute_pandoc_with_index() {
 
     # Step 2: First xelatex pass (generates .idx, .aux, .toc with preliminary page numbers)
     echo -e "${BLUE}  Pass 1/6: xelatex (generating index entries)...${NC}"
-    $PDF_ENGINE -interaction=nonstopmode "$tex_file" > /dev/null 2>&1 || true
+    $PDF_ENGINE -interaction=nonstopmode -output-directory="$out_dir" "$tex_file" > /dev/null 2>&1 || true
 
     # Step 3: First makeindex pass (builds index from preliminary page numbers)
     if [ -f "${base_name}.idx" ]; then
@@ -887,7 +889,7 @@ _execute_pandoc_with_index() {
 
     # Step 4: Second xelatex pass (includes index, which shifts pagination)
     echo -e "${BLUE}  Pass 3/6: xelatex (including index, updating pagination)...${NC}"
-    $PDF_ENGINE -interaction=nonstopmode "$tex_file" > /dev/null 2>&1 || true
+    $PDF_ENGINE -interaction=nonstopmode -output-directory="$out_dir" "$tex_file" > /dev/null 2>&1 || true
 
     # Step 5: Second makeindex pass (rebuilds index with corrected page numbers)
     if [ -f "${base_name}.idx" ]; then
@@ -897,11 +899,11 @@ _execute_pandoc_with_index() {
 
     # Step 6: Third xelatex pass (includes corrected index)
     echo -e "${BLUE}  Pass 5/6: xelatex (including corrected index)...${NC}"
-    $PDF_ENGINE -interaction=nonstopmode "$tex_file" > /dev/null 2>&1 || true
+    $PDF_ENGINE -interaction=nonstopmode -output-directory="$out_dir" "$tex_file" > /dev/null 2>&1 || true
 
     # Step 7: Final xelatex pass (resolves all cross-references)
     echo -e "${BLUE}  Pass 6/6: xelatex (finalizing references)...${NC}"
-    $PDF_ENGINE -interaction=nonstopmode "$tex_file" > /dev/null 2>&1 || true
+    $PDF_ENGINE -interaction=nonstopmode -output-directory="$out_dir" "$tex_file" > /dev/null 2>&1 || true
 
     # Check result and clean up LaTeX artifacts
     if [ -f "$OUTPUT_FILE" ]; then
