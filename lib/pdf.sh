@@ -175,18 +175,21 @@ find_lua_filter() {
     local script_dir
     script_dir="$(dirname "$(readlink -f "$0")")"
 
-    # Check root-level locations (e.g., heading_fix_filter.lua, image_size_filter.lua)
+    # Search order: local paths first, then system-installed paths.
+    # This ensures project-local filters override system-installed ones.
+    # 1. Current directory (root + filters/)
     if [ -f "$(pwd)/$filter_name" ]; then
         echo "$(pwd)/$filter_name"
-    elif [ -f "$script_dir/$filter_name" ]; then
-        echo "$script_dir/$filter_name"
-    elif [ -f "/usr/local/share/mdtexpdf/$filter_name" ]; then
-        echo "/usr/local/share/mdtexpdf/$filter_name"
-    # Check filters/ subdirectory (e.g., long_equation_filter.lua, book_structure.lua)
     elif [ -f "$(pwd)/filters/$filter_name" ]; then
         echo "$(pwd)/filters/$filter_name"
+    # 2. Script directory (root + filters/)
+    elif [ -f "$script_dir/$filter_name" ]; then
+        echo "$script_dir/$filter_name"
     elif [ -f "$script_dir/filters/$filter_name" ]; then
         echo "$script_dir/filters/$filter_name"
+    # 3. System-installed paths (fallback)
+    elif [ -f "/usr/local/share/mdtexpdf/$filter_name" ]; then
+        echo "/usr/local/share/mdtexpdf/$filter_name"
     elif [ -f "/usr/local/share/mdtexpdf/filters/$filter_name" ]; then
         echo "/usr/local/share/mdtexpdf/filters/$filter_name"
     else
