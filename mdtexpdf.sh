@@ -366,6 +366,38 @@ install() {
             echo -e "${YELLOW}Warning: drop_caps_filter.lua not found. Drop caps will not be available.${NC}"
         fi
 
+        # Install index_filter.lua filter
+        local index_filter_src=""
+        if [ -f "$SCRIPT_DIR/filters/index_filter.lua" ]; then
+            index_filter_src="$SCRIPT_DIR/filters/index_filter.lua"
+        elif [ -f "$(pwd)/filters/index_filter.lua" ]; then
+            index_filter_src="$(pwd)/filters/index_filter.lua"
+        fi
+
+        if [ -n "$index_filter_src" ]; then
+            sudo cp "$index_filter_src" /usr/local/share/mdtexpdf/filters/
+            sudo chmod 644 /usr/local/share/mdtexpdf/filters/index_filter.lua
+            echo -e "${GREEN}✓ Installed index_filter.lua for subject index processing${NC}"
+        else
+            echo -e "${YELLOW}Warning: index_filter.lua not found. Index markers will not be processed.${NC}"
+        fi
+
+        # Install equation_number_filter.lua filter
+        local equation_number_filter_src=""
+        if [ -f "$SCRIPT_DIR/filters/equation_number_filter.lua" ]; then
+            equation_number_filter_src="$SCRIPT_DIR/filters/equation_number_filter.lua"
+        elif [ -f "$(pwd)/filters/equation_number_filter.lua" ]; then
+            equation_number_filter_src="$(pwd)/filters/equation_number_filter.lua"
+        fi
+
+        if [ -n "$equation_number_filter_src" ]; then
+            sudo cp "$equation_number_filter_src" /usr/local/share/mdtexpdf/filters/
+            sudo chmod 644 /usr/local/share/mdtexpdf/filters/equation_number_filter.lua
+            echo -e "${GREEN}✓ Installed equation_number_filter.lua for equation numbering${NC}"
+        else
+            echo -e "${YELLOW}Warning: equation_number_filter.lua not found. Equation numbering will not be applied.${NC}"
+        fi
+
         # Copy templates to the shared directory
 
         # Look for templates in various locations
