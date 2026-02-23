@@ -303,6 +303,7 @@ parse_yaml_metadata() {
     META_COVER_TITLE_COLOR=$(yq eval '.cover_title_color // "white"' "$temp_yaml" 2>/dev/null | sed 's/^null$/white/')
     META_COVER_SUBTITLE_SHOW=$(yq eval '.cover_subtitle_show' "$temp_yaml" 2>/dev/null | sed 's/^null$/true/')
     META_COVER_AUTHOR_POSITION=$(yq eval '.cover_author_position // "bottom"' "$temp_yaml" 2>/dev/null | sed 's/^null$/bottom/')
+    META_COVER_AUTHOR_OFFSET=$(yq eval '.cover_author_offset // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_COVER_OVERLAY_OPACITY=$(yq eval '.cover_overlay_opacity // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_COVER_FIT=$(yq eval '.cover_fit // "contain"' "$temp_yaml" 2>/dev/null | sed 's/^null$/contain/')
 

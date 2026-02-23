@@ -951,9 +951,9 @@ $numbering_commands
     \$if(cover_subtitle_show)\$\$if(subtitle)\$\\\\[0.5cm]{\\LARGE\\itshape \\nohyphens{\$subtitle\$}}\$endif\$\$endif\$
   };
   % Author at bottom of image area (if cover_author_position is set)
-  % Using 0.20\\paperheight from bottom keeps text within image bounds
+  % Default offset: 0.20\\paperheight from bottom; override with cover_author_offset (e.g. 0.08)
   \$if(cover_author_position)\$
-  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\Large,anchor=south] at ([yshift=0.20\\paperheight]current page.south) {
+  \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\Large,anchor=south] at ([yshift=\$if(cover_author_offset)\$\$cover_author_offset\$\\paperheight\$else\$0.20\\paperheight\$endif\$]current page.south) {
     \$author\$
   };
   \$endif\$

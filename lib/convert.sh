@@ -510,6 +510,7 @@ _build_cover_vars() {
     if [ -n "$META_COVER_AUTHOR_POSITION" ] && [ "$META_COVER_AUTHOR_POSITION" != "none" ]; then
         _PDF_BOOK_FEATURE_VARS+=("--variable=cover_author_position=$META_COVER_AUTHOR_POSITION")
     fi
+    [ -n "$META_COVER_AUTHOR_OFFSET" ] && _PDF_BOOK_FEATURE_VARS+=("--variable=cover_author_offset=$META_COVER_AUTHOR_OFFSET")
     [ -n "$META_COVER_OVERLAY_OPACITY" ] && _PDF_BOOK_FEATURE_VARS+=("--variable=cover_overlay_opacity=$META_COVER_OVERLAY_OPACITY")
     [ "$META_COVER_FIT" = "cover" ] && _PDF_BOOK_FEATURE_VARS+=("--variable=cover_fit_cover=true")
 
