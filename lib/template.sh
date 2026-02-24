@@ -50,6 +50,13 @@ create_template_file() {
         numbering_commands="\\setcounter{secnumdepth}{-2}\\renewcommand{\\chaptername}{}"
     fi
 
+    # Suppress automatic figure numbering when document has its own numbering
+    # (e.g., "Figure 1.1.9 --" in alt text from Word documents)
+    local figure_numbering_commands=""
+    figure_numbering_commands="\$if(no_figure_numbers)\$"
+    figure_numbering_commands+="\\renewcommand{\\figurename}{}\\renewcommand{\\thefigure}{}\\captionsetup[figure]{labelformat=empty}"
+    figure_numbering_commands+="\$endif\$"
+
     # Simplified title page logic - always use \maketitle
     local title_page_logic="\$if(title)\$\\maketitle\$endif\$"
 
@@ -807,6 +814,7 @@ $numbering_commands
 \\usepackage{caption}
 \\captionsetup{font=small,labelfont=bf,textfont=it}
 \\renewcommand{\\figurename}{Figure}
+$figure_numbering_commands
 
 % Define Pandoc's code highlighting environments
 \\definecolor{shadecolor}{RGB}{248,248,248}

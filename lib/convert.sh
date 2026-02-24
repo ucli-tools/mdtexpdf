@@ -462,6 +462,7 @@ _build_book_feature_vars() {
 
     # Front matter
     _add_meta_bool "no_title_page" "$META_NO_TITLE_PAGE"
+    _add_meta_bool "no_figure_numbers" "$META_NO_FIGURE_NUMBERS"
     _add_meta_bool "half_title" "$META_HALF_TITLE"
     _add_meta_bool "copyright_page" "$META_COPYRIGHT_PAGE"
     _add_meta_var "dedication" "$META_DEDICATION"

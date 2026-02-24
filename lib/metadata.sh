@@ -49,6 +49,7 @@ init_metadata_vars() {
 
     # Professional book features
     META_NO_TITLE_PAGE=""
+    META_NO_FIGURE_NUMBERS=""
     META_HALF_TITLE=""
     META_COPYRIGHT_PAGE=""
     META_DEDICATION=""
@@ -283,6 +284,7 @@ parse_yaml_metadata() {
 
     # Professional book features
     META_NO_TITLE_PAGE=$(yq eval '.no_title_page // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_NO_FIGURE_NUMBERS=$(yq eval '.no_figure_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_HALF_TITLE=$(yq eval '.half_title // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_COPYRIGHT_PAGE=$(yq eval '.copyright_page // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_DEDICATION=$(yq eval '.dedication // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
@@ -390,6 +392,7 @@ _display_metadata_found() {
 
     # Professional book features
     [ -n "$META_NO_TITLE_PAGE" ] && echo -e "${GREEN}Found metadata - no_title_page: $META_NO_TITLE_PAGE${NC}"
+    [ -n "$META_NO_FIGURE_NUMBERS" ] && echo -e "${GREEN}Found metadata - no_figure_numbers: $META_NO_FIGURE_NUMBERS${NC}"
     [ -n "$META_HALF_TITLE" ] && echo -e "${GREEN}Found metadata - half_title: $META_HALF_TITLE${NC}"
     [ -n "$META_COPYRIGHT_PAGE" ] && echo -e "${GREEN}Found metadata - copyright_page: $META_COPYRIGHT_PAGE${NC}"
     [ -n "$META_DEDICATION" ] && echo -e "${GREEN}Found metadata - dedication: $META_DEDICATION${NC}"
