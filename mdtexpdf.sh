@@ -293,22 +293,23 @@ install() {
 
         # Copy the Lua filters if they exist
 
-        # Copy heading fix filter
-        if [ -f "$SCRIPT_DIR/heading_fix_filter.lua" ]; then
-            sudo cp "$SCRIPT_DIR/heading_fix_filter.lua" /usr/local/share/mdtexpdf/
-            sudo chmod 644 /usr/local/share/mdtexpdf/heading_fix_filter.lua
+        # Install filters directory
+        sudo mkdir -p /usr/local/share/mdtexpdf/filters
+
+        # Copy heading fix filter (lives in filters/ subdir)
+        if [ -f "$SCRIPT_DIR/filters/heading_fix_filter.lua" ]; then
+            sudo cp "$SCRIPT_DIR/filters/heading_fix_filter.lua" /usr/local/share/mdtexpdf/filters/
+            sudo chmod 644 /usr/local/share/mdtexpdf/filters/heading_fix_filter.lua
             echo -e "${GREEN}✓ Installed heading_fix_filter.lua for fixing heading line breaks${NC}"
-        elif [ -f "$(pwd)/heading_fix_filter.lua" ]; then
-            sudo cp "$(pwd)/heading_fix_filter.lua" /usr/local/share/mdtexpdf/
-            sudo chmod 644 /usr/local/share/mdtexpdf/heading_fix_filter.lua
+        elif [ -f "$(pwd)/filters/heading_fix_filter.lua" ]; then
+            sudo cp "$(pwd)/filters/heading_fix_filter.lua" /usr/local/share/mdtexpdf/filters/
+            sudo chmod 644 /usr/local/share/mdtexpdf/filters/heading_fix_filter.lua
             echo -e "${GREEN}✓ Installed heading_fix_filter.lua for fixing heading line breaks${NC}"
         else
             echo -e "${YELLOW}Warning: heading_fix_filter.lua not found. Level 4 and 5 headings may run inline.${NC}"
         fi
 
         # Copy long equation filter
-        # Install filters directory
-        sudo mkdir -p /usr/local/share/mdtexpdf/filters
         if [ -f "$SCRIPT_DIR/filters/long_equation_filter.lua" ]; then
             sudo cp "$SCRIPT_DIR/filters/long_equation_filter.lua" /usr/local/share/mdtexpdf/filters/
             sudo chmod 644 /usr/local/share/mdtexpdf/filters/long_equation_filter.lua
@@ -321,17 +322,30 @@ install() {
             echo -e "${YELLOW}Warning: long_equation_filter.lua not found. Long equations may not wrap properly.${NC}"
         fi
 
-        # Copy image size filter
-        if [ -f "$SCRIPT_DIR/image_size_filter.lua" ]; then
-            sudo cp "$SCRIPT_DIR/image_size_filter.lua" /usr/local/share/mdtexpdf/
-            sudo chmod 644 /usr/local/share/mdtexpdf/image_size_filter.lua
+        # Copy image size filter (lives in filters/ subdir)
+        if [ -f "$SCRIPT_DIR/filters/image_size_filter.lua" ]; then
+            sudo cp "$SCRIPT_DIR/filters/image_size_filter.lua" /usr/local/share/mdtexpdf/filters/
+            sudo chmod 644 /usr/local/share/mdtexpdf/filters/image_size_filter.lua
             echo -e "${GREEN}✓ Installed image_size_filter.lua for automatic image sizing${NC}"
-        elif [ -f "$(pwd)/image_size_filter.lua" ]; then
-            sudo cp "$(pwd)/image_size_filter.lua" /usr/local/share/mdtexpdf/
-            sudo chmod 644 /usr/local/share/mdtexpdf/image_size_filter.lua
+        elif [ -f "$(pwd)/filters/image_size_filter.lua" ]; then
+            sudo cp "$(pwd)/filters/image_size_filter.lua" /usr/local/share/mdtexpdf/filters/
+            sudo chmod 644 /usr/local/share/mdtexpdf/filters/image_size_filter.lua
             echo -e "${GREEN}✓ Installed image_size_filter.lua for automatic image sizing${NC}"
         else
             echo -e "${YELLOW}Warning: image_size_filter.lua not found. Images may not be properly sized.${NC}"
+        fi
+
+        # Copy table size filter (wide table overflow fix)
+        if [ -f "$SCRIPT_DIR/filters/table_size_filter.lua" ]; then
+            sudo cp "$SCRIPT_DIR/filters/table_size_filter.lua" /usr/local/share/mdtexpdf/filters/
+            sudo chmod 644 /usr/local/share/mdtexpdf/filters/table_size_filter.lua
+            echo -e "${GREEN}✓ Installed table_size_filter.lua for wide table sizing${NC}"
+        elif [ -f "$(pwd)/filters/table_size_filter.lua" ]; then
+            sudo cp "$(pwd)/filters/table_size_filter.lua" /usr/local/share/mdtexpdf/filters/
+            sudo chmod 644 /usr/local/share/mdtexpdf/filters/table_size_filter.lua
+            echo -e "${GREEN}✓ Installed table_size_filter.lua for wide table sizing${NC}"
+        else
+            echo -e "${YELLOW}Warning: table_size_filter.lua not found. Wide tables may overflow page margins.${NC}"
         fi
 
         # Install book_structure.lua filter

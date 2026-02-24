@@ -365,6 +365,10 @@ setup_lua_filters() {
         "automatic image sizing" \
         "Images may not be properly sized."
 
+    _add_lua_filter "table_size_filter.lua" \
+        "wide table sizing" \
+        "Wide tables may overflow page margins."
+
     # Conditional filters
     if [ "$ARG_FORMAT" = "book" ]; then
         _add_lua_filter "book_structure.lua" \
