@@ -45,7 +45,9 @@ create_template_file() {
     # Determine if we should number sections
     local numbering_commands=""
     if [ "$section_numbers" = "false" ]; then
-        numbering_commands="\\setcounter{secnumdepth}{0}"
+        # secnumdepth=-2 suppresses all numbering including "Chapter N" prefix
+        # \chaptername{} removes the word "Chapter" from chapter headings
+        numbering_commands="\\setcounter{secnumdepth}{-2}\\renewcommand{\\chaptername}{}"
     fi
 
     # Simplified title page logic - always use \maketitle
