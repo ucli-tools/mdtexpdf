@@ -946,6 +946,8 @@ $numbering_commands
   \$endif\$
   % Title text - positioned in upper portion of image area (hyphenation disabled)
   % Using 0.20\\paperheight from top keeps text within image bounds for most aspect ratios
+  % Set cover_title_show: false in YAML to hide title/author overlay (e.g. when cover image has them)
+  \$if(cover_title_show)\$
   \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\Huge\\bfseries,align=center,text width=0.8\\paperwidth,anchor=north] at ([yshift=-0.20\\paperheight]current page.north) {
     \\nohyphens{\$title\$}
     \$if(cover_subtitle_show)\$\$if(subtitle)\$\\\\[0.5cm]{\\LARGE\\itshape \\nohyphens{\$subtitle\$}}\$endif\$\$endif\$
@@ -956,6 +958,7 @@ $numbering_commands
   \\node[text=\$if(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\Large,anchor=south] at ([yshift=\$if(cover_author_offset)\$\$cover_author_offset\$\\paperheight\$else\$0.20\\paperheight\$endif\$]current page.south) {
     \$author\$
   };
+  \$endif\$
   \$endif\$
 \\end{tikzpicture}
 \\restoregeometry
@@ -977,7 +980,11 @@ $numbering_commands
 \$endif\$
 
 % ============== MAIN TITLE PAGE ==============
+% Set no_title_page: true in YAML to skip the inner title page (e.g. when cover image has title/author)
 
+\$if(no_title_page)\$
+% Title page suppressed via no_title_page: true
+\$else\$
 \$if(title)\$
 \$if(header_footer_policy_all)\$
 \$if(format_book)\$
@@ -1005,6 +1012,7 @@ $numbering_commands
 \$else\$
 % For default and partial policies, use standard maketitle
 \\maketitle
+\$endif\$
 \$endif\$
 \$endif\$
 

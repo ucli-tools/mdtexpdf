@@ -160,19 +160,12 @@ local function process_header(el)
     end
 
     -- ============================================
-    -- FRONT MATTER PAGES (special styling, no TOC entry)
-    -- These are typically used before the main content
+    -- FRONT MATTER PAGES
+    -- Dedication, Epigraph, and Copyright Page are handled in
+    -- pass2_process_blocks() which uses open-collect-close block
+    -- processing.  Do NOT transform them here — converting to
+    -- RawBlock would prevent pass2 from finding them as Headers.
     -- ============================================
-
-    -- Dedication → Centered page with no header, italic text follows
-    if string.match(header_text, '^[Dd]edication$') then
-      return pandoc.RawBlock('latex', '\\clearpage\\thispagestyle{empty}\\vspace*{\\fill}\\begin{center}\\itshape\\large')
-    end
-
-    -- Epigraph → Right-aligned quote page with source attribution
-    if string.match(header_text, '^[Ee]pigraph$') then
-      return pandoc.RawBlock('latex', '\\clearpage\\thispagestyle{empty}\\vspace*{\\fill}\\begin{flushright}\\itshape\\large')
-    end
 
     -- Return unchanged if no pattern matches
     return el
@@ -228,6 +221,24 @@ local function pass2_process_blocks(doc)
                     '\\end{flushright}\\vspace*{\\fill}\\clearpage'))
 
                 goto continue
+
+            elseif string.match(header_text, '^[Cc]opyright [Pp]age$') then
+                -- Copyright page: left-aligned, small text, pushed to bottom of page
+                table.insert(new_blocks, pandoc.RawBlock('latex',
+                    '\\clearpage\\thispagestyle{empty}\\vspace*{\\fill}\\begin{flushleft}\\small'))
+
+                -- Collect content until next header
+                i = i + 1
+                while i <= #doc.blocks and doc.blocks[i].t ~= "Header" do
+                    table.insert(new_blocks, doc.blocks[i])
+                    i = i + 1
+                end
+
+                -- Close the copyright page
+                table.insert(new_blocks, pandoc.RawBlock('latex',
+                    '\\end{flushleft}\\clearpage'))
+
+                goto continue
             end
         end
 
@@ -245,10 +256,14 @@ end
 -- MULTI-PASS FILTER
 -- Return a list of filters applied in order:
 --   Pass 1: Detect parts (document-level scan)
---   Pass 2: Process headers and blocks (with has_parts already set)
+--   Pass 2: Process front matter blocks (Dedication, Epigraph, Copyright Page)
+--           Must run BEFORE Header processing so that these headers are still
+--           intact as Header elements (not yet converted to RawBlocks).
+--   Pass 3: Process remaining headers (Part, Chapter, etc. → LaTeX commands)
 -- ============================================
 
 return {
     { Pandoc = pass1_detect_parts },
-    { Header = process_header, Pandoc = pass2_process_blocks }
+    { Pandoc = pass2_process_blocks },
+    { Header = process_header }
 }

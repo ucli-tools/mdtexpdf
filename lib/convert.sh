@@ -430,6 +430,10 @@ _build_footer_vars() {
 
     if [ "$ARG_FORMAT" = "book" ]; then
         _PDF_HEADER_FOOTER_VARS+=("--variable=format_book=true")
+        # Tell pandoc the document class is book so # = \chapter, ## = \section
+        # (the template hardcodes \documentclass{book} but pandoc needs this
+        # flag to map heading levels correctly for non-Lua-filtered headers)
+        _PDF_PANDOC_OPTS="$_PDF_PANDOC_OPTS --top-level-division=chapter"
     else
         _PDF_HEADER_FOOTER_VARS+=("--variable=format_article=true")
     fi
@@ -457,6 +461,7 @@ _build_book_feature_vars() {
     [ "$ARG_INDEX" = true ] && _PDF_BOOK_FEATURE_VARS+=("--variable=index=true")
 
     # Front matter
+    _add_meta_bool "no_title_page" "$META_NO_TITLE_PAGE"
     _add_meta_bool "half_title" "$META_HALF_TITLE"
     _add_meta_bool "copyright_page" "$META_COPYRIGHT_PAGE"
     _add_meta_var "dedication" "$META_DEDICATION"
@@ -510,6 +515,7 @@ _build_cover_vars() {
 
     # Cover styling
     [ -n "$META_COVER_TITLE_COLOR" ] && _PDF_BOOK_FEATURE_VARS+=("--variable=cover_title_color=$META_COVER_TITLE_COLOR")
+    _add_meta_bool "cover_title_show" "$META_COVER_TITLE_SHOW"
     _add_meta_bool "cover_subtitle_show" "$META_COVER_SUBTITLE_SHOW"
     if [ -n "$META_COVER_AUTHOR_POSITION" ] && [ "$META_COVER_AUTHOR_POSITION" != "none" ]; then
         _PDF_BOOK_FEATURE_VARS+=("--variable=cover_author_position=$META_COVER_AUTHOR_POSITION")

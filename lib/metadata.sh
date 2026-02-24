@@ -48,6 +48,7 @@ init_metadata_vars() {
     META_READING_SPEED=""
 
     # Professional book features
+    META_NO_TITLE_PAGE=""
     META_HALF_TITLE=""
     META_COPYRIGHT_PAGE=""
     META_DEDICATION=""
@@ -73,6 +74,7 @@ init_metadata_vars() {
     # Cover system (Front cover - Première de couverture)
     META_COVER_IMAGE=""
     META_COVER_TITLE_COLOR="white"
+    META_COVER_TITLE_SHOW="true"
     META_COVER_SUBTITLE_SHOW="true"
     META_COVER_AUTHOR_POSITION="bottom"
     META_COVER_OVERLAY_OPACITY=""
@@ -280,6 +282,7 @@ parse_yaml_metadata() {
     META_READING_SPEED=$(yq eval '.reading_speed // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
 
     # Professional book features
+    META_NO_TITLE_PAGE=$(yq eval '.no_title_page // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_HALF_TITLE=$(yq eval '.half_title // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_COPYRIGHT_PAGE=$(yq eval '.copyright_page // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_DEDICATION=$(yq eval '.dedication // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
@@ -301,6 +304,7 @@ parse_yaml_metadata() {
     # Cover system
     META_COVER_IMAGE=$(yq eval '.cover_image // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_COVER_TITLE_COLOR=$(yq eval '.cover_title_color // "white"' "$temp_yaml" 2>/dev/null | sed 's/^null$/white/')
+    META_COVER_TITLE_SHOW=$(yq eval '.cover_title_show' "$temp_yaml" 2>/dev/null | sed 's/^null$/true/')
     META_COVER_SUBTITLE_SHOW=$(yq eval '.cover_subtitle_show' "$temp_yaml" 2>/dev/null | sed 's/^null$/true/')
     META_COVER_AUTHOR_POSITION=$(yq eval '.cover_author_position // "bottom"' "$temp_yaml" 2>/dev/null | sed 's/^null$/bottom/')
     META_COVER_AUTHOR_OFFSET=$(yq eval '.cover_author_offset // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
@@ -385,6 +389,7 @@ _display_metadata_found() {
     [ -n "$META_READING_SPEED" ] && echo -e "${GREEN}Found metadata - reading_speed: $META_READING_SPEED${NC}"
 
     # Professional book features
+    [ -n "$META_NO_TITLE_PAGE" ] && echo -e "${GREEN}Found metadata - no_title_page: $META_NO_TITLE_PAGE${NC}"
     [ -n "$META_HALF_TITLE" ] && echo -e "${GREEN}Found metadata - half_title: $META_HALF_TITLE${NC}"
     [ -n "$META_COPYRIGHT_PAGE" ] && echo -e "${GREEN}Found metadata - copyright_page: $META_COPYRIGHT_PAGE${NC}"
     [ -n "$META_DEDICATION" ] && echo -e "${GREEN}Found metadata - dedication: $META_DEDICATION${NC}"
