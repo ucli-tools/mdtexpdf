@@ -41,6 +41,13 @@ detect_unicode_characters() {
         return 0  # Found other complex script characters
     fi
 
+    # Check for Egyptian Hieroglyphs: U+13000-U+1342F
+    # Cuneiform: U+12000-U+123FF
+    # Cuneiform Numbers and Punctuation: U+12400-U+1247F
+    if grep -qP '[\x{12000}-\x{1247F}\x{13000}-\x{1342F}]' "$input_file" 2>/dev/null; then
+        return 0  # Found Egyptian hieroglyphs or cuneiform characters
+    fi
+
     # Check for typographic characters that cause issues with pdfLaTeX in code blocks
     # Em-dash: U+2014, En-dash: U+2013
     # Smart quotes: U+2018, U+2019, U+201C, U+201D
