@@ -932,6 +932,7 @@ $figure_numbering_commands
 
 \$if(format_book)\$
 \\frontmatter
+\\pagenumbering{arabic}% Keep Arabic numerals throughout (override \\frontmatter's roman)
 \$endif\$
 
 % ============== FRONT COVER (Première de Couverture) ==============
@@ -1133,7 +1134,9 @@ ISBN: \$isbn\$\\\\[0.3cm]
 \$endif\$
 
 \$if(format_book)\$
+\\edef\\currentpage{\\the\\value{page}}% Save current page number
 \\mainmatter
+\\setcounter{page}{\\currentpage}% Restore page number (prevent reset to 1)
 \$endif\$
 
 \$body\$

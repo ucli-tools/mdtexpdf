@@ -13,10 +13,12 @@ MDTEXPDF_VERSION="$VERSION"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source modules if available
-# Check script dir first (dev), then /usr/local/share/mdtexpdf (installed)
+# Check script dir first (dev), then ~/.local (user), then /usr/local (system)
 LIB_DIR=""
 if [ -d "$SCRIPT_DIR/lib" ]; then
     LIB_DIR="$SCRIPT_DIR/lib"
+elif [ -d "$HOME/.local/share/mdtexpdf/lib" ]; then
+    LIB_DIR="$HOME/.local/share/mdtexpdf/lib"
 elif [ -d "/usr/local/share/mdtexpdf/lib" ]; then
     LIB_DIR="/usr/local/share/mdtexpdf/lib"
 fi
@@ -304,200 +306,105 @@ EOF
 
 # Function to install the script
 install() {
+    local INSTALL_BIN="$HOME/.local/bin"
+    local INSTALL_SHARE="$HOME/.local/share/mdtexpdf"
+
     echo
-    echo -e "${GREEN}Installing mdtexpdf...${NC}"
-    if sudo -v; then
-        # Create directories for templates and resources
-        sudo mkdir -p /usr/local/share/mdtexpdf/templates
-        sudo mkdir -p /usr/local/share/mdtexpdf/examples
-        sudo mkdir -p /usr/local/share/mdtexpdf/lib
+    echo -e "${GREEN}Installing mdtexpdf to ~/.local (no sudo required)...${NC}"
 
-        # Copy the script to /usr/local/bin
-        sudo cp "$0" /usr/local/bin/mdtexpdf
-        sudo chmod 755 /usr/local/bin/mdtexpdf
+    # Create directories
+    mkdir -p "$INSTALL_BIN"
+    mkdir -p "$INSTALL_SHARE/templates"
+    mkdir -p "$INSTALL_SHARE/examples"
+    mkdir -p "$INSTALL_SHARE/lib"
+    mkdir -p "$INSTALL_SHARE/filters"
 
-        # Copy module libraries
-        SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-        if [ -d "$SCRIPT_DIR/lib" ]; then
-            sudo cp "$SCRIPT_DIR/lib"/*.sh /usr/local/share/mdtexpdf/lib/
-            sudo chmod 644 /usr/local/share/mdtexpdf/lib/*.sh
-            echo -e "${GREEN}✓ Installed module libraries${NC}"
-        fi
+    # Copy the script
+    cp "$0" "$INSTALL_BIN/mdtexpdf"
+    chmod 755 "$INSTALL_BIN/mdtexpdf"
 
-        # Copy the Lua filters if they exist
-
-        # Install filters directory
-        sudo mkdir -p /usr/local/share/mdtexpdf/filters
-
-        # Copy heading fix filter (lives in filters/ subdir)
-        if [ -f "$SCRIPT_DIR/filters/heading_fix_filter.lua" ]; then
-            sudo cp "$SCRIPT_DIR/filters/heading_fix_filter.lua" /usr/local/share/mdtexpdf/filters/
-            sudo chmod 644 /usr/local/share/mdtexpdf/filters/heading_fix_filter.lua
-            echo -e "${GREEN}✓ Installed heading_fix_filter.lua for fixing heading line breaks${NC}"
-        elif [ -f "$(pwd)/filters/heading_fix_filter.lua" ]; then
-            sudo cp "$(pwd)/filters/heading_fix_filter.lua" /usr/local/share/mdtexpdf/filters/
-            sudo chmod 644 /usr/local/share/mdtexpdf/filters/heading_fix_filter.lua
-            echo -e "${GREEN}✓ Installed heading_fix_filter.lua for fixing heading line breaks${NC}"
-        else
-            echo -e "${YELLOW}Warning: heading_fix_filter.lua not found. Level 4 and 5 headings may run inline.${NC}"
-        fi
-
-        # Copy long equation filter
-        if [ -f "$SCRIPT_DIR/filters/long_equation_filter.lua" ]; then
-            sudo cp "$SCRIPT_DIR/filters/long_equation_filter.lua" /usr/local/share/mdtexpdf/filters/
-            sudo chmod 644 /usr/local/share/mdtexpdf/filters/long_equation_filter.lua
-            echo -e "${GREEN}✓ Installed long_equation_filter.lua for handling text-heavy equations${NC}"
-        elif [ -f "$(pwd)/filters/long_equation_filter.lua" ]; then
-            sudo cp "$(pwd)/filters/long_equation_filter.lua" /usr/local/share/mdtexpdf/filters/
-            sudo chmod 644 /usr/local/share/mdtexpdf/filters/long_equation_filter.lua
-            echo -e "${GREEN}✓ Installed long_equation_filter.lua for handling text-heavy equations${NC}"
-        else
-            echo -e "${YELLOW}Warning: long_equation_filter.lua not found. Long equations may not wrap properly.${NC}"
-        fi
-
-        # Copy image size filter (lives in filters/ subdir)
-        if [ -f "$SCRIPT_DIR/filters/image_size_filter.lua" ]; then
-            sudo cp "$SCRIPT_DIR/filters/image_size_filter.lua" /usr/local/share/mdtexpdf/filters/
-            sudo chmod 644 /usr/local/share/mdtexpdf/filters/image_size_filter.lua
-            echo -e "${GREEN}✓ Installed image_size_filter.lua for automatic image sizing${NC}"
-        elif [ -f "$(pwd)/filters/image_size_filter.lua" ]; then
-            sudo cp "$(pwd)/filters/image_size_filter.lua" /usr/local/share/mdtexpdf/filters/
-            sudo chmod 644 /usr/local/share/mdtexpdf/filters/image_size_filter.lua
-            echo -e "${GREEN}✓ Installed image_size_filter.lua for automatic image sizing${NC}"
-        else
-            echo -e "${YELLOW}Warning: image_size_filter.lua not found. Images may not be properly sized.${NC}"
-        fi
-
-        # Copy table size filter (wide table overflow fix)
-        if [ -f "$SCRIPT_DIR/filters/table_size_filter.lua" ]; then
-            sudo cp "$SCRIPT_DIR/filters/table_size_filter.lua" /usr/local/share/mdtexpdf/filters/
-            sudo chmod 644 /usr/local/share/mdtexpdf/filters/table_size_filter.lua
-            echo -e "${GREEN}✓ Installed table_size_filter.lua for wide table sizing${NC}"
-        elif [ -f "$(pwd)/filters/table_size_filter.lua" ]; then
-            sudo cp "$(pwd)/filters/table_size_filter.lua" /usr/local/share/mdtexpdf/filters/
-            sudo chmod 644 /usr/local/share/mdtexpdf/filters/table_size_filter.lua
-            echo -e "${GREEN}✓ Installed table_size_filter.lua for wide table sizing${NC}"
-        else
-            echo -e "${YELLOW}Warning: table_size_filter.lua not found. Wide tables may overflow page margins.${NC}"
-        fi
-
-        # Install book_structure.lua filter
-        local book_filter_src=""
-        if [ -f "$SCRIPT_DIR/filters/book_structure.lua" ]; then
-            book_filter_src="$SCRIPT_DIR/filters/book_structure.lua"
-        elif [ -f "$(pwd)/filters/book_structure.lua" ]; then
-            book_filter_src="$(pwd)/filters/book_structure.lua"
-        fi
-
-        if [ -n "$book_filter_src" ]; then
-            sudo cp "$book_filter_src" /usr/local/share/mdtexpdf/
-            sudo chmod 644 /usr/local/share/mdtexpdf/book_structure.lua
-            echo -e "${GREEN}✓ Installed book_structure.lua for book format${NC}"
-        else
-            echo -e "${YELLOW}Warning: book_structure.lua not found. Book format may not work correctly.${NC}"
-        fi
-
-        # Install drop_caps_filter.lua filter
-        local drop_caps_filter_src=""
-        if [ -f "$SCRIPT_DIR/filters/drop_caps_filter.lua" ]; then
-            drop_caps_filter_src="$SCRIPT_DIR/filters/drop_caps_filter.lua"
-        elif [ -f "$(pwd)/filters/drop_caps_filter.lua" ]; then
-            drop_caps_filter_src="$(pwd)/filters/drop_caps_filter.lua"
-        fi
-
-        if [ -n "$drop_caps_filter_src" ]; then
-            sudo cp "$drop_caps_filter_src" /usr/local/share/mdtexpdf/
-            sudo chmod 644 /usr/local/share/mdtexpdf/drop_caps_filter.lua
-            echo -e "${GREEN}✓ Installed drop_caps_filter.lua for drop caps${NC}"
-        else
-            echo -e "${YELLOW}Warning: drop_caps_filter.lua not found. Drop caps will not be available.${NC}"
-        fi
-
-        # Install index_filter.lua filter
-        local index_filter_src=""
-        if [ -f "$SCRIPT_DIR/filters/index_filter.lua" ]; then
-            index_filter_src="$SCRIPT_DIR/filters/index_filter.lua"
-        elif [ -f "$(pwd)/filters/index_filter.lua" ]; then
-            index_filter_src="$(pwd)/filters/index_filter.lua"
-        fi
-
-        if [ -n "$index_filter_src" ]; then
-            sudo cp "$index_filter_src" /usr/local/share/mdtexpdf/filters/
-            sudo chmod 644 /usr/local/share/mdtexpdf/filters/index_filter.lua
-            echo -e "${GREEN}✓ Installed index_filter.lua for subject index processing${NC}"
-        else
-            echo -e "${YELLOW}Warning: index_filter.lua not found. Index markers will not be processed.${NC}"
-        fi
-
-        # Install equation_number_filter.lua filter
-        local equation_number_filter_src=""
-        if [ -f "$SCRIPT_DIR/filters/equation_number_filter.lua" ]; then
-            equation_number_filter_src="$SCRIPT_DIR/filters/equation_number_filter.lua"
-        elif [ -f "$(pwd)/filters/equation_number_filter.lua" ]; then
-            equation_number_filter_src="$(pwd)/filters/equation_number_filter.lua"
-        fi
-
-        if [ -n "$equation_number_filter_src" ]; then
-            sudo cp "$equation_number_filter_src" /usr/local/share/mdtexpdf/filters/
-            sudo chmod 644 /usr/local/share/mdtexpdf/filters/equation_number_filter.lua
-            echo -e "${GREEN}✓ Installed equation_number_filter.lua for equation numbering${NC}"
-        else
-            echo -e "${YELLOW}Warning: equation_number_filter.lua not found. Equation numbering will not be applied.${NC}"
-        fi
-
-        # Copy templates to the shared directory
-
-        # Look for templates in various locations
-        if [ -d "$SCRIPT_DIR/templates" ]; then
-            sudo cp -r "$SCRIPT_DIR/templates/"* /usr/local/share/mdtexpdf/templates/
-            sudo chmod 644 /usr/local/share/mdtexpdf/templates/*
-        elif [ -f "$SCRIPT_DIR/template.tex" ]; then
-            sudo cp "$SCRIPT_DIR/template.tex" /usr/local/share/mdtexpdf/templates/
-            sudo chmod 644 /usr/local/share/mdtexpdf/templates/template.tex
-        fi
-
-        # Copy example files
-        if [ -d "$SCRIPT_DIR/examples" ]; then
-            sudo cp -r "$SCRIPT_DIR/examples/"* /usr/local/share/mdtexpdf/examples/
-            sudo chmod 644 /usr/local/share/mdtexpdf/examples/*
-        elif [ -f "$SCRIPT_DIR/document.md" ] || [ -f "$SCRIPT_DIR/example.md" ]; then
-            [ -f "$SCRIPT_DIR/document.md" ] && sudo cp "$SCRIPT_DIR/document.md" /usr/local/share/mdtexpdf/examples/
-            [ -f "$SCRIPT_DIR/example.md" ] && sudo cp "$SCRIPT_DIR/example.md" /usr/local/share/mdtexpdf/examples/
-            sudo chmod 644 /usr/local/share/mdtexpdf/examples/*
-        else
-            echo -e "${YELLOW}Warning: template.tex not found in the script directory.${NC}"
-            echo -e "You'll need to provide your own template.tex file when converting documents."
-        fi
-
-        echo
-        echo -e "${PURPLE}mdtexpdf has been installed successfully.${NC}"
-        echo -e "You can now use ${GREEN}mdtexpdf${NC} command from anywhere."
-        echo
-        echo -e "Use ${BLUE}mdtexpdf help${NC} to see the commands."
-        echo
-    else
-        log_error "Failed to obtain sudo privileges. Installation aborted."
-        exit $EXIT_USER_ERROR
+    # Copy module libraries
+    SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+    if [ -d "$SCRIPT_DIR/lib" ]; then
+        cp "$SCRIPT_DIR/lib"/*.sh "$INSTALL_SHARE/lib/"
+        echo -e "${GREEN}✓ Installed module libraries${NC}"
     fi
+
+    # Helper to install a filter
+    _install_filter() {
+        local name="$1" desc="$2" subdir="${3:-filters}"
+        local src=""
+        if [ -f "$SCRIPT_DIR/filters/$name" ]; then
+            src="$SCRIPT_DIR/filters/$name"
+        elif [ -f "$(pwd)/filters/$name" ]; then
+            src="$(pwd)/filters/$name"
+        fi
+        if [ -n "$src" ]; then
+            cp "$src" "$INSTALL_SHARE/$subdir/"
+            echo -e "${GREEN}✓ Installed $name ($desc)${NC}"
+        else
+            echo -e "${YELLOW}Warning: $name not found.${NC}"
+        fi
+    }
+
+    # Install all filters
+    _install_filter "heading_fix_filter.lua" "heading line breaks"
+    _install_filter "long_equation_filter.lua" "long equations"
+    _install_filter "image_size_filter.lua" "image sizing"
+    _install_filter "table_size_filter.lua" "wide tables"
+    _install_filter "book_structure.lua" "book format" "."
+    _install_filter "drop_caps_filter.lua" "drop caps" "."
+    _install_filter "index_filter.lua" "subject index"
+    _install_filter "equation_number_filter.lua" "equation numbering"
+
+    # Copy templates
+    if [ -d "$SCRIPT_DIR/templates" ]; then
+        cp -r "$SCRIPT_DIR/templates/"* "$INSTALL_SHARE/templates/"
+    elif [ -f "$SCRIPT_DIR/template.tex" ]; then
+        cp "$SCRIPT_DIR/template.tex" "$INSTALL_SHARE/templates/"
+    fi
+
+    # Copy examples
+    if [ -d "$SCRIPT_DIR/examples" ]; then
+        cp -r "$SCRIPT_DIR/examples/"* "$INSTALL_SHARE/examples/"
+    else
+        [ -f "$SCRIPT_DIR/document.md" ] && cp "$SCRIPT_DIR/document.md" "$INSTALL_SHARE/examples/"
+        [ -f "$SCRIPT_DIR/example.md" ] && cp "$SCRIPT_DIR/example.md" "$INSTALL_SHARE/examples/"
+    fi
+
+    echo
+    echo -e "${PURPLE}mdtexpdf has been installed successfully.${NC}"
+    echo -e "You can now use ${GREEN}mdtexpdf${NC} command from anywhere."
+    if [[ ":$PATH:" != *":$INSTALL_BIN:"* ]]; then
+        echo -e "${YELLOW}Note: Ensure ~/.local/bin is in your PATH.${NC}"
+    fi
+    echo
+    echo -e "Use ${BLUE}mdtexpdf help${NC} to see the commands."
+    echo
 }
 
 # Function to uninstall the script
 uninstall() {
+    local INSTALL_BIN="$HOME/.local/bin"
+    local INSTALL_SHARE="$HOME/.local/share/mdtexpdf"
+
     echo
     echo -e "${GREEN}Uninstalling mdtexpdf...${NC}"
-    if sudo -v; then
-        echo -e "${YELLOW}Removing executable...${NC}"
-        sudo rm -f /usr/local/bin/mdtexpdf
 
-        echo -e "${YELLOW}Removing shared files...${NC}"
-        sudo rm -rf /usr/local/share/mdtexpdf
+    echo -e "${YELLOW}Removing executable...${NC}"
+    rm -f "$INSTALL_BIN/mdtexpdf"
 
-        echo -e "${PURPLE}mdtexpdf has been uninstalled successfully.${NC}"
-        echo
-    else
-        log_error "Failed to obtain sudo privileges. Uninstallation aborted."
-        exit $EXIT_USER_ERROR
+    echo -e "${YELLOW}Removing shared files...${NC}"
+    rm -rf "$INSTALL_SHARE"
+
+    # Also clean up old system install if it exists and we have sudo
+    if [ -f "/usr/local/bin/mdtexpdf" ]; then
+        echo -e "${YELLOW}Old system install detected at /usr/local/bin/mdtexpdf${NC}"
+        echo -e "${YELLOW}Run 'sudo rm -f /usr/local/bin/mdtexpdf && sudo rm -rf /usr/local/share/mdtexpdf' to remove it.${NC}"
     fi
+
+    echo -e "${PURPLE}mdtexpdf has been uninstalled successfully.${NC}"
+    echo
 }
 
 # Function to display help information

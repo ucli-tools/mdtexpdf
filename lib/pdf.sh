@@ -166,7 +166,7 @@ select_pdf_engine() {
 
 # Function to find Lua filter path
 # Searches in order: pwd, pwd/filters, SCRIPT_DIR, SCRIPT_DIR/filters,
-#                    /usr/local/share/mdtexpdf, /usr/local/share/mdtexpdf/filters
+#                    ~/.local/share/mdtexpdf, /usr/local/share/mdtexpdf
 # Arguments:
 #   $1 - filter_name: Name of the filter file (e.g., "index_filter.lua")
 # Returns: Full path to filter, or empty string if not found
@@ -175,8 +175,7 @@ find_lua_filter() {
     local script_dir
     script_dir="$(dirname "$(readlink -f "$0")")"
 
-    # Search order: local paths first, then system-installed paths.
-    # This ensures project-local filters override system-installed ones.
+    # Search order: local paths first, then user-installed, then system-installed.
     # 1. Current directory (root + filters/)
     if [ -f "$(pwd)/$filter_name" ]; then
         echo "$(pwd)/$filter_name"
@@ -187,7 +186,12 @@ find_lua_filter() {
         echo "$script_dir/$filter_name"
     elif [ -f "$script_dir/filters/$filter_name" ]; then
         echo "$script_dir/filters/$filter_name"
-    # 3. System-installed paths (fallback)
+    # 3. User-installed paths (~/.local)
+    elif [ -f "$HOME/.local/share/mdtexpdf/$filter_name" ]; then
+        echo "$HOME/.local/share/mdtexpdf/$filter_name"
+    elif [ -f "$HOME/.local/share/mdtexpdf/filters/$filter_name" ]; then
+        echo "$HOME/.local/share/mdtexpdf/filters/$filter_name"
+    # 4. System-installed paths (/usr/local - legacy fallback)
     elif [ -f "/usr/local/share/mdtexpdf/$filter_name" ]; then
         echo "/usr/local/share/mdtexpdf/$filter_name"
     elif [ -f "/usr/local/share/mdtexpdf/filters/$filter_name" ]; then

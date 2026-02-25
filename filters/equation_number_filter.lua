@@ -20,7 +20,10 @@ function Math(el)
 
     -- Only convert DisplayMath (not InlineMath)
     if el.mathtype == pandoc.DisplayMath then
-        local tex = "\\begin{equation}\n" .. el.text .. "\n\\end{equation}"
+        -- Strip leading/trailing whitespace from el.text to prevent blank lines
+        -- inside the equation environment (multiline $$ blocks include newlines)
+        local trimmed = el.text:match("^%s*(.-)%s*$")
+        local tex = "\\begin{equation}\n" .. trimmed .. "\n\\end{equation}"
         return pandoc.RawInline('latex', tex)
     end
 
