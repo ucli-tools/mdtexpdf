@@ -156,6 +156,22 @@ BOOK_CMDS_EOF
             \\xeCJKDeclareCharClass{Default}{"201D}  % Right double quotation mark "
             \\xeCJKDeclareCharClass{Default}{"2032}  % Prime '
             \\xeCJKDeclareCharClass{Default}{"2033}  % Double prime ″
+
+            % Unicode font switching for Greek, Egyptian, Cuneiform
+            \\usepackage{ucharclasses}
+            \\newfontfamily{\\greekfont}{CMU Serif}[
+              Path=/usr/share/texlive/texmf-dist/fonts/opentype/public/cm-unicode/,
+              Extension=.otf,
+              UprightFont=cmunrm,
+              BoldFont=cmunbx,
+              ItalicFont=cmunti,
+              BoldItalicFont=cmunbi
+            ]
+            \\newfontfamily{\\egyptfont}{Noto Sans Egyptian Hieroglyphs}
+            \\newfontfamily{\\cuneifont}{Noto Sans Cuneiform}
+            \\setTransitionsFor{GreekAndCoptic}{\\greekfont}{\\rmfamily}
+            \\setTransitionsFor{EgyptianHieroglyphs}{\\egyptfont}{\\rmfamily}
+            \\setTransitionsFor{Cuneiform}{\\cuneifont}{\\rmfamily}
         \\else
             % pdfLaTeX-specific setup
             \\usepackage[utf8]{inputenc}
