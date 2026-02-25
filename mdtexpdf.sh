@@ -85,7 +85,40 @@ convert() {
 
     # Parse metadata from YAML frontmatter if --read-metadata flag is set or EPUB output
     if [ "$ARG_READ_METADATA" = true ] || [ "$ARG_EPUB" = true ]; then
-        parse_yaml_metadata "$INPUT_FILE"
+        local _metadata_source=""
+        local _metadata_temp=""
+
+        # Priority: --metadata-file > auto-detect metadata.yaml > embedded YAML
+        if [ -n "$ARG_METADATA_FILE" ]; then
+            if [ -f "$ARG_METADATA_FILE" ]; then
+                _metadata_source="$ARG_METADATA_FILE"
+                echo -e "${GREEN}Using metadata file: $_metadata_source${NC}"
+            else
+                echo -e "${RED}Error: Metadata file '$ARG_METADATA_FILE' not found${NC}"
+                return 1
+            fi
+        else
+            # Auto-detect metadata.yaml next to the input file
+            local _input_dir
+            _input_dir=$(dirname "$INPUT_FILE")
+            if [ -f "$_input_dir/metadata.yaml" ]; then
+                _metadata_source="$_input_dir/metadata.yaml"
+                echo -e "${GREEN}Auto-detected metadata file: $_metadata_source${NC}"
+            fi
+        fi
+
+        if [ -n "$_metadata_source" ]; then
+            # Wrap standalone YAML in --- delimiters for parse_yaml_metadata
+            _metadata_temp=$(mktemp --suffix=.md)
+            printf '%s\n' "---" > "$_metadata_temp"
+            cat "$_metadata_source" >> "$_metadata_temp"
+            printf '%s\n' "---" >> "$_metadata_temp"
+            parse_yaml_metadata "$_metadata_temp"
+            rm -f "$_metadata_temp"
+        else
+            parse_yaml_metadata "$INPUT_FILE"
+        fi
+
         apply_metadata_args "$ARG_READ_METADATA"
     fi
 

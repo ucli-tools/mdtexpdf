@@ -27,6 +27,7 @@ init_convert_args() {
     ARG_SECTION_NUMBERS=$DEFAULT_SECTION_NUMBERS
     ARG_PAGE_OF=false
     ARG_READ_METADATA=false
+    ARG_METADATA_FILE=""
     ARG_FORMAT=""
     ARG_HEADER_FOOTER_POLICY="default"
     ARG_EPUB=false
@@ -67,7 +68,8 @@ show_convert_usage() {
     echo -e "  --no-footer           Disable footer"
     echo -e "  --pageof              Use 'Page X of Y' format in footer"
     echo -e "  --date-footer [FORMAT] Add date to footer (left side). Optional formats: DD/MM/YY (default), YYYY-MM-DD, \"Month Day, Year\""
-    echo -e "  --read-metadata       Read metadata from HTML comments in markdown file"
+    echo -e "  --read-metadata       Read metadata from YAML frontmatter or auto-detected metadata.yaml"
+    echo -e "  --metadata-file FILE  Read metadata from a specific YAML file"
     echo -e "  --format FORMAT       Set document format (article or book)"
     echo -e "  --header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default"
     echo -e "  --epub                Output EPUB format instead of PDF"
@@ -181,6 +183,11 @@ parse_convert_args() {
             --read-metadata)
                 ARG_READ_METADATA=true
                 shift
+                ;;
+            --metadata-file)
+                ARG_METADATA_FILE="$2"
+                ARG_READ_METADATA=true
+                shift 2
                 ;;
             --epub)
                 ARG_EPUB=true
