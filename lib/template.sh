@@ -894,7 +894,10 @@ $figure_numbering_commands
   urlcolor=cyan,
   pdftitle={\$if(title)\$\$title\$\$endif\$},
   pdfauthor={\$if(author)\$\$author\$\$endif\$},
-  pdfborder={0 0 0}
+  pdfborder={0 0 0},
+  plainpages=false,
+  pdfpagelabels=true,
+  bookmarksnumbered=true
 }
 
 % Bibliography/Citation support (CSL)
@@ -926,6 +929,10 @@ $figure_numbering_commands
 \$endfor\$
 
 \\begin{document}
+
+\$if(format_book)\$
+\\frontmatter
+\$endif\$
 
 % ============== FRONT COVER (Première de Couverture) ==============
 % Suppressed in Lulu mode (covers are uploaded separately to lulu.com)
@@ -1125,11 +1132,16 @@ ISBN: \$isbn\$\\\\[0.3cm]
 \\newpage
 \$endif\$
 
+\$if(format_book)\$
+\\mainmatter
+\$endif\$
+
 \$body\$
 
 % ============== BACK MATTER: List of Figures / List of Tables ==============
 \$if(lof)\$
 \\clearpage
+\\phantomsection
 \$if(has_parts)\$
 \\addcontentsline{toc}{part}{List of Figures}
 \$else\$
@@ -1140,6 +1152,7 @@ ISBN: \$isbn\$\\\\[0.3cm]
 
 \$if(lot)\$
 \\clearpage
+\\phantomsection
 \$if(has_parts)\$
 \\addcontentsline{toc}{part}{List of Tables}
 \$else\$
@@ -1151,6 +1164,7 @@ ISBN: \$isbn\$\\\\[0.3cm]
 % Print index if requested
 \$if(index)\$
 \\clearpage
+\\phantomsection
 \$if(has_parts)\$
 \\addcontentsline{toc}{part}{Index}
 \$else\$
@@ -1163,6 +1177,7 @@ ISBN: \$isbn\$\\\\[0.3cm]
 \$if(acknowledgments)\$
 \\clearpage
 \\thispagestyle{plain}
+\\phantomsection
 \$if(has_parts)\$
 \\addcontentsline{toc}{part}{Acknowledgments}
 \$else\$
@@ -1179,6 +1194,7 @@ ISBN: \$isbn\$\\\\[0.3cm]
 \$if(about-author)\$
 \\clearpage
 \\thispagestyle{plain}
+\\phantomsection
 \$if(has_parts)\$
 \\addcontentsline{toc}{part}{About the Author}
 \$else\$

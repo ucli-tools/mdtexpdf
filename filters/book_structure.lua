@@ -64,7 +64,7 @@ local function process_header(el)
 
     -- Preface → Unnumbered chapter with appropriate TOC level
     if string.match(header_text, '^[Pp]reface$') then
-      return pandoc.RawBlock('latex', '\\chapter*{Preface}\\addcontentsline{toc}{' .. toc_level .. '}{Preface}')
+      return pandoc.RawBlock('latex', '\\chapter*{Preface}\\phantomsection\\addcontentsline{toc}{' .. toc_level .. '}{Preface}')
     end
 
     -- Appendices/Appendix → Part-style page + switch to appendix numbering (A, B, C...)
@@ -73,7 +73,7 @@ local function process_header(el)
         return pandoc.RawBlock('latex', '\\clearpage\\part*{Appendices}\\appendix')
       else
         -- For books without parts, just use unnumbered chapter and switch to appendix mode
-        return pandoc.RawBlock('latex', '\\chapter*{Appendices}\\addcontentsline{toc}{chapter}{Appendices}\\appendix')
+        return pandoc.RawBlock('latex', '\\chapter*{Appendices}\\phantomsection\\addcontentsline{toc}{chapter}{Appendices}\\appendix')
       end
     end
 
@@ -101,62 +101,62 @@ local function process_header(el)
 
     -- Introduction → Unnumbered chapter
     if string.match(header_text, '^[Ii]ntroduction$') then
-      return pandoc.RawBlock('latex', '\\chapter*{Introduction}\\addcontentsline{toc}{' .. toc_level .. '}{Introduction}')
+      return pandoc.RawBlock('latex', '\\chapter*{Introduction}\\phantomsection\\addcontentsline{toc}{' .. toc_level .. '}{Introduction}')
     end
 
     -- Conclusion → Unnumbered chapter
     if string.match(header_text, '^[Cc]onclusion$') then
-      return pandoc.RawBlock('latex', '\\chapter*{Conclusion}\\addcontentsline{toc}{' .. toc_level .. '}{Conclusion}')
+      return pandoc.RawBlock('latex', '\\chapter*{Conclusion}\\phantomsection\\addcontentsline{toc}{' .. toc_level .. '}{Conclusion}')
     end
 
     -- Glossary → Unnumbered chapter
     if string.match(header_text, '^[Gg]lossary$') then
-      return pandoc.RawBlock('latex', '\\chapter*{Glossary}\\addcontentsline{toc}{' .. toc_level .. '}{Glossary}')
+      return pandoc.RawBlock('latex', '\\chapter*{Glossary}\\phantomsection\\addcontentsline{toc}{' .. toc_level .. '}{Glossary}')
     end
 
     -- Bibliography → Unnumbered chapter
     if string.match(header_text, '^[Bb]ibliography$') then
-      return pandoc.RawBlock('latex', '\\chapter*{Bibliography}\\addcontentsline{toc}{' .. toc_level .. '}{Bibliography}')
+      return pandoc.RawBlock('latex', '\\chapter*{Bibliography}\\phantomsection\\addcontentsline{toc}{' .. toc_level .. '}{Bibliography}')
     end
 
     -- References → Unnumbered chapter
     if string.match(header_text, '^[Rr]eferences$') then
-      return pandoc.RawBlock('latex', '\\chapter*{References}\\addcontentsline{toc}{' .. toc_level .. '}{References}')
+      return pandoc.RawBlock('latex', '\\chapter*{References}\\phantomsection\\addcontentsline{toc}{' .. toc_level .. '}{References}')
     end
 
     -- Index → Unnumbered chapter
     if string.match(header_text, '^[Ii]ndex$') then
-      return pandoc.RawBlock('latex', '\\chapter*{Index}\\addcontentsline{toc}{' .. toc_level .. '}{Index}')
+      return pandoc.RawBlock('latex', '\\chapter*{Index}\\phantomsection\\addcontentsline{toc}{' .. toc_level .. '}{Index}')
     end
 
     -- Acknowledgments/Acknowledgements → Unnumbered chapter
     if string.match(header_text, '^[Aa]cknowledg[e]?ments?$') then
-      return pandoc.RawBlock('latex', '\\chapter*{Acknowledgments}\\addcontentsline{toc}{' .. toc_level .. '}{Acknowledgments}')
+      return pandoc.RawBlock('latex', '\\chapter*{Acknowledgments}\\phantomsection\\addcontentsline{toc}{' .. toc_level .. '}{Acknowledgments}')
     end
 
     -- About the Author → Unnumbered chapter
     if string.match(header_text, '^[Aa]bout [Tt]he [Aa]uthor$') then
-      return pandoc.RawBlock('latex', '\\chapter*{About the Author}\\addcontentsline{toc}{' .. toc_level .. '}{About the Author}')
+      return pandoc.RawBlock('latex', '\\chapter*{About the Author}\\phantomsection\\addcontentsline{toc}{' .. toc_level .. '}{About the Author}')
     end
 
     -- Epilogue → Unnumbered chapter
     if string.match(header_text, '^[Ee]pilogue$') then
-      return pandoc.RawBlock('latex', '\\chapter*{Epilogue}\\addcontentsline{toc}{' .. toc_level .. '}{Epilogue}')
+      return pandoc.RawBlock('latex', '\\chapter*{Epilogue}\\phantomsection\\addcontentsline{toc}{' .. toc_level .. '}{Epilogue}')
     end
 
     -- Prologue → Unnumbered chapter
     if string.match(header_text, '^[Pp]rologue$') then
-      return pandoc.RawBlock('latex', '\\chapter*{Prologue}\\addcontentsline{toc}{' .. toc_level .. '}{Prologue}')
+      return pandoc.RawBlock('latex', '\\chapter*{Prologue}\\phantomsection\\addcontentsline{toc}{' .. toc_level .. '}{Prologue}')
     end
 
     -- Foreword → Unnumbered chapter
     if string.match(header_text, '^[Ff]oreword$') then
-      return pandoc.RawBlock('latex', '\\chapter*{Foreword}\\addcontentsline{toc}{' .. toc_level .. '}{Foreword}')
+      return pandoc.RawBlock('latex', '\\chapter*{Foreword}\\phantomsection\\addcontentsline{toc}{' .. toc_level .. '}{Foreword}')
     end
 
     -- Afterword → Unnumbered chapter
     if string.match(header_text, '^[Aa]fterword$') then
-      return pandoc.RawBlock('latex', '\\chapter*{Afterword}\\addcontentsline{toc}{' .. toc_level .. '}{Afterword}')
+      return pandoc.RawBlock('latex', '\\chapter*{Afterword}\\phantomsection\\addcontentsline{toc}{' .. toc_level .. '}{Afterword}')
     end
 
     -- ============================================
