@@ -168,8 +168,10 @@ BOOK_CMDS_EOF
     \\usepackage{lastpage} % For page X of Y numbering
     \\usepackage{graphicx}
     \\usepackage{amsmath}
+    \\usepackage{mathtools}  % Extends amsmath: paired delimiters, cases*, etc.
     \\usepackage{amssymb}
     \\usepackage{amsthm}   % For theorem and proof environments
+    \\usepackage{dutchcal}  % DCTX Calligraphic: extends \\mathcal to lowercase a-z
     \\usepackage{makeidx}  % For index generation (must load before hyperref)
     \\usepackage{hyperref}
     \\usepackage{xcolor}
