@@ -277,11 +277,18 @@ For best results with CJK content:
    ```bash
    # Ubuntu/Debian
    sudo apt-get install fonts-noto-cjk
+
+   # Arch Linux
+   sudo pacman -S --needed noto-fonts-cjk
    ```
 
 2. The xeCJK package must be available:
    ```bash
+   # Ubuntu/Debian
    sudo apt-get install texlive-lang-chinese
+
+   # Arch Linux
+   sudo pacman -S --needed texlive-langchinese
    ```
 
 3. For Arabic/Hebrew (RTL languages), additional configuration may be needed.

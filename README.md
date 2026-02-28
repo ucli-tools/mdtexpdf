@@ -113,10 +113,11 @@ mdtexpdf/
 
 - [Pandoc](https://pandoc.org/installing.html) - Markdown to LaTeX conversion
 - LaTeX distribution:
-  - Linux: TexLive (`texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-science`)
+  - Linux (Debian/Ubuntu): TexLive (`texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-science`)
+  - Linux (Arch): TexLive (`texlive-basic texlive-latex texlive-latexrecommended texlive-latexextra texlive-fontsrecommended texlive-mathscience texlive-xetex`) + Latin Modern font (`otf-latin-modern`)
   - macOS: MacTeX or BasicTeX
   - Windows: MiKTeX
-- For CJK support: Noto Sans CJK fonts (`fonts-noto-cjk` on Debian/Ubuntu)
+- For CJK support: Noto Sans CJK fonts (`fonts-noto-cjk` on Debian/Ubuntu, `noto-fonts-cjk` on Arch)
 
 ## Installation
 
@@ -140,6 +141,16 @@ mdtexpdf convert book.md --read-metadata --epub
 # Install dependencies (Ubuntu/Debian)
 sudo apt install pandoc texlive-latex-base texlive-latex-recommended \
   texlive-latex-extra texlive-fonts-recommended texlive-science texlive-xetex
+
+# Install dependencies (Arch Linux)
+sudo pacman -S --needed pandoc-cli texlive-basic texlive-latex texlive-latexrecommended \
+  texlive-latexextra texlive-fontsrecommended texlive-mathscience texlive-xetex \
+  texlive-langchinese \
+  otf-latin-modern
+
+# Optional Arch dependencies for extended template features
+# (recommended if you hit missing-package/font errors)
+sudo pacman -S --needed texlive-fontsextra
 
 # Install mdtexpdf
 git clone https://github.com/ucli-tools/mdtexpdf.git
@@ -337,6 +348,7 @@ cover_overlay_opacity: 0.3            # Dark overlay for readability
 Requires ImageMagick (`convert` command). Install with:
 ```bash
 sudo apt install imagemagick    # Debian/Ubuntu
+sudo pacman -S --needed imagemagick  # Arch Linux
 brew install imagemagick        # macOS
 ```
 
@@ -426,7 +438,9 @@ Common issues:
 1. **Missing Pandoc**: Ensure Pandoc is installed and in PATH
 2. **LaTeX errors**: Verify LaTeX distribution is complete
 3. **Long equations**: Use `\\` for manual breaks or `\begin{multline*}...\end{multline*}`
-4. **CJK characters**: Install `fonts-noto-cjk` package
+4. **CJK characters**: Install `fonts-noto-cjk` (Debian/Ubuntu) or `noto-fonts-cjk` (Arch)
+5. **fontspec "Latin Modern Roman" not found**: Install `fonts-lmodern` (Debian/Ubuntu) or `otf-latin-modern` (Arch)
+6. **`dutchcal.sty` not found**: Install `texlive-fontsextra` (Arch) or `texlive-fonts-extra` (Debian/Ubuntu)
 
 ## License
 

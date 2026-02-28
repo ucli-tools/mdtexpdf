@@ -59,15 +59,26 @@ For CJK content, you need:
    ```bash
    # Ubuntu/Debian
    sudo apt-get install fonts-noto-cjk
+
+   # Arch Linux
+   sudo pacman -S --needed noto-fonts-cjk
    ```
 3. **xeCJK package**:
    ```bash
+   # Ubuntu/Debian
    sudo apt-get install texlive-lang-chinese texlive-lang-japanese texlive-lang-korean
+
+   # Arch Linux
+   sudo pacman -S --needed texlive-langchinese texlive-langjapanese texlive-langkorean
    ```
 
 For Arabic/Hebrew:
 ```bash
+# Ubuntu/Debian
 sudo apt-get install texlive-lang-arabic
+
+# Arch Linux
+sudo pacman -S --needed texlive-langarabic
 ```
 
 ## How It Works
