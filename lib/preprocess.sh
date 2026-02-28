@@ -70,6 +70,23 @@ preprocess_markdown() {
         echo -e "${YELLOW}Using Unicode engines - CJK characters will be handled automatically by xeCJK${NC}"
     fi
 
+    # Normalize escaped angle brackets often produced by copied equations.
+    # LaTeX treats \< and \> as control sequences (undefined in many contexts),
+    # while raw < and > are valid relation symbols in math mode.
+    perl -i -pe 's/\x5c</</g; s/\x5c>/>/g' "$temp_file"
+
+    # Normalize doubly-escaped LaTeX math commands copied from some editors/docs
+    # (e.g., \epsilon, \nabla, \frac) to their proper single-backslash form.
+    perl -i -pe 's/\\\\(alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|nabla|partial|frac|sqrt|sum|prod|int|oint|infty|cdot|times|pm|mp|leq|geq|neq|approx|sim|propto|to|rightarrow|leftarrow|leftrightarrow|Rightarrow|Leftarrow|Leftrightarrow|perp|parallel|mathbf|mathrm|mathcal|mathbb|text|left|right)\b/\\$1/g' "$temp_file"
+    
+        # Normalize markdown-style escaping that leaks into math expressions
+        # (e.g., r\_L \= ...), which can break LaTeX parsing.
+        perl -i -pe 's/\\=+/=/g; s/\\\++/+/g; s/\\_([A-Za-z0-9])/_$1/g; s/\\\^([A-Za-z0-9])/^$1/g' "$temp_file"
+
+        # Collapse doubled backslashes before command names (e.g., \\ll, \\gtrsim,
+        # \\epsilon) to proper LaTeX command form.
+        perl -i -pe 's/\\\\([A-Za-z]{2,})/\\$1/g' "$temp_file"
+
     # Move the temp file back to the original
     mv "$temp_file" "$input_file"
 

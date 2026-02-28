@@ -120,55 +120,108 @@ BOOK_CMDS_EOF
     \\ifluatex
         % LuaLaTeX-specific setup
         \\usepackage{fontspec}
-        % Load fonts with Unicode support
-        \\setmainfont{Latin Modern Roman}[Ligatures=TeX]
-        \\setsansfont{Latin Modern Sans}[Ligatures=TeX]
-        \\setmonofont{Latin Modern Mono}[Ligatures=TeX]
+        % Load fonts with Unicode support (with fallbacks for minimal environments)
+        \\IfFontExistsTF{Latin Modern Roman}{
+            \\setmainfont{Latin Modern Roman}[Ligatures=TeX]
+        }{
+            \\IfFontExistsTF{TeX Gyre Termes}{
+                \\setmainfont{TeX Gyre Termes}[Ligatures=TeX]
+            }{}
+        }
+        \\IfFontExistsTF{Latin Modern Sans}{
+            \\setsansfont{Latin Modern Sans}[Ligatures=TeX]
+        }{
+            \\IfFontExistsTF{TeX Gyre Heros}{
+                \\setsansfont{TeX Gyre Heros}[Ligatures=TeX]
+            }{}
+        }
+        \\IfFontExistsTF{Latin Modern Mono}{
+            \\setmonofont{Latin Modern Mono}[Ligatures=TeX]
+        }{
+            \\IfFontExistsTF{TeX Gyre Cursor}{
+                \\setmonofont{TeX Gyre Cursor}[Ligatures=TeX]
+            }{}
+        }
     \\else
         \\ifxetex
             % XeLaTeX-specific setup
             \\usepackage{fontspec}
-            % Load fonts with Unicode support
-            \\setmainfont{Latin Modern Roman}[Ligatures=TeX]
-            \\setsansfont{Latin Modern Sans}[Ligatures=TeX]
-            \\setmonofont{Latin Modern Mono}[Ligatures=TeX]
+            % Load fonts with Unicode support (with fallbacks for minimal environments)
+            \\IfFontExistsTF{Latin Modern Roman}{
+                \\setmainfont{Latin Modern Roman}[Ligatures=TeX]
+            }{
+                \\IfFontExistsTF{TeX Gyre Termes}{
+                    \\setmainfont{TeX Gyre Termes}[Ligatures=TeX]
+                }{}
+            }
+            \\IfFontExistsTF{Latin Modern Sans}{
+                \\setsansfont{Latin Modern Sans}[Ligatures=TeX]
+            }{
+                \\IfFontExistsTF{TeX Gyre Heros}{
+                    \\setsansfont{TeX Gyre Heros}[Ligatures=TeX]
+                }{}
+            }
+            \\IfFontExistsTF{Latin Modern Mono}{
+                \\setmonofont{Latin Modern Mono}[Ligatures=TeX]
+            }{
+                \\IfFontExistsTF{TeX Gyre Cursor}{
+                    \\setmonofont{TeX Gyre Cursor}[Ligatures=TeX]
+                }{}
+            }
 
             % Additional Unicode font setup for CJK characters (after packages are loaded)
-            % Use xeCJK with minimal punctuation interference to preserve Western quote formatting
-            \\usepackage{xeCJK}
-            \\setCJKmainfont{Noto Sans CJK SC}
-            \\setCJKsansfont{Noto Sans CJK SC}
-            \\setCJKmonofont{Noto Sans Mono CJK SC}
-            % Configure xeCJK to minimize punctuation effects
-            \\xeCJKsetup{
-                AutoFakeBold=false,
-                AutoFakeSlant=false,
-                CheckSingle=false,
-                PunctStyle=plain
+            % Load xeCJK only when available to avoid hard failures in minimal environments
+            \\IfFileExists{xeCJK.sty}{
+                \\usepackage{xeCJK}
+                \\IfFontExistsTF{Noto Sans CJK SC}{
+                    \\setCJKmainfont{Noto Sans CJK SC}
+                    \\setCJKsansfont{Noto Sans CJK SC}
+                }{}
+                \\IfFontExistsTF{Noto Sans Mono CJK SC}{
+                    \\setCJKmonofont{Noto Sans Mono CJK SC}
+                }{}
+                % Configure xeCJK to minimize punctuation effects
+                \\xeCJKsetup{
+                    AutoFakeBold=false,
+                    AutoFakeSlant=false,
+                    CheckSingle=false,
+                    PunctStyle=plain
+                }
+                % Declare Western quotation marks as Default class so xeCJK doesn't process them
+                % This preserves Western quote formatting even when CJK characters are present
+                \\xeCJKDeclareCharClass{Default}{"0022}  % ASCII double quote "
+                \\xeCJKDeclareCharClass{Default}{"0027}  % ASCII single quote '
+                \\xeCJKDeclareCharClass{Default}{"2018}  % Left single quotation mark '
+                \\xeCJKDeclareCharClass{Default}{"2019}  % Right single quotation mark '
+                \\xeCJKDeclareCharClass{Default}{"201C}  % Left double quotation mark "
+                \\xeCJKDeclareCharClass{Default}{"201D}  % Right double quotation mark "
+                \\xeCJKDeclareCharClass{Default}{"2032}  % Prime '
+                \\xeCJKDeclareCharClass{Default}{"2033}  % Double prime ″
+            }{
+                \\PackageWarningNoLine{mdtexpdf}{xeCJK.sty not found; CJK typography enhancements disabled}
             }
-            % Declare Western quotation marks as Default class so xeCJK doesn't process them
-            % This preserves Western quote formatting even when CJK characters are present
-            \\xeCJKDeclareCharClass{Default}{"0022}  % ASCII double quote "
-            \\xeCJKDeclareCharClass{Default}{"0027}  % ASCII single quote '
-            \\xeCJKDeclareCharClass{Default}{"2018}  % Left single quotation mark '
-            \\xeCJKDeclareCharClass{Default}{"2019}  % Right single quotation mark '
-            \\xeCJKDeclareCharClass{Default}{"201C}  % Left double quotation mark "
-            \\xeCJKDeclareCharClass{Default}{"201D}  % Right double quotation mark "
-            \\xeCJKDeclareCharClass{Default}{"2032}  % Prime '
-            \\xeCJKDeclareCharClass{Default}{"2033}  % Double prime ″
 
             % Unicode font switching for Greek, Egyptian, Cuneiform
             \\usepackage{ucharclasses}
-            \\newfontfamily{\\greekfont}{CMU Serif}[
-              Path=/usr/share/texlive/texmf-dist/fonts/opentype/public/cm-unicode/,
-              Extension=.otf,
-              UprightFont=cmunrm,
-              BoldFont=cmunbx,
-              ItalicFont=cmunti,
-              BoldItalicFont=cmunbi
-            ]
-            \\newfontfamily{\\egyptfont}{Noto Sans Egyptian Hieroglyphs}
-            \\newfontfamily{\\cuneifont}{Noto Sans Cuneiform}
+            \\IfFontExistsTF{CMU Serif}{
+                \\newfontfamily{\\greekfont}{CMU Serif}[Ligatures=TeX]
+            }{
+                \\IfFontExistsTF{Latin Modern Roman}{
+                    \\newfontfamily{\\greekfont}{Latin Modern Roman}[Ligatures=TeX]
+                }{
+                    \\newcommand{\\greekfont}{\\rmfamily}
+                }
+            }
+            \\IfFontExistsTF{Noto Sans Egyptian Hieroglyphs}{
+                \\newfontfamily{\\egyptfont}{Noto Sans Egyptian Hieroglyphs}
+            }{
+                \\newcommand{\\egyptfont}{\\rmfamily}
+            }
+            \\IfFontExistsTF{Noto Sans Cuneiform}{
+                \\newfontfamily{\\cuneifont}{Noto Sans Cuneiform}
+            }{
+                \\newcommand{\\cuneifont}{\\rmfamily}
+            }
             \\setTransitionsFor{GreekAndCoptic}{\\greekfont}{\\rmfamily}
             \\setTransitionsFor{EgyptianHieroglyphs}{\\egyptfont}{\\rmfamily}
             \\setTransitionsFor{Cuneiform}{\\cuneifont}{\\rmfamily}
@@ -187,7 +240,12 @@ BOOK_CMDS_EOF
     \\usepackage{mathtools}  % Extends amsmath: paired delimiters, cases*, etc.
     \\usepackage{amssymb}
     \\usepackage{amsthm}   % For theorem and proof environments
-    \\usepackage{dutchcal}  % DCTX Calligraphic: extends \\mathcal to lowercase a-z
+    % Optional: DCTX Calligraphic extends \\mathcal to lowercase a-z
+    \\IfFileExists{dutchcal.sty}{
+        \\usepackage{dutchcal}
+    }{
+        \\PackageWarningNoLine{mdtexpdf}{dutchcal.sty not found; using default \\mathcal behavior}
+    }
     \\usepackage{makeidx}  % For index generation (must load before hyperref)
     \\usepackage{hyperref}
     \\usepackage{xcolor}
@@ -254,6 +312,11 @@ BOOK_CMDS_EOF
 
     % Define \\passthrough command, sometimes used by Pandoc with --listings
     \\providecommand{\\passthrough}[1]{#1}
+
+    % Compatibility shim for escaped angle brackets seen in some math-heavy sources
+    % (e.g., "\\<" and "\\>"). Prefer plain "<" and ">" in math when editing source.
+    \\providecommand{\\<}{\\ifmmode\\mathrel{<}\\else<\\fi}
+    \\providecommand{\\>}{\\ifmmode\\mathrel{>}\\else>\\fi}
 
     % Define common mathematical Unicode characters
     \\ifluatex\\else\\ifxetex\\else
