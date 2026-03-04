@@ -29,7 +29,7 @@ local function pass1_detect_parts(doc)
     for _, block in ipairs(doc.blocks) do
         if block.t == "Header" then
             local header_text = pandoc.utils.stringify(block.content)
-            if string.match(header_text, '^[Pp]art %d+:') then
+            if string.match(header_text, '^[Pp]art %d+:') or string.match(header_text, '^[Pp]art [IVXLCDM]+:') then
                 has_parts = true
                 break
             end
@@ -56,9 +56,9 @@ local function process_header(el)
     -- PART-STYLE PAGES (full page with large title)
     -- ============================================
 
-    -- Check for "Part X: ..." pattern, case-insensitive
-    if string.match(header_text, '^[Pp]art %d+:') then
-      local part_title = string.gsub(header_text, '^[Pp]art %d+: *', '')
+    -- Check for "Part X: ..." pattern, case-insensitive (Arabic or Roman numerals)
+    if string.match(header_text, '^[Pp]art %d+:') or string.match(header_text, '^[Pp]art [IVXLCDM]+:') then
+      local part_title = string.gsub(header_text, '^[Pp]art [%dIVXLCDM]+: *', '')
       return pandoc.RawBlock('latex', '\\clearpage\\part{' .. part_title .. '}')
     end
 
