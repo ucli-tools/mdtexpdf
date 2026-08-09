@@ -888,7 +888,7 @@ $figure_numbering_commands
 \$if(author)\$
 \$if(format_book)\$
 \$if(email)\$
-\\author{\$author\$ --- \$email\$}
+\\author{\$author\$, \$email\$}
 \$else\$
 \\author{\$author\$}
 \$endif\$
@@ -1033,7 +1033,7 @@ $figure_numbering_commands
 {\\LARGE \\itshape \\nohyphens{\$subtitle\$}}\\\\[1.5cm]
 \$endif\$
 \$if(author)\$
-{\\large \$author\$ \$if(email)\$ --- \$email\$ \$endif\$}\\\\[1cm]
+{\\large \$author\$\$if(email)\$, \$email\$\$endif\$}\\\\[1cm]
 \$endif\$
 \$if(date)\$
 {\\large \$date\$}
@@ -1080,7 +1080,7 @@ Published by \$publisher\$\\\\[0.3cm]
 ISBN: \$isbn\$\\\\[0.3cm]
 \$endif\$
 \$if(edition)\$
-\$edition\$\$if(edition_date)\$ --- \$edition_date\$\$endif\$\\\\[0.3cm]
+\$edition\$\$if(edition_date)\$, \$edition_date\$\$endif\$\\\\[0.3cm]
 \$endif\$
 \$if(printing)\$
 \$printing\$\\\\[0.3cm]
@@ -1134,7 +1134,7 @@ ISBN: \$isbn\$\\\\[0.3cm]
 \\textit{``\$epigraph\$''}
 \$if(epigraph_source)\$
 \\\\[0.5cm]
-\\hfill--- \$epigraph_source\$
+\\hfill \$epigraph_source\$
 \$endif\$
 \\end{minipage}
 \\end{center}
@@ -1265,7 +1265,7 @@ ISBN: \$isbn\$\\\\[0.3cm]
   \\node[\$if(back_cover_text_background)\$fill=\$if(back_cover_text_color)\$\$if(back_cover_text_color_is_white)\$black\$else\$white\$endif\$\$elseif(cover_title_color_is_white)\$black\$else\$white\$endif\$, fill opacity=\$if(back_cover_text_background_opacity)\$\$back_cover_text_background_opacity\$\$else\$0.18\$endif\$, text opacity=1, rounded corners=6pt, inner sep=0.25in,\$endif\$ text=\$if(back_cover_text_color)\$\$back_cover_text_color\$\$elseif(cover_title_color)\$\$cover_title_color\$\$else\$white\$endif\$,font=\\large,align=center,text width=0.7\\paperwidth,anchor=north] at ([yshift=-0.08\\paperheight]current page.north) {
     \$if(back_cover_quote)\$
     {\\itshape ``\$back_cover_quote\$''}
-    \$if(back_cover_quote_source)\$\\\\[0.5cm]--- \$back_cover_quote_source\$\$endif\$
+    \$if(back_cover_quote_source)\$\\\\[0.5cm]\$back_cover_quote_source\$\$endif\$
     \$elseif(back_cover_summary)\$
     \$back_cover_summary\$
     \$elseif(back_cover_text)\$
