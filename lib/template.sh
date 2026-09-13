@@ -47,7 +47,10 @@ create_template_file() {
     if [ "$section_numbers" = "false" ]; then
         # secnumdepth=-2 suppresses all numbering including "Chapter N" prefix
         # \chaptername{} removes the word "Chapter" from chapter headings
-        numbering_commands="\\setcounter{secnumdepth}{-2}\\renewcommand{\\chaptername}{}"
+        numbering_commands="\\setcounter{secnumdepth}{-2}"
+        if [ "$format" = "book" ]; then
+            numbering_commands+="\\renewcommand{\\chaptername}{}"
+        fi
     fi
 
     # Suppress automatic figure numbering when document has its own numbering

@@ -352,6 +352,7 @@ install() {
     _install_filter "long_equation_filter.lua" "long equations"
     _install_filter "image_size_filter.lua" "image sizing"
     _install_filter "table_size_filter.lua" "wide tables"
+    _install_filter "epub_latex_filter.lua" "EPUB TikZ and print layout"
     _install_filter "book_structure.lua" "book format" "."
     _install_filter "drop_caps_filter.lua" "drop caps" "."
     _install_filter "index_filter.lua" "subject index"
@@ -539,6 +540,7 @@ case "$1" in
     convert)
         shift
         convert "$@"
+        exit $?
         ;;
     create)
         shift

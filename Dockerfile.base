@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-xetex \
     texlive-luatex \
     imagemagick \
+    poppler-utils \
     fonts-dejavu \
     fonts-noto-cjk \
     bash \

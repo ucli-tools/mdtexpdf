@@ -649,10 +649,18 @@ _setup_epub_bibliography() {
 # Returns: 0 on success, 1 on failure
 _execute_epub_pandoc() {
     _EPUB_CMD="$_EPUB_CMD $_EPUB_OPTS --standalone"
-
-    echo -e "${BLUE}Running: $_EPUB_CMD${NC}"
-    eval "$_EPUB_CMD"
-    local epub_result=$?
+    local filter_path quoted_filter epub_result
+    filter_path=$(find_lua_filter "epub_latex_filter.lua")
+    if [ -z "$filter_path" ]; then
+        echo -e "${RED}Error: epub_latex_filter.lua is missing; reinstall mdtexpdf.${NC}"
+        epub_result=1
+    else
+        printf -v quoted_filter '%q' "$filter_path"
+        _EPUB_CMD="$_EPUB_CMD --lua-filter=$quoted_filter"
+        echo -e "${BLUE}Running: $_EPUB_CMD${NC}"
+        eval "$_EPUB_CMD"
+        epub_result=$?
+    fi
 
     # Cleanup temp files
     rm -f "$_EPUB_TEMP_INPUT"

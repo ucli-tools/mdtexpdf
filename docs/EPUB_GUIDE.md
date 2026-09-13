@@ -238,6 +238,29 @@ epigraph_source: "Plato"
 - **Simple tables**: Single-row headers
 - **Images**: JPG, PNG, GIF
 
+### TikZ drawings and print layout
+
+EPUB export renders self-contained `tikzpicture` blocks, including those inside
+LaTeX `figure` environments, as embedded PNG images at 144 dpi. Document
+`header-includes` supply packages, TikZ libraries, and macro definitions. Rendering
+uses XeLaTeX with shell escape disabled and Poppler's `pdftoppm`; on Debian/Ubuntu
+install `texlive-xetex texlive-latex-extra texlive-pictures poppler-utils`.
+A failed drawing render fails the conversion;
+the original Markdown is restored.
+
+Artwork is centered, limited to the reading width, and given 36pt of padding above
+and below. Existing captions remain visible. Uncaptioned artwork has no added
+label or caption and uses empty alternative text for decorative images. Supply a
+caption when a diagram conveys information the surrounding prose does not explain.
+E-readers may adapt spacing to the screen and reading preferences.
+
+`minipage` and `samepage` wrappers around Markdown prose are removed for EPUB,
+including paragraph spacing commands; their contents keep normal Markdown
+formatting and reflow naturally. Literal examples in Markdown code blocks remain
+code. This support does not convert arbitrary LaTeX documents: custom environments,
+external files used by drawings, and document-wide page-layout settings may need
+adaptation. Inspect the EPUB in a reader as well as running structural validation.
+
 ### What Has Limitations in EPUB
 
 | Feature | EPUB Behavior |

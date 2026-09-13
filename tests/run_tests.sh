@@ -1783,6 +1783,11 @@ if [ -f "$SCRIPT_DIR/test_regression.sh" ]; then
     fi
 fi
 
+# Verify EPUB contents, not just successful ZIP creation.
+if ! python3 "$SCRIPT_DIR/test_epub_latex.py"; then
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+fi
+
 # Summary
 echo -e "\n${YELLOW}═══════════════════════════════════════════${NC}"
 echo -e "${YELLOW}                 Summary                   ${NC}"

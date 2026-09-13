@@ -320,6 +320,8 @@ mdtexpdf convert document.md --read-metadata --epub  # With YAML metadata
 - **Front Matter**: Title page, copyright, dedication, and epigraph as separate pages
 - **Table of Contents**: Automatic TOC generation with customizable depth
 - **Same Metadata**: Uses the same YAML frontmatter as PDF output
+- **TikZ Drawings**: Embedded PNG artwork with surrounding space; existing captions are retained
+- **Print Layout**: Markdown inside `minipage` and `samepage` remains readable in reflowable EPUB
 
 ### Cover Generation
 

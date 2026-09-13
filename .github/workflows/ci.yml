@@ -33,7 +33,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pandoc texlive-latex-base texlive-latex-recommended \
             texlive-latex-extra texlive-fonts-recommended texlive-science \
-            texlive-xetex imagemagick fonts-dejavu
+            texlive-xetex imagemagick poppler-utils fonts-dejavu
 
       - name: Run tests
         run: ./tests/run_tests.sh
@@ -50,7 +50,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pandoc texlive-latex-base texlive-latex-recommended \
             texlive-latex-extra texlive-fonts-recommended texlive-science \
-            texlive-xetex imagemagick fonts-dejavu fonts-noto-cjk
+            texlive-xetex imagemagick poppler-utils fonts-dejavu fonts-noto-cjk
 
       - name: Build example1 (basic)
         run: |
