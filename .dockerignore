@@ -9,7 +9,8 @@ examples/
 !README.md
 
 # Tests
-tests/
+tests/*
+!tests/docker_smoke.sh
 
 # Templates (users provide their own)
 templates/

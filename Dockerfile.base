@@ -30,7 +30,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-dejavu \
     fonts-noto-cjk \
     bash \
+    curl \
+    zip \
+    unzip \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Metadata parsing requires Mike Farah's yq v4, not Ubuntu's Python yq package.
+ARG TARGETARCH
+RUN set -eu; \
+    case "$TARGETARCH" in \
+      amd64) yq_sha=c5f056448f973ae7d39b5401949648a78f2dc1947d6a8eb65be60d5c504b9385 ;; \
+      arm64) yq_sha=88a1016bc1d657375a35864e4f44b6f333df8ff97b559f51bba0adcb2169df09 ;; \
+      *) echo "Unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
+    esac; \
+    curl --fail --location --retry 3 \
+      "https://github.com/mikefarah/yq/releases/download/v4.53.6/yq_linux_${TARGETARCH}" \
+      --output /usr/local/bin/yq; \
+    printf '%s  /usr/local/bin/yq\n' "$yq_sha" | sha256sum --check -; \
+    chmod 755 /usr/local/bin/yq
 
 WORKDIR /work

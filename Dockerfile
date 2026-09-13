@@ -19,5 +19,8 @@ COPY filters/ /usr/local/share/mdtexpdf/filters/
 
 RUN chmod +x /usr/local/bin/mdtexpdf
 
+COPY tests/docker_smoke.sh /tmp/mdtexpdf-docker-smoke.sh
+RUN bash /tmp/mdtexpdf-docker-smoke.sh && rm /tmp/mdtexpdf-docker-smoke.sh
+
 ENTRYPOINT ["mdtexpdf"]
 CMD ["help"]
