@@ -118,6 +118,28 @@ After the lists.
         loose_gap = positions["LooseBeta"] - positions["LooseAlpha"]
         self.assertGreater(loose_gap, tight_gap + 3.0, (tight_gap, loose_gap))
 
+    def test_deep_headings_preserve_inline_markup_and_special_characters(self):
+        source = r'''---
+title: Deep headings
+---
+
+# Deep headings
+
+#### Account_name costs $5 at 100%: [docs](https://example.com) with *emphasis*, `code_value`, and $x_1$
+
+Level four body.
+
+##### Child_name keeps $9 and 50% with **strength**, `child_code`, and $y_2$
+
+Level five body.
+'''
+        _, output = self.convert(source)
+        text = self.pdf_text(output)
+        for phrase in ["Account_name costs $5 at 100%", "docs", "emphasis",
+                       "code_value", "Child_name keeps $9 and 50%",
+                       "strength", "child_code"]:
+            self.assertIn(phrase, text)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
