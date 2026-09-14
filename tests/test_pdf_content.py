@@ -67,6 +67,24 @@ class PdfContentTests(unittest.TestCase):
             if word.tag.endswith("word")
         }
 
+    def word_records(self, pdf):
+        result = subprocess.run(
+            ["pdftotext", "-bbox-layout", str(pdf), "-"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        root = ET.fromstring(result.stdout)
+        return [
+            {
+                "text": word.text or "",
+                "x": float(word.attrib["xMin"]),
+                "y": float(word.attrib["yMin"]),
+            }
+            for word in root.iter()
+            if word.tag.endswith("word")
+        ]
+
     def test_literal_code_characters_survive_conversion(self):
         source = r'''---
 title: Literal code characters
@@ -159,10 +177,10 @@ Normal: ∀ x ∈ ℝ, x² ≥ 0; ∃ y ∈ ℤ; H₂O; α → β; ∞; 𝕆¹; 
 Inline code: `forall = "∀"; member = "∈"; limit = "∞"; water = "H₂O"`.
 
 ```python
-forall = "∀"
-member = "∈"
-limit = "∞"
-water = "H₂O"
+first_symbol = "∀"
+second_symbol = "∈"
+if second_symbol:
+    indented_value = "∞"
 ```
 
 Operators: ∉ ∋ ⊂ ⊃ ⊆ ⊇ ∪ ∩ ∧ ∨ ⊗ ◁ ⇌ ≈ ≡ ∼ ∝ ∂ ∇ ∫ ∑ ∏ √.
@@ -184,6 +202,26 @@ Math: $\forall x \in \mathbb{R}, x^2 \ge 0$.
             self.assertIn(phrase, text)
         for symbol in ["∀", "∈", "∞", "α", "→"]:
             self.assertIn(symbol, text)
+        self.assertNotIn("[]", text)
+        self.assertNotIn("”", text)
+        self.assertNotIn("“", text)
+        for line in ['first_symbol = "∀"', 'second_symbol = "∈"',
+                     'if second_symbol:', 'indented_value = "∞"']:
+            self.assertTrue(
+                any(candidate.strip() == line for candidate in text.splitlines()),
+                (line, text),
+            )
+
+        records = self.word_records(output)
+        code_words = {}
+        for expected in ["first_symbol", "second_symbol", "if", "indented_value"]:
+            matches = [record for record in records if record["text"] == expected]
+            self.assertEqual(len(matches), 1, (expected, matches))
+            code_words[expected] = matches[0]
+        self.assertLess(code_words["first_symbol"]["y"], code_words["second_symbol"]["y"])
+        self.assertLess(code_words["second_symbol"]["y"], code_words["if"]["y"])
+        self.assertLess(code_words["if"]["y"], code_words["indented_value"]["y"])
+        self.assertGreater(code_words["indented_value"]["x"], code_words["if"]["x"])
 
     def test_latex_failures_report_a_concise_diagnostic(self):
         source = r'''---

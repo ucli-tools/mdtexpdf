@@ -126,7 +126,7 @@ BOOK_CMDS_EOF
         % Load fonts with Unicode support
         \\setmainfont{DejaVu Serif}[Ligatures=TeX]
         \\setsansfont{DejaVu Sans}[Ligatures=TeX]
-        \\setmonofont{DejaVu Sans Mono}[Ligatures=TeX]
+        \\setmonofont{DejaVu Sans Mono}
     \\else
         \\ifxetex
             % XeLaTeX-specific setup
@@ -134,7 +134,7 @@ BOOK_CMDS_EOF
             % Load fonts with Unicode support
             \\setmainfont{DejaVu Serif}[Ligatures=TeX]
             \\setsansfont{DejaVu Sans}[Ligatures=TeX]
-            \\setmonofont{DejaVu Sans Mono}[Ligatures=TeX]
+            \\setmonofont{DejaVu Sans Mono}
 
             % Additional Unicode font setup for CJK characters (after packages are loaded)
             % Use xeCJK with minimal punctuation interference to preserve Western quote formatting
@@ -865,7 +865,7 @@ $figure_numbering_commands
 % Define Pandoc's code highlighting environments
 \\definecolor{shadecolor}{RGB}{248,248,248}
 \\newenvironment{Shaded}{\\begin{snugshade}}{\\end{snugshade}}
-\\newenvironment{Highlighting}{}{}
+\\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\\\\{\\}}
 \\newcommand{\\HighlightingOn}{}
 \\newcommand{\\HighlightingOff}{}
 \\newcommand{\\KeywordTok}[1]{\\textcolor[rgb]{0.13,0.29,0.53}{\\textbf{#1}}}
