@@ -140,6 +140,45 @@ Level five body.
                        "strength", "child_code"]:
             self.assertIn(phrase, text)
 
+    def test_unicode_math_symbols_render_in_prose_styles_and_code(self):
+        source = r'''---
+title: Unicode mathematical symbols
+---
+
+# Unicode mathematical symbols
+
+Normal: ∀ x ∈ ℝ, x² ≥ 0; ∃ y ∈ ℤ; H₂O; α → β; ∞; 𝕆¹; 𝕊¹.
+
+**Bold: ∀ x ∈ ℝ, x² ≥ 0 and H₂O.**
+
+*Italic: ∃ y ∈ ℤ, y ≠ 0 and α → β.*
+
+Inline code: `forall = "∀"; member = "∈"; limit = "∞"; water = "H₂O"`.
+
+```python
+forall = "∀"
+member = "∈"
+limit = "∞"
+water = "H₂O"
+```
+
+Operators: ∉ ∋ ⊂ ⊃ ⊆ ⊇ ∪ ∩ ∧ ∨ ⊗ ◁ ⇌ ≈ ≡ ∼ ∝ ∂ ∇ ∫ ∑ ∏ √.
+
+Math: $\forall x \in \mathbb{R}, x^2 \ge 0$.
+'''
+        result, output = self.convert(source)
+        diagnostics = result.stdout + result.stderr
+        self.assertIn("xelatex", diagnostics)
+        self.assertNotIn("Missing character", diagnostics)
+        self.assertNotIn("CJK characters", diagnostics)
+
+        text = self.pdf_text(output)
+        for phrase in ["Unicode mathematical symbols", "Normal:", "Bold:",
+                       "Italic:", "Inline code:", "Operators:", "Math:"]:
+            self.assertIn(phrase, text)
+        for symbol in ["∀", "∈", "∞", "α", "→"]:
+            self.assertIn(symbol, text)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

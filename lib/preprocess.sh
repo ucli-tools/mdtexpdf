@@ -66,8 +66,10 @@ preprocess_markdown() {
 
         # All other Unicode characters are handled by \newunicodechar in the template
     else
-        # For LuaLaTeX and XeLaTeX, CJK characters will be handled automatically by xeCJK
-        echo -e "${YELLOW}Using Unicode engines - CJK characters will be handled automatically by xeCJK${NC}"
+        echo -e "${YELLOW}Using a Unicode-capable LaTeX engine${NC}"
+        if detect_cjk_characters "$input_file"; then
+            echo -e "${YELLOW}CJK characters will be handled by xeCJK${NC}"
+        fi
     fi
 
     # Move the temp file back to the original

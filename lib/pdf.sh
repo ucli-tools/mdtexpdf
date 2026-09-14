@@ -5,6 +5,7 @@
 # PDF generation helper functions
 #
 # This module provides:
+#   - detect_cjk_characters() - Check if document contains CJK text
 #   - detect_unicode_characters() - Check if document needs Unicode engine
 #   - detect_cover_image() - Auto-detect cover images
 #   - truncate_address() - Truncate long addresses for display
@@ -13,6 +14,26 @@
 #
 # Dependencies: lib/core.sh (for logging functions)
 # =============================================================================
+
+# Function to detect CJK characters
+# Arguments:
+#   $1 - input_file: Path to markdown file
+# Returns: 0 if CJK characters found, 1 otherwise
+detect_cjk_characters() {
+    local input_file="$1"
+
+    grep -qP '[\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{20000}-\x{2A6DF}\x{2A700}-\x{2B73F}\x{2B740}-\x{2B81F}\x{2B820}-\x{2CEAF}]' "$input_file" 2>/dev/null
+}
+
+detect_egyptian_characters() {
+    local input_file="$1"
+    grep -qP '[\x{13000}-\x{1342F}]' "$input_file" 2>/dev/null
+}
+
+detect_cuneiform_characters() {
+    local input_file="$1"
+    grep -qP '[\x{12000}-\x{1247F}]' "$input_file" 2>/dev/null
+}
 
 # Function to detect Unicode characters that require Unicode engines
 # Arguments:
@@ -28,8 +49,15 @@ detect_unicode_characters() {
     # CJK Extension C: U+2A700-U+2B73F
     # CJK Extension D: U+2B740-U+2B81F
     # CJK Extension E: U+2B820-U+2CEAF
-    if grep -qP '[\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{20000}-\x{2A6DF}\x{2A700}-\x{2B73F}\x{2B740}-\x{2B81F}\x{2B820}-\x{2CEAF}]' "$input_file"; then
+    if detect_cjk_characters "$input_file"; then
         return 0  # Found CJK characters
+    fi
+
+    # Greek, superscripts/subscripts, letterlike symbols, arrows, mathematical
+    # operators, supplemental operators, and mathematical alphanumeric symbols.
+    # These appear both in prose and in code examples and need a Unicode engine.
+    if grep -qP '[\x{0370}-\x{03FF}\x{1F00}-\x{1FFF}\x{2070}-\x{209F}\x{2100}-\x{214F}\x{2190}-\x{22FF}\x{27C0}-\x{27EF}\x{2980}-\x{2AFF}\x{1D400}-\x{1D7FF}]' "$input_file" 2>/dev/null; then
+        return 0
     fi
 
     # Check for other Unicode characters that might not be supported by pdfLaTeX
@@ -143,7 +171,9 @@ select_pdf_engine() {
         if [ "$XELATEX_AVAILABLE" = true ]; then
             PDF_ENGINE="xelatex"
             log_success "Selected XeLaTeX engine for Unicode support"
-            log_verbose "Note: CJK characters (Chinese, Japanese, Korean) will be handled automatically by xeCJK"
+            if detect_cjk_characters "$input_file"; then
+                log_verbose "CJK characters will be handled by xeCJK"
+            fi
             log_verbose "Some font fallback warnings may appear during compilation, but characters will render correctly."
         elif [ "$LUALATEX_AVAILABLE" = true ]; then
             PDF_ENGINE="lualatex"
@@ -209,6 +239,9 @@ find_lua_filter() {
 }
 
 # Export functions for use in main script
+export -f detect_cjk_characters 2>/dev/null || true
+export -f detect_egyptian_characters 2>/dev/null || true
+export -f detect_cuneiform_characters 2>/dev/null || true
 export -f detect_unicode_characters 2>/dev/null || true
 export -f detect_cover_image 2>/dev/null || true
 export -f truncate_address 2>/dev/null || true

@@ -909,6 +909,25 @@ test_pdf_unicode_detection_cjk() {
     rm -f "$test_md"
 }
 
+test_pdf_unicode_detection_math_symbols() {
+    test_start "detect_unicode_characters finds mathematical symbols"
+
+    local test_md="$TEST_OUTPUT/test_unicode_math.md"
+    echo "For every x: ∀ x ∈ ℝ" > "$test_md"
+
+    (
+        source "$LIB_DIR/pdf.sh"
+        detect_unicode_characters "$test_md"
+    )
+    if [ $? -eq 0 ]; then
+        test_pass
+    else
+        test_fail "Failed to detect mathematical Unicode characters"
+    fi
+
+    rm -f "$test_md"
+}
+
 test_pdf_unicode_detection_ascii() {
     test_start "detect_unicode_characters returns false for ASCII"
 
@@ -1066,6 +1085,7 @@ test_pdf_detect_cover_function
 test_pdf_truncate_address_function
 test_pdf_truncate_address_output
 test_pdf_unicode_detection_cjk
+test_pdf_unicode_detection_math_symbols
 test_pdf_unicode_detection_ascii
 test_pdf_find_lua_filter_function
 
