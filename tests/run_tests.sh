@@ -1788,6 +1788,11 @@ if ! python3 "$SCRIPT_DIR/test_epub_latex.py"; then
     TESTS_FAILED=$((TESTS_FAILED + 1))
 fi
 
+# Verify the semantic content of generated PDFs.
+if ! python3 "$SCRIPT_DIR/test_pdf_content.py"; then
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+fi
+
 # Summary
 echo -e "\n${YELLOW}═══════════════════════════════════════════${NC}"
 echo -e "${YELLOW}                 Summary                   ${NC}"

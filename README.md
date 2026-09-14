@@ -113,10 +113,12 @@ mdtexpdf/
 
 - [Pandoc](https://pandoc.org/installing.html) - Markdown to LaTeX conversion
 - LaTeX distribution:
-  - Linux: TexLive (`texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-science`)
+  - Debian/Ubuntu: TeX Live (`texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-fonts-extra texlive-science texlive-xetex`)
+  - Arch Linux: TeX Live (`texlive-latexextra texlive-fontsextra texlive-mathscience texlive-xetex`)
   - macOS: MacTeX or BasicTeX
   - Windows: MiKTeX
-- For CJK support: Noto Sans CJK fonts (`fonts-noto-cjk` on Debian/Ubuntu)
+- DejaVu fonts for Unicode prose and code (`fonts-dejavu` on Debian/Ubuntu, `ttf-dejavu` on Arch Linux)
+- For CJK support: Noto Sans CJK fonts and xeCJK (`fonts-noto-cjk texlive-lang-chinese` on Debian/Ubuntu, `noto-fonts-cjk texlive-langchinese` on Arch Linux)
 
 ## Installation
 
@@ -139,7 +141,16 @@ mdtexpdf convert book.md --read-metadata --epub
 ```bash
 # Install dependencies (Ubuntu/Debian)
 sudo apt install pandoc texlive-latex-base texlive-latex-recommended \
-  texlive-latex-extra texlive-fonts-recommended texlive-science texlive-xetex
+  texlive-latex-extra texlive-fonts-recommended texlive-fonts-extra \
+  texlive-science texlive-xetex fonts-dejavu imagemagick poppler-utils
+
+# Install dependencies (Arch Linux)
+sudo pacman -S --needed pandoc-cli texlive-latexextra texlive-fontsextra \
+  texlive-mathscience texlive-xetex ttf-dejavu imagemagick poppler
+
+# Add CJK support when needed (Arch Linux)
+sudo pacman -S --needed noto-fonts-cjk texlive-langchinese \
+  texlive-langjapanese texlive-langkorean
 
 # Install mdtexpdf
 git clone https://github.com/ucli-tools/mdtexpdf.git
@@ -339,6 +350,7 @@ cover_overlay_opacity: 0.3            # Dark overlay for readability
 Requires ImageMagick (`convert` command). Install with:
 ```bash
 sudo apt install imagemagick    # Debian/Ubuntu
+sudo pacman -S --needed imagemagick  # Arch Linux
 brew install imagemagick        # macOS
 ```
 
@@ -428,11 +440,14 @@ Common issues:
 1. **Missing Pandoc**: Ensure Pandoc is installed and in PATH
 2. **LaTeX errors**: Verify LaTeX distribution is complete
 3. **Long equations**: Use `\\` for manual breaks or `\begin{multline*}...\end{multline*}`
-4. **CJK characters**: Install `fonts-noto-cjk` package
+4. **CJK characters**: Install `fonts-noto-cjk texlive-lang-chinese` on Debian/Ubuntu or `noto-fonts-cjk texlive-langchinese` on Arch Linux
+5. **DejaVu font missing**: Install `fonts-dejavu` on Debian/Ubuntu or `ttf-dejavu` on Arch Linux
+6. **`dutchcal.sty` missing**: Install `texlive-fonts-extra` on Debian/Ubuntu or `texlive-fontsextra` on Arch Linux
+
+Arch package names above are listed in the official [TeX Live package group](https://archlinux.org/groups/x86_64/texlive/), [language package group](https://archlinux.org/groups/x86_64/texlive-lang/), [Pandoc package](https://archlinux.org/packages/extra/x86_64/pandoc-cli/), and [DejaVu package](https://archlinux.org/packages/extra/any/ttf-dejavu/).
 
 ## License
 
 Apache 2.0 License - see [LICENSE](LICENSE) for details.
 
 Free to use, modify, and distribute for any purpose.
-

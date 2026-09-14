@@ -124,20 +124,21 @@ BOOK_CMDS_EOF
         % LuaLaTeX-specific setup
         \\usepackage{fontspec}
         % Load fonts with Unicode support
-        \\setmainfont{Latin Modern Roman}[Ligatures=TeX]
-        \\setsansfont{Latin Modern Sans}[Ligatures=TeX]
-        \\setmonofont{Latin Modern Mono}[Ligatures=TeX]
+        \\setmainfont{DejaVu Serif}[Ligatures=TeX]
+        \\setsansfont{DejaVu Sans}[Ligatures=TeX]
+        \\setmonofont{DejaVu Sans Mono}[Ligatures=TeX]
     \\else
         \\ifxetex
             % XeLaTeX-specific setup
             \\usepackage{fontspec}
             % Load fonts with Unicode support
-            \\setmainfont{Latin Modern Roman}[Ligatures=TeX]
-            \\setsansfont{Latin Modern Sans}[Ligatures=TeX]
-            \\setmonofont{Latin Modern Mono}[Ligatures=TeX]
+            \\setmainfont{DejaVu Serif}[Ligatures=TeX]
+            \\setsansfont{DejaVu Sans}[Ligatures=TeX]
+            \\setmonofont{DejaVu Sans Mono}[Ligatures=TeX]
 
             % Additional Unicode font setup for CJK characters (after packages are loaded)
             % Use xeCJK with minimal punctuation interference to preserve Western quote formatting
+            \$if(has_cjk)\$
             \\usepackage{xeCJK}
             \\setCJKmainfont{Noto Sans CJK SC}
             \\setCJKsansfont{Noto Sans CJK SC}
@@ -159,22 +160,19 @@ BOOK_CMDS_EOF
             \\xeCJKDeclareCharClass{Default}{"201D}  % Right double quotation mark "
             \\xeCJKDeclareCharClass{Default}{"2032}  % Prime '
             \\xeCJKDeclareCharClass{Default}{"2033}  % Double prime ″
+            \$endif\$
 
-            % Unicode font switching for Greek, Egyptian, Cuneiform
+            % Font switching for ancient scripts is activated only when used.
+            \$if(has_egyptian)\$
             \\usepackage{ucharclasses}
-            \\newfontfamily{\\greekfont}{CMU Serif}[
-              Path=/usr/share/texlive/texmf-dist/fonts/opentype/public/cm-unicode/,
-              Extension=.otf,
-              UprightFont=cmunrm,
-              BoldFont=cmunbx,
-              ItalicFont=cmunti,
-              BoldItalicFont=cmunbi
-            ]
             \\newfontfamily{\\egyptfont}{Noto Sans Egyptian Hieroglyphs}
-            \\newfontfamily{\\cuneifont}{Noto Sans Cuneiform}
-            \\setTransitionsFor{GreekAndCoptic}{\\greekfont}{\\rmfamily}
             \\setTransitionsFor{EgyptianHieroglyphs}{\\egyptfont}{\\rmfamily}
+            \$endif\$
+            \$if(has_cuneiform)\$
+            \\usepackage{ucharclasses}
+            \\newfontfamily{\\cuneifont}{Noto Sans Cuneiform}
             \\setTransitionsFor{Cuneiform}{\\cuneifont}{\\rmfamily}
+            \$endif\$
         \\else
             % pdfLaTeX-specific setup
             \\usepackage[utf8]{inputenc}
@@ -257,6 +255,26 @@ BOOK_CMDS_EOF
 
     % Define \\passthrough command, sometimes used by Pandoc with --listings
     \\providecommand{\\passthrough}[1]{#1}
+
+    % Letterlike symbols do not exist in every DejaVu bold/italic face.
+    % Render them through the math font while retaining their meaning.
+    \\ifluatex
+        \\newunicodechar{ℝ}{\\ensuremath{\\mathbb{R}}}
+        \\newunicodechar{ℤ}{\\ensuremath{\\mathbb{Z}}}
+        \\newunicodechar{ℕ}{\\ensuremath{\\mathbb{N}}}
+        \\newunicodechar{ℚ}{\\ensuremath{\\mathbb{Q}}}
+        \\newunicodechar{ℂ}{\\ensuremath{\\mathbb{C}}}
+        \\newunicodechar{𝕆}{\\ensuremath{\\mathbb{O}}}
+        \\newunicodechar{𝕊}{\\ensuremath{\\mathbb{S}}}
+    \\else\\ifxetex
+        \\newunicodechar{ℝ}{\\ensuremath{\\mathbb{R}}}
+        \\newunicodechar{ℤ}{\\ensuremath{\\mathbb{Z}}}
+        \\newunicodechar{ℕ}{\\ensuremath{\\mathbb{N}}}
+        \\newunicodechar{ℚ}{\\ensuremath{\\mathbb{Q}}}
+        \\newunicodechar{ℂ}{\\ensuremath{\\mathbb{C}}}
+        \\newunicodechar{𝕆}{\\ensuremath{\\mathbb{O}}}
+        \\newunicodechar{𝕊}{\\ensuremath{\\mathbb{S}}}
+    \\fi\\fi
 
     % Define common mathematical Unicode characters
     \\ifluatex\\else\\ifxetex\\else
@@ -419,6 +437,12 @@ BOOK_CMDS_EOF
         \\newunicodechar{⊇}{\\ensuremath{\\supseteq}}
         \\newunicodechar{∪}{\\ensuremath{\\cup}}
         \\newunicodechar{∩}{\\ensuremath{\\cap}}
+        \\newunicodechar{∀}{\\ensuremath{\\forall}}
+        \\newunicodechar{∃}{\\ensuremath{\\exists}}
+        \\newunicodechar{∧}{\\ensuremath{\\wedge}}
+        \\newunicodechar{∨}{\\ensuremath{\\vee}}
+        \\newunicodechar{⊗}{\\ensuremath{\\otimes}}
+        \\newunicodechar{◁}{\\ensuremath{\\triangleleft}}
         \\newunicodechar{≠}{\\ensuremath{\\neq}}
         \\newunicodechar{≤}{\\ensuremath{\\leq}}
         \\newunicodechar{≥}{\\ensuremath{\\geq}}
@@ -789,10 +813,11 @@ BOOK_CMDS_EOF
 % \\setlist[enumerate,2]{label=\\alph*.}
 % etc. For now, just ensuring depth.
 
-% Define \\tightlist as an empty command.
-% This prevents an "Undefined control sequence" error if pandoc emits \\tightlist,
-% while avoiding the original \\tightlist definition that might cause issues with deep nesting.
-\\providecommand{\\tightlist}{}
+% Pandoc emits \\tightlist for Markdown lists without blank lines between items.
+\\providecommand{\\tightlist}{%
+  \\setlength{\\itemsep}{0pt}%
+  \\setlength{\\parskip}{0pt}%
+}
 
 % Configure equation handling for better line breaking
 % Using the amsmath package which is already loaded

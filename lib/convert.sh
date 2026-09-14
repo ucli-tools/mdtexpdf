@@ -20,6 +20,7 @@ _PDF_CUSTOM_TEMPLATE_USED=false
 _PDF_DATE_FOOTER_TEXT=""
 _PDF_PANDOC_OPTS=""
 _PDF_FILTER_OPTION=""
+_PDF_CODE_OPTION="--listings"
 _PDF_TOC_OPTION=""
 _PDF_SECTION_NUMBERING_OPTION=""
 _PDF_FOOTER_VARS=()
@@ -675,7 +676,7 @@ _build_trim_vars() {
 }
 
 # Assembles all pandoc variables for PDF generation.
-# Sets: _PDF_TOC_OPTION, _PDF_SECTION_NUMBERING_OPTION, _PDF_FOOTER_VARS,
+# Sets: _PDF_TOC_OPTION, _PDF_SECTION_NUMBERING_OPTION, _PDF_CODE_OPTION, _PDF_FOOTER_VARS,
 #       _PDF_HEADER_FOOTER_VARS, _PDF_BOOK_FEATURE_VARS, _PDF_TRIM_VARS
 # Returns: 0 always
 build_pandoc_vars() {
@@ -687,9 +688,25 @@ build_pandoc_vars() {
     _PDF_SECTION_NUMBERING_OPTION=""
     [ "$ARG_SECTION_NUMBERS" = false ] && _PDF_SECTION_NUMBERING_OPTION="--variable=numbersections=false"
 
+    _PDF_CODE_OPTION="--listings"
+    if [ "$PDF_ENGINE" = "xelatex" ] || [ "$PDF_ENGINE" = "lualatex" ]; then
+        # listings does not parse UTF-8 reliably. Pandoc's native highlighting
+        # keeps code literal while XeLaTeX/LuaLaTeX render it with the mono font.
+        _PDF_CODE_OPTION=""
+    fi
+
     _build_footer_vars
     _PDF_BOOK_FEATURE_VARS=()
     _build_book_feature_vars
+    if detect_cjk_characters "$INPUT_FILE"; then
+        _PDF_BOOK_FEATURE_VARS+=("--variable=has_cjk=true")
+    fi
+    if detect_egyptian_characters "$INPUT_FILE"; then
+        _PDF_BOOK_FEATURE_VARS+=("--variable=has_egyptian=true")
+    fi
+    if detect_cuneiform_characters "$INPUT_FILE"; then
+        _PDF_BOOK_FEATURE_VARS+=("--variable=has_cuneiform=true")
+    fi
     _build_cover_vars
     _build_trim_vars
 
@@ -795,6 +812,42 @@ setup_pdf_bibliography() {
 # =============================================================================
 # Helper: Execute Pandoc and Cleanup
 # =============================================================================
+
+_report_pandoc_failure() {
+    local diagnostics_file="$1"
+    local context="$2"
+    local summary=""
+    local location=""
+
+    if [ -s "$diagnostics_file" ]; then
+        summary=$(grep -m 1 -E '^! ' "$diagnostics_file" || true)
+        if [ -z "$summary" ]; then
+            summary=$(grep -m 1 -E '^(Error producing PDF|pandoc:|LaTeX Error:)' "$diagnostics_file" || true)
+        fi
+        if [ -z "$summary" ]; then
+            summary=$(grep -m 1 -E '[^[:space:]]' "$diagnostics_file" || true)
+        fi
+        location=$(grep -m 1 -E '^l\.[0-9]+' "$diagnostics_file" || true)
+    fi
+
+    summary=${summary#! }
+    if [ -n "$summary" ]; then
+        echo -e "${RED}Error: $context failed: $summary${NC}" >&2
+    else
+        echo -e "${RED}Error: $context failed without a diagnostic from Pandoc.${NC}" >&2
+    fi
+    if [ -n "$location" ]; then
+        echo "  $location" >&2
+    fi
+
+    if [ "$ARG_VERBOSE" = true ] && [ -s "$diagnostics_file" ]; then
+        echo -e "${BLUE}Complete Pandoc diagnostic:${NC}" >&2
+        while IFS= read -r line; do
+            printf '%s\n' "$line" >&2
+        done < "$diagnostics_file"
+    fi
+}
+
 # Runs the pandoc command and performs post-conversion cleanup.
 # Uses: _PDF_PROCESSED_INPUT_FILE, OUTPUT_FILE, _PDF_TEMPLATE_PATH, PDF_ENGINE,
 #       _PDF_PANDOC_OPTS, _PDF_FILTER_OPTION, _PDF_BIBLIOGRAPHY_VARS,
@@ -803,7 +856,7 @@ setup_pdf_bibliography() {
 #       _PDF_BIB_TEMP_DIR, BACKUP_FILE, COMBINED_FILE, INPUT_FILE
 # Returns: 0 on success, 1 on failure
 execute_pandoc() {
-    # shellcheck disable=SC2086 # Word splitting is intentional for _PDF_PANDOC_OPTS/_PDF_FILTER_OPTION/_PDF_TOC_OPTION/_PDF_SECTION_NUMBERING_OPTION
+    # shellcheck disable=SC2086 # Word splitting is intentional for scalar Pandoc option variables.
 
     # When --index is used, we need a multi-step build: pandoc→latex, then
     # xelatex + makeindex + xelatex to generate the index with page numbers.
@@ -812,6 +865,9 @@ execute_pandoc() {
         _execute_pandoc_with_index
         return $?
     fi
+
+    local pandoc_diagnostics
+    pandoc_diagnostics=$(mktemp)
 
     if pandoc "$_PDF_PROCESSED_INPUT_FILE" \
         --from markdown \
@@ -824,25 +880,32 @@ execute_pandoc() {
         "${_PDF_BIBLIOGRAPHY_VARS[@]}" \
         --variable=geometry:margin=1in \
         --highlight-style=tango \
-        --listings \
+        $_PDF_CODE_OPTION \
         $_PDF_TOC_OPTION \
         $_PDF_SECTION_NUMBERING_OPTION \
         "${_PDF_FOOTER_VARS[@]}" \
         "${_PDF_HEADER_FOOTER_VARS[@]}" \
         "${_PDF_BOOK_FEATURE_VARS[@]}" \
         "${_PDF_TRIM_VARS[@]}" \
-        --standalone; then
+        --standalone 2>"$pandoc_diagnostics"; then
+        if [ -s "$pandoc_diagnostics" ]; then
+            while IFS= read -r line; do
+                printf '%s\n' "$line" >&2
+            done < "$pandoc_diagnostics"
+        fi
+        rm -f "$pandoc_diagnostics"
         echo -e "${GREEN}Success! PDF created as $OUTPUT_FILE${NC}"
 
         # Additional message for CJK documents
-        if detect_unicode_characters "$INPUT_FILE" >/dev/null 2>&1; then
+        if detect_cjk_characters "$INPUT_FILE" >/dev/null 2>&1; then
             echo -e "${GREEN}✓ CJK characters (Chinese, Japanese, Korean) have been properly rendered in the PDF.${NC}"
         fi
 
         _cleanup_pdf_artifacts
         return 0
     else
-        echo -e "${RED}Error: PDF conversion failed.${NC}"
+        _report_pandoc_failure "$pandoc_diagnostics" "PDF conversion"
+        rm -f "$pandoc_diagnostics"
         _cleanup_pdf_artifacts
         return 1
     fi
@@ -874,7 +937,7 @@ _execute_pandoc_with_index() {
         "${_PDF_BIBLIOGRAPHY_VARS[@]}" \
         --variable=geometry:margin=1in \
         --highlight-style=tango \
-        --listings \
+        $_PDF_CODE_OPTION \
         $_PDF_TOC_OPTION \
         $_PDF_SECTION_NUMBERING_OPTION \
         "${_PDF_FOOTER_VARS[@]}" \
@@ -921,7 +984,7 @@ _execute_pandoc_with_index() {
     if [ -f "$OUTPUT_FILE" ]; then
         echo -e "${GREEN}Success! PDF created as $OUTPUT_FILE${NC}"
 
-        if detect_unicode_characters "$INPUT_FILE" >/dev/null 2>&1; then
+        if detect_cjk_characters "$INPUT_FILE" >/dev/null 2>&1; then
             echo -e "${GREEN}✓ CJK characters (Chinese, Japanese, Korean) have been properly rendered in the PDF.${NC}"
         fi
 
