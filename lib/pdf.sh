@@ -15,6 +15,41 @@
 # Dependencies: lib/core.sh (for logging functions)
 # =============================================================================
 
+# Run Unicode property ranges with an explicit UTF-8 locale. Minimal containers
+# commonly start in the C locale, where GNU grep rejects code points above 0xff.
+grep_unicode_range() {
+    local pattern="$1"
+    local input_file="$2"
+    local status
+
+    if LC_ALL=C.UTF-8 grep -qP "$pattern" "$input_file" 2>/dev/null; then
+        return 0
+    else
+        status=$?
+    fi
+
+    # Some systems spell the built-in UTF-8 locale without the hyphen.
+    if [ "$status" -eq 2 ]; then
+        if LC_ALL=C.utf8 grep -qP "$pattern" "$input_file" 2>/dev/null; then
+            return 0
+        else
+            status=$?
+        fi
+    fi
+
+    # Preserve the caller's locale as a final fallback on systems without
+    # either spelling of the portable UTF-8 locale.
+    if [ "$status" -eq 2 ]; then
+        if grep -qP "$pattern" "$input_file" 2>/dev/null; then
+            return 0
+        else
+            status=$?
+        fi
+    fi
+
+    return "$status"
+}
+
 # Function to detect CJK characters
 # Arguments:
 #   $1 - input_file: Path to markdown file
@@ -22,17 +57,17 @@
 detect_cjk_characters() {
     local input_file="$1"
 
-    grep -qP '[\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{20000}-\x{2A6DF}\x{2A700}-\x{2B73F}\x{2B740}-\x{2B81F}\x{2B820}-\x{2CEAF}]' "$input_file" 2>/dev/null
+    grep_unicode_range '[\x{4E00}-\x{9FFF}\x{3400}-\x{4DBF}\x{20000}-\x{2A6DF}\x{2A700}-\x{2B73F}\x{2B740}-\x{2B81F}\x{2B820}-\x{2CEAF}]' "$input_file"
 }
 
 detect_egyptian_characters() {
     local input_file="$1"
-    grep -qP '[\x{13000}-\x{1342F}]' "$input_file" 2>/dev/null
+    grep_unicode_range '[\x{13000}-\x{1342F}]' "$input_file"
 }
 
 detect_cuneiform_characters() {
     local input_file="$1"
-    grep -qP '[\x{12000}-\x{1247F}]' "$input_file" 2>/dev/null
+    grep_unicode_range '[\x{12000}-\x{1247F}]' "$input_file"
 }
 
 # Function to detect Unicode characters that require Unicode engines
@@ -56,7 +91,7 @@ detect_unicode_characters() {
     # Greek, superscripts/subscripts, letterlike symbols, arrows, mathematical
     # operators, supplemental operators, and mathematical alphanumeric symbols.
     # These appear both in prose and in code examples and need a Unicode engine.
-    if grep -qP '[\x{0370}-\x{03FF}\x{1F00}-\x{1FFF}\x{2070}-\x{209F}\x{2100}-\x{214F}\x{2190}-\x{22FF}\x{27C0}-\x{27EF}\x{2980}-\x{2AFF}\x{1D400}-\x{1D7FF}]' "$input_file" 2>/dev/null; then
+    if grep_unicode_range '[\x{0370}-\x{03FF}\x{1F00}-\x{1FFF}\x{2070}-\x{209F}\x{2100}-\x{214F}\x{2190}-\x{22FF}\x{27C0}-\x{27EF}\x{2980}-\x{2AFF}\x{1D400}-\x{1D7FF}]' "$input_file"; then
         return 0
     fi
 
@@ -65,14 +100,14 @@ detect_unicode_characters() {
     # Hebrew: U+0590-U+05FF
     # Devanagari: U+0900-U+097F
     # And other scripts that pdfLaTeX typically doesn't support well
-    if grep -qP '[\x{0600}-\x{06FF}\x{0590}-\x{05FF}\x{0900}-\x{097F}\x{0980}-\x{09FF}\x{0A00}-\x{0A7F}\x{0A80}-\x{0AFF}\x{0B00}-\x{0B7F}\x{0B80}-\x{0BFF}\x{0C00}-\x{0C7F}\x{0C80}-\x{0CFF}\x{0D00}-\x{0D7F}\x{0D80}-\x{0DFF}]' "$input_file"; then
+    if grep_unicode_range '[\x{0600}-\x{06FF}\x{0590}-\x{05FF}\x{0900}-\x{097F}\x{0980}-\x{09FF}\x{0A00}-\x{0A7F}\x{0A80}-\x{0AFF}\x{0B00}-\x{0B7F}\x{0B80}-\x{0BFF}\x{0C00}-\x{0C7F}\x{0C80}-\x{0CFF}\x{0D00}-\x{0D7F}\x{0D80}-\x{0DFF}]' "$input_file"; then
         return 0  # Found other complex script characters
     fi
 
     # Check for Egyptian Hieroglyphs: U+13000-U+1342F
     # Cuneiform: U+12000-U+123FF
     # Cuneiform Numbers and Punctuation: U+12400-U+1247F
-    if grep -qP '[\x{12000}-\x{1247F}\x{13000}-\x{1342F}]' "$input_file" 2>/dev/null; then
+    if grep_unicode_range '[\x{12000}-\x{1247F}\x{13000}-\x{1342F}]' "$input_file"; then
         return 0  # Found Egyptian hieroglyphs or cuneiform characters
     fi
 
@@ -81,7 +116,7 @@ detect_unicode_characters() {
     # Smart quotes: U+2018, U+2019, U+201C, U+201D
     # Vulgar fractions: U+00BC-U+00BE (¼½¾), U+2150-U+215F (⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞)
     # Ellipsis: U+2026
-    if grep -qP '[\x{2013}-\x{2014}\x{2018}-\x{201D}\x{2026}\x{00BC}-\x{00BE}\x{2150}-\x{215F}]' "$input_file" 2>/dev/null; then
+    if grep_unicode_range '[\x{2013}-\x{2014}\x{2018}-\x{201D}\x{2026}\x{00BC}-\x{00BE}\x{2150}-\x{215F}]' "$input_file"; then
         return 0  # Found typographic characters
     fi
 
@@ -239,6 +274,7 @@ find_lua_filter() {
 }
 
 # Export functions for use in main script
+export -f grep_unicode_range 2>/dev/null || true
 export -f detect_cjk_characters 2>/dev/null || true
 export -f detect_egyptian_characters 2>/dev/null || true
 export -f detect_cuneiform_characters 2>/dev/null || true

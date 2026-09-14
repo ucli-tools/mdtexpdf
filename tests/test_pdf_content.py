@@ -2,6 +2,7 @@
 """Verify semantic content in PDFs produced by the public CLI."""
 
 from pathlib import Path
+import os
 import shutil
 import subprocess
 import tempfile
@@ -19,7 +20,7 @@ class PdfContentTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.directory = Path(self.temp.name)
 
-    def convert(self, source, *, success=True):
+    def convert(self, source, *, success=True, environment=None):
         manuscript = self.directory / "document with spaces.md"
         output = self.directory / "document with spaces.pdf"
         manuscript.write_text(source)
@@ -29,6 +30,7 @@ class PdfContentTests(unittest.TestCase):
             cwd=ROOT,
             capture_output=True,
             text=True,
+            env=os.environ | (environment or {}),
         )
         self.assertEqual(manuscript.read_text(), source, "conversion changed the source")
         self.assertFalse(manuscript.with_suffix(".md.bak").exists())
@@ -167,7 +169,10 @@ Operators: ∉ ∋ ⊂ ⊃ ⊆ ⊇ ∪ ∩ ∧ ∨ ⊗ ◁ ⇌ ≈ ≡ ∼ ∝ �
 
 Math: $\forall x \in \mathbb{R}, x^2 \ge 0$.
 '''
-        result, output = self.convert(source)
+        result, output = self.convert(
+            source,
+            environment={"LANG": "C", "LC_ALL": "C"},
+        )
         diagnostics = result.stdout + result.stderr
         self.assertIn("xelatex", diagnostics)
         self.assertNotIn("Missing character", diagnostics)
