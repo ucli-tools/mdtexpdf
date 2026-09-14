@@ -88,7 +88,8 @@ SELECT * FROM events WHERE event_id = '$event_id';
 value = "$param"
 ```
 '''
-        _, output = self.convert(source)
+        result, output = self.convert(source)
+        self.assertNotIn("PDF conversion failed", result.stdout + result.stderr)
         text = self.pdf_text(output)
         for literal in ["$HOME", "${USER}", "$event_id", "$param",
                         "# $comment remains a comment"]:
@@ -178,6 +179,21 @@ Math: $\forall x \in \mathbb{R}, x^2 \ge 0$.
             self.assertIn(phrase, text)
         for symbol in ["∀", "∈", "∞", "α", "→"]:
             self.assertIn(symbol, text)
+
+    def test_latex_failures_report_a_concise_diagnostic(self):
+        source = r'''---
+title: Broken LaTeX
+---
+
+\notarealcommand
+'''
+        result, _ = self.convert(source, success=False)
+        diagnostics = result.stdout + result.stderr
+        self.assertIn(
+            "Error: PDF conversion failed: Undefined control sequence.",
+            diagnostics,
+        )
+        self.assertEqual(diagnostics.count("Undefined control sequence"), 1)
 
 
 if __name__ == "__main__":

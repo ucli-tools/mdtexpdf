@@ -812,6 +812,42 @@ setup_pdf_bibliography() {
 # =============================================================================
 # Helper: Execute Pandoc and Cleanup
 # =============================================================================
+
+_report_pandoc_failure() {
+    local diagnostics_file="$1"
+    local context="$2"
+    local summary=""
+    local location=""
+
+    if [ -s "$diagnostics_file" ]; then
+        summary=$(grep -m 1 -E '^! ' "$diagnostics_file" || true)
+        if [ -z "$summary" ]; then
+            summary=$(grep -m 1 -E '^(Error producing PDF|pandoc:|LaTeX Error:)' "$diagnostics_file" || true)
+        fi
+        if [ -z "$summary" ]; then
+            summary=$(grep -m 1 -E '[^[:space:]]' "$diagnostics_file" || true)
+        fi
+        location=$(grep -m 1 -E '^l\.[0-9]+' "$diagnostics_file" || true)
+    fi
+
+    summary=${summary#! }
+    if [ -n "$summary" ]; then
+        echo -e "${RED}Error: $context failed: $summary${NC}" >&2
+    else
+        echo -e "${RED}Error: $context failed without a diagnostic from Pandoc.${NC}" >&2
+    fi
+    if [ -n "$location" ]; then
+        echo "  $location" >&2
+    fi
+
+    if [ "$ARG_VERBOSE" = true ] && [ -s "$diagnostics_file" ]; then
+        echo -e "${BLUE}Complete Pandoc diagnostic:${NC}" >&2
+        while IFS= read -r line; do
+            printf '%s\n' "$line" >&2
+        done < "$diagnostics_file"
+    fi
+}
+
 # Runs the pandoc command and performs post-conversion cleanup.
 # Uses: _PDF_PROCESSED_INPUT_FILE, OUTPUT_FILE, _PDF_TEMPLATE_PATH, PDF_ENGINE,
 #       _PDF_PANDOC_OPTS, _PDF_FILTER_OPTION, _PDF_BIBLIOGRAPHY_VARS,
@@ -829,6 +865,9 @@ execute_pandoc() {
         _execute_pandoc_with_index
         return $?
     fi
+
+    local pandoc_diagnostics
+    pandoc_diagnostics=$(mktemp)
 
     if pandoc "$_PDF_PROCESSED_INPUT_FILE" \
         --from markdown \
@@ -848,7 +887,13 @@ execute_pandoc() {
         "${_PDF_HEADER_FOOTER_VARS[@]}" \
         "${_PDF_BOOK_FEATURE_VARS[@]}" \
         "${_PDF_TRIM_VARS[@]}" \
-        --standalone; then
+        --standalone 2>"$pandoc_diagnostics"; then
+        if [ -s "$pandoc_diagnostics" ]; then
+            while IFS= read -r line; do
+                printf '%s\n' "$line" >&2
+            done < "$pandoc_diagnostics"
+        fi
+        rm -f "$pandoc_diagnostics"
         echo -e "${GREEN}Success! PDF created as $OUTPUT_FILE${NC}"
 
         # Additional message for CJK documents
@@ -859,7 +904,8 @@ execute_pandoc() {
         _cleanup_pdf_artifacts
         return 0
     else
-        echo -e "${RED}Error: PDF conversion failed.${NC}"
+        _report_pandoc_failure "$pandoc_diagnostics" "PDF conversion"
+        rm -f "$pandoc_diagnostics"
         _cleanup_pdf_artifacts
         return 1
     fi
