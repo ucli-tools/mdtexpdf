@@ -100,6 +100,8 @@ mdtexpdf/
 ### Typography & Formatting
 - **Header/Footer Policy**: Three-tier system (default, partial, all) for page headers/footers
 - **Unicode Support**: Subscripts (₀₁₂₃), superscripts (⁰¹²³⁺⁻), chemistry arrows (⇌)
+- **Native Prose Punctuation**: Unicode ellipses remain a single font glyph instead
+  of expanding into loosely spaced LaTeX periods
 - **CJK Support**: Chinese, Japanese, and Korean characters
 - **Automatic Line Breaking**: Long equations wrap to fit page width
 - **Section Numbering Control**: Enable or disable numbered sections

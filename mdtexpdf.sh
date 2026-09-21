@@ -348,6 +348,7 @@ install() {
     }
 
     # Install all filters
+    _install_filter "prose_typography_filter.lua" "font-native prose punctuation"
     _install_filter "heading_fix_filter.lua" "heading line breaks"
     _install_filter "long_equation_filter.lua" "long equations"
     _install_filter "image_size_filter.lua" "image sizing"

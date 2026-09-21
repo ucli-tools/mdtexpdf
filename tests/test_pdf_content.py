@@ -223,6 +223,35 @@ Math: $\forall x \in \mathbb{R}, x^2 \ge 0$.
         self.assertLess(code_words["if"]["y"], code_words["indented_value"]["y"])
         self.assertGreater(code_words["indented_value"]["x"], code_words["if"]["x"])
 
+    def test_unicode_ellipsis_remains_one_typographic_glyph(self):
+        source = '''---
+title: Unicode ellipsis
+---
+
+# Unicode ellipsis
+
+Before … after.
+'''
+        _, output = self.convert(source)
+        text = self.pdf_text(output)
+        self.assertIn("Before … after.", text)
+        self.assertNotIn("Before . . . after.", text)
+
+        latex = subprocess.run(
+            [
+                "pandoc",
+                "--from", "markdown",
+                "--to", "latex",
+                f"--lua-filter={ROOT / 'filters/prose_typography_filter.lua'}",
+            ],
+            input="Before … after.\n",
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+        self.assertIn("…", latex)
+        self.assertNotIn(r"\ldots", latex)
+
     def test_latex_failures_report_a_concise_diagnostic(self):
         source = r'''---
 title: Broken LaTeX
