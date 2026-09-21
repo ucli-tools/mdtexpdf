@@ -124,17 +124,17 @@ BOOK_CMDS_EOF
         % LuaLaTeX-specific setup
         \\usepackage{fontspec}
         % Load fonts with Unicode support
-        \\setmainfont{DejaVu Serif}[Ligatures=TeX]
-        \\setsansfont{DejaVu Sans}[Ligatures=TeX]
-        \\setmonofont{DejaVu Sans Mono}
+        \$if(mainfont)\$\setmainfont{\$mainfont\$}[Ligatures=TeX]\$else\$\setmainfont{DejaVu Serif}[Ligatures=TeX]\$endif\$
+        \$if(sansfont)\$\setsansfont{\$sansfont\$}[Ligatures=TeX]\$else\$\setsansfont{DejaVu Sans}[Ligatures=TeX]\$endif\$
+        \$if(monofont)\$\setmonofont{\$monofont\$}\$else\$\setmonofont{DejaVu Sans Mono}\$endif\$
     \\else
         \\ifxetex
             % XeLaTeX-specific setup
             \\usepackage{fontspec}
             % Load fonts with Unicode support
-            \\setmainfont{DejaVu Serif}[Ligatures=TeX]
-            \\setsansfont{DejaVu Sans}[Ligatures=TeX]
-            \\setmonofont{DejaVu Sans Mono}
+            \$if(mainfont)\$\setmainfont{\$mainfont\$}[Ligatures=TeX]\$else\$\setmainfont{DejaVu Serif}[Ligatures=TeX]\$endif\$
+            \$if(sansfont)\$\setsansfont{\$sansfont\$}[Ligatures=TeX]\$else\$\setsansfont{DejaVu Sans}[Ligatures=TeX]\$endif\$
+            \$if(monofont)\$\setmonofont{\$monofont\$}\$else\$\setmonofont{DejaVu Sans Mono}\$endif\$
 
             % Additional Unicode font setup for CJK characters (after packages are loaded)
             % Use xeCJK with minimal punctuation interference to preserve Western quote formatting
