@@ -173,6 +173,15 @@ BOOK_CMDS_EOF
             \\newfontfamily{\\cuneifont}{Noto Sans Cuneiform}
             \\setTransitionsFor{Cuneiform}{\\cuneifont}{\\rmfamily}
             \$endif\$
+            % Optional Greek fallback for a main font without Greek glyphs
+            % (for example Latin Modern Roman). Set in book metadata:
+            %   greekfont: "cmunrm.otf"
+            %   greekfontoptions: "BoldFont=cmunbx.otf,ItalicFont=cmunti.otf,BoldItalicFont=cmunbi.otf"
+            \$if(greekfont)\$
+            \\usepackage{ucharclasses}
+            \\newfontfamily{\\greekfont}{\$greekfont\$}\$if(greekfontoptions)\$[\$greekfontoptions\$]\$endif\$
+            \\setTransitionsForGreek{\\greekfont}{\\rmfamily}
+            \$endif\$
         \\else
             % pdfLaTeX-specific setup
             \\usepackage[utf8]{inputenc}
