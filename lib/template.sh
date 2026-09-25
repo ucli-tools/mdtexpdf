@@ -265,7 +265,7 @@ BOOK_CMDS_EOF
     % Define \\passthrough command, sometimes used by Pandoc with --listings
     \\providecommand{\\passthrough}[1]{#1}
 
-    % Letterlike symbols do not exist in every DejaVu bold/italic face.
+    % Letterlike symbols (and the empty set) do not exist in every DejaVu face.
     % Render them through the math font while retaining their meaning.
     \\ifluatex
         \\newunicodechar{ℝ}{\\ensuremath{\\mathbb{R}}}
@@ -275,6 +275,7 @@ BOOK_CMDS_EOF
         \\newunicodechar{ℂ}{\\ensuremath{\\mathbb{C}}}
         \\newunicodechar{𝕆}{\\ensuremath{\\mathbb{O}}}
         \\newunicodechar{𝕊}{\\ensuremath{\\mathbb{S}}}
+        \\newunicodechar{∅}{\\ensuremath{\\emptyset}}
     \\else\\ifxetex
         \\newunicodechar{ℝ}{\\ensuremath{\\mathbb{R}}}
         \\newunicodechar{ℤ}{\\ensuremath{\\mathbb{Z}}}
@@ -283,6 +284,7 @@ BOOK_CMDS_EOF
         \\newunicodechar{ℂ}{\\ensuremath{\\mathbb{C}}}
         \\newunicodechar{𝕆}{\\ensuremath{\\mathbb{O}}}
         \\newunicodechar{𝕊}{\\ensuremath{\\mathbb{S}}}
+        \\newunicodechar{∅}{\\ensuremath{\\emptyset}}
     \\fi\\fi
 
     % Define common mathematical Unicode characters
