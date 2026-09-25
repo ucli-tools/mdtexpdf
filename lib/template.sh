@@ -199,6 +199,14 @@ BOOK_CMDS_EOF
             \\usepackage{ucharclasses}
             \\newfontfamily{\\greekfont}{\$greekfont\$}\$if(greekfontoptions)\$[\$greekfontoptions\$]\$endif\$
             \\setTransitionsForGreek{\\greekfont}{\\rmfamily}
+            % Greek Extended and Greek and Coptic are one script. setTransitionsFor
+            % gives the pair Greek Extended -> Greek the leaving code of the block
+            % set up last, so a polytonic word (Ἰάσων) fell back to the main font
+            % after its first letter. Keep the Greek font across both pairs.
+            \\ifcsname GreekExtendedClass\\endcsname
+            \\XeTeXinterchartoks\\csname GreekExtendedClass\\endcsname\\csname GreekAndCopticClass\\endcsname={\\greekfont}
+            \\XeTeXinterchartoks\\csname GreekAndCopticClass\\endcsname\\csname GreekExtendedClass\\endcsname={\\greekfont}
+            \\fi
             \$endif\$
         \\else
             % pdfLaTeX-specific setup
