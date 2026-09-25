@@ -482,6 +482,11 @@ _build_book_feature_vars() {
     _add_meta_var "epigraph_source" "$META_EPIGRAPH_SOURCE"
     _add_meta_bool "chapters_on_recto" "$META_CHAPTERS_ON_RECTO"
     _add_meta_bool "drop_caps" "$META_DROP_CAPS"
+    # Fonts and heading face, also when set in a metadata.yaml
+    _add_meta_var "mainfont" "$META_MAINFONT"
+    _add_meta_var "sansfont" "$META_SANSFONT"
+    _add_meta_var "monofont" "$META_MONOFONT"
+    _add_meta_bool "headings_sans" "$META_HEADINGS_SANS"
     _add_meta_bool "equation_numbers" "$META_EQUATION_NUMBERS"
 
     # Publishing

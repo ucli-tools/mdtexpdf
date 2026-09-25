@@ -91,6 +91,24 @@ create_template_file() {
   {\Huge}
 \titlespacing*{\chapter}{0pt}{50pt}{40pt}
 
+% headings_sans: true sets parts, chapters and sections in the sans font
+% (sansfont), as a document converted from Word with sans headings has them
+$if(headings_sans)$
+\titleformat{\part}[display]
+  {\normalfont\sffamily\huge\bfseries\filcenter\thispagestyle{plain}}
+  {\partname~\thepart}
+  {20pt}
+  {\Huge}
+\titleformat{\chapter}[display]
+  {\normalfont\sffamily\huge\bfseries\thispagestyle{plain}}
+  {\chaptertitlename~\thechapter}
+  {20pt}
+  {\Huge}
+\titleformat*{\section}{\normalfont\sffamily\Large\bfseries}
+\titleformat*{\subsection}{\normalfont\sffamily\large\bfseries}
+\titleformat*{\subsubsection}{\normalfont\sffamily\normalsize\bfseries}
+$endif$
+
 % Style for the main title page (title, author, and date) - centered vertically
 \pretitle{\begin{center}\vspace*{\fill}\normalfont\huge\bfseries}
 \posttitle{%

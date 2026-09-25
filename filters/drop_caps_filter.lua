@@ -60,8 +60,11 @@ local function apply_drop_cap(para)
                 local first_word_rest = rest_of_word:sub(1, word_end - 1)
                 local after_word = rest_of_word:sub(word_end)
                 
-                -- Build the lettrine command
-                local lettrine_raw = string.format("\\lettrine{%s}{%s}", first_letter, first_word_rest)
+                -- Build the lettrine command. J and Q descend below the
+                -- baseline: indent one more line so the tail does not run
+                -- into the text beneath the drop cap
+                local options = first_letter:match("[JQ]") and "[depth=1]" or ""
+                local lettrine_raw = string.format("\\lettrine%s{%s}{%s}", options, first_letter, first_word_rest)
                 
                 -- Create new content with lettrine
                 local new_content = {pandoc.RawInline("latex", lettrine_raw)}

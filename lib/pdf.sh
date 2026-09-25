@@ -198,6 +198,20 @@ truncate_address() {
 select_pdf_engine() {
     local input_file="$1"
 
+    # A named font needs fontspec, which only XeLaTeX and LuaLaTeX load
+    if [ -n "$META_MAINFONT$META_SANSFONT$META_MONOFONT" ] || \
+        grep -qE '^(mainfont|sansfont|monofont):' "$input_file" 2>/dev/null; then
+        if [ "$XELATEX_AVAILABLE" = true ]; then
+            PDF_ENGINE="xelatex"
+            log_success "Selected XeLaTeX engine for the requested fonts"
+            return 0
+        elif [ "$LUALATEX_AVAILABLE" = true ]; then
+            PDF_ENGINE="lualatex"
+            log_success "Selected LuaLaTeX engine for the requested fonts"
+            return 0
+        fi
+    fi
+
     log_verbose "Analyzing document content for Unicode character requirements..."
 
     if detect_unicode_characters "$input_file"; then
