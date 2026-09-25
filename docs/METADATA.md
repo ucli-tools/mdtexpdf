@@ -92,6 +92,7 @@ epigraph_source: "Author Name"      # Attribution for epigraph
 # Chapter formatting
 chapters_on_recto: true             # Start chapters on odd (right) pages
 drop_caps: true                     # Decorative first letter of chapters
+fit_wide_equations: true            # Shrink displays wider than the text block (PDF)
 
 # Copyright page information
 publisher: "Publisher Name"         # Publisher name
@@ -229,6 +230,7 @@ See [SIMPLE_BIBLIOGRAPHY.md](SIMPLE_BIBLIOGRAPHY.md) for detailed bibliography d
 |-------|------|-------------|---------|
 | `chapters_on_recto` | boolean | Start chapters on odd pages | true, false |
 | `drop_caps` | boolean | Decorative first letter | true, false |
+| `fit_wide_equations` | boolean | Shrink a display equation to the text width only when it is wider; others keep their size (PDF) | true, false |
 
 #### Copyright Page Information
 

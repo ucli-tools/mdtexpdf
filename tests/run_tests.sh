@@ -843,6 +843,7 @@ test_pdf_header_title() {
 title: "A Title Far Too Long For The Running Head Of Any Page"
 header_title: "Short Head"
 author: "Test Author"
+date: "2026-01-24"
 format: "book"
 header_footer_policy: "all"
 ---
@@ -862,6 +863,56 @@ EOF
         fi
     else
         test_fail "header_title conversion failed"
+    fi
+}
+
+# PDF with fit_wide_equations: a tagged display wider than the page is boxed
+test_pdf_fit_wide_equations() {
+    test_start "PDF fits wide equations to the text width"
+
+    if ! command -v pandoc &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc not installed"
+        return
+    fi
+
+    if ! command -v pdflatex &> /dev/null && ! command -v xelatex &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: LaTeX not installed"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_fit_wide.md"
+    local test_pdf="$TEST_OUTPUT/test_fit_wide.pdf"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "Fit Wide Equations Test"
+author: "Test Author"
+date: "2026-01-24"
+format: "book"
+fit_wide_equations: true
+---
+
+# Chapter 1
+
+$$
+M = \begin{pmatrix} a_{1} + b_{1} + c_{1} + d_{1} & 0 \\ 0 & 1 \end{pmatrix} \times \begin{pmatrix} a_{1} + b_{1} + c_{1} + d_{1} & 0 \\ 0 & 1 \end{pmatrix} \times \begin{pmatrix} a_{1} + b_{1} + c_{1} + d_{1} & 0 \\ 0 & 1 \end{pmatrix} \times \begin{pmatrix} a_{1} + b_{1} + c_{1} + d_{1} & 0 \\ 0 & 1 \end{pmatrix} \tag{1.1}
+$$
+
+$$
+\begin{aligned} a &= b \\ c &= d \end{aligned}
+$$
+EOF
+
+    rm -f "$test_pdf"
+
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata < /dev/null 2>&1; then
+        if assert_file_exists "$test_pdf"; then
+            test_pass
+        else
+            test_fail "PDF file not created"
+        fi
+    else
+        test_fail "fit_wide_equations conversion failed"
     fi
 }
 
@@ -1774,6 +1825,7 @@ test_pdf_no_numbers
 test_pdf_toc_cli
 test_pdf_header_footer_policy
 test_pdf_header_title
+test_pdf_fit_wide_equations
 test_pdf_no_footer
 
 echo -e "\n${YELLOW}--- EPUB Tests ---${NC}\n"

@@ -331,7 +331,7 @@ EOF
 # Discovers and configures Lua filters for pandoc using find_lua_filter()
 # from lib/pdf.sh.
 # Sets: _PDF_FILTER_OPTION
-# Uses: ARG_FORMAT, ARG_INDEX, META_DROP_CAPS, find_lua_filter()
+# Uses: ARG_FORMAT, ARG_INDEX, META_DROP_CAPS, META_FIT_WIDE_EQUATIONS, find_lua_filter()
 # Returns: 0 always
 
 # Internal: Find a filter and add it to the LUA_FILTERS array with logging.
@@ -386,6 +386,12 @@ setup_lua_filters() {
         _add_lua_filter "index_filter.lua" \
             "index generation" \
             "Index markers will not be processed."
+    fi
+
+    if [ "$META_FIT_WIDE_EQUATIONS" = "true" ]; then
+        _add_lua_filter "fit_wide_equations_filter.lua" \
+            "fitting wide equations to the text width" \
+            "Wide equations may run past the margin."
     fi
 
     if [ "$META_DROP_CAPS" = "true" ]; then
