@@ -176,6 +176,58 @@ title: Renderer failure
                                 capture_output=True, text=True, check=True)
         self.assertEqual(result.stdout.strip(), source)
 
+    def test_book_artwork_conventions(self):
+        # Artwork written the way a long book writes it: fenced and unfenced raw blocks,
+        # TikZ arrows, the template's TikZ libraries, amsmath in nodes, a colour defined
+        # in an earlier block, \centering inside a node, and a \noindent minipage.
+        documents, images = self.convert(r'''---
+title: Book conventions
+---
+
+# Chapter
+
+Prose arrows convert: a -> b and c <=> d. Half is $\tfrac12$ and $\dfrac{1}{2}$.
+
+```{=latex}
+\definecolor{sharedblue}{RGB}{35,93,160}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\draw[->, sharedblue] (0,0) -- (1,0);
+\end{tikzpicture}
+\end{figure}
+```
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\node (a) {A};
+\node[below left=1pt and 0pt of a] {$\tfrac{1}{2}$};
+\draw[<->, sharedblue] (0,0) -- (1,1);
+\node at (2,0) {\parbox{2cm}{\scriptsize\centering Kept word}};
+\end{tikzpicture}
+\end{figure}
+
+```{=latex}
+\par\medskip\noindent\begin{minipage}{\textwidth}
+```
+
+Inside the unwrapped minipage.
+
+```{=latex}
+\end{minipage}
+```
+''', cli=True)
+        self.assertEqual(len(images), 2)
+        text = ' '.join(''.join(doc.itertext()) for doc in documents)
+        self.assertIn('a → b', text)
+        self.assertIn('c ⇌ d', text)
+        self.assertIn('Inside the unwrapped minipage.', text)
+        fractions = [el for doc in documents for el in doc.iter() if el.tag.endswith('}mfrac')]
+        self.assertEqual(len(fractions), 2)
+        # MathML 3, which epubcheck applies, does not allow displaystyle on mfrac.
+        self.assertTrue(all(el.get('displaystyle') is None for el in fractions))
+
     def test_tex_control_words_are_not_shortened(self):
         # In capture mode the renderer fails if a longer command lost its prefix.
         renderer = self.directory / 'xelatex'

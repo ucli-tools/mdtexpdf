@@ -258,11 +258,22 @@ preprocess_epub_chemistry() {
     # Generic \ce{} removal (fallback)
     sed -i 's/\\ce{\([^}]*\)}/\1/g' "$input_file"
 
-    # Arrow conversions
-    sed -i 's/→/→/g' "$input_file"
-    sed -i 's/⇌/⇌/g' "$input_file"
-    sed -i 's/->/→/g' "$input_file"
-    sed -i 's/<=>/⇌/g' "$input_file"
+    # Arrow conversions, outside fenced blocks and TikZ pictures only: raw LaTeX keeps its
+    # ASCII arrows, since options such as \draw[->] must reach LaTeX unchanged (a figure
+    # may be written as a bare \begin{figure} environment, without a ```{=latex} fence).
+    awk 'BEGIN { fenced = 0; tikz = 0 }
+         /^```/ { fenced = !fenced; print; next }
+         /\\begin\{tikzpicture\}/ { tikz++ }
+         { if (!fenced && !tikz) { gsub(/->/, "→"); gsub(/<=>/, "⇌") } print }
+         /\\end\{tikzpicture\}/ { if (tikz > 0) tikz-- }' \
+        "$input_file" > "$input_file.arrows" && mv "$input_file.arrows" "$input_file"
+}
+
+# Pandoc writes \tfrac and \dfrac as <mfrac displaystyle="...">, which the MathML 3 schema
+# that epubcheck applies does not allow; plain \frac is valid everywhere.
+preprocess_epub_mathml() {
+    local input_file="$1"
+    sed -i 's/\\tfrac/\\frac/g; s/\\dfrac/\\frac/g' "$input_file"
 }
 
 # =============================================================================
@@ -453,6 +464,7 @@ _prepare_epub_content() {
 
     # Preprocess chemistry notation
     preprocess_epub_chemistry "$_EPUB_TEMP_INPUT"
+    preprocess_epub_mathml "$_EPUB_TEMP_INPUT"
 
     # Generate front matter and insert into temp file
     local epub_frontmatter_md=""

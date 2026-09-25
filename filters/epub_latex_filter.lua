@@ -23,6 +23,10 @@ local function strip_layout(text)
       -- Only layout commands at the start of a line are wrappers. Never rewrite
       -- examples inside fenced code, inline code, or the prose of that line.
       local original = line
+      -- Print-only spacing before a minipage (\par, \medskip, \noindent) goes with it.
+      local head = line:gsub('^%s*\\par%f[^%a]%s*', ''):gsub('^%s*\\medskip%f[^%a]%s*', '')
+        :gsub('^%s*\\noindent%f[^%a]%s*', '')
+      if head:match('^%s*\\begin{minipage}') then line = head end
       line = line:gsub('^%s*\\begin{minipage}%s*(%b[])%s*(%b[])%s*(%b[])%s*(%b{})', '')
         :gsub('^%s*\\begin{minipage}%s*(%b[])%s*(%b[])%s*(%b{})', '')
         :gsub('^%s*\\begin{minipage}%s*(%b[])%s*(%b{})', '')
@@ -51,7 +55,7 @@ local function render_artwork(text)
   text = text:gsub('\\label%s*(%b{})', '')
     :gsub('\\begin{figure%*?}%s*(%b[])', '')
     :gsub('\\begin{figure%*?}', ''):gsub('\\end{figure%*?}', '')
-    :gsub('\\centering%s*', '')
+    :gsub('^[ \t]*\\centering[ \t]*\n', ''):gsub('\n[ \t]*\\centering[ \t]*\n', '\n')
     :gsub('\\vspace%*?%s*(%b{})', '')
     :gsub('\\par%f[^%a]%s*', '\n')
 
@@ -61,7 +65,11 @@ local function render_artwork(text)
     return pandoc.system.with_working_directory(dir, function()
       local file = assert(io.open('drawing.tex', 'w'))
       file:write('\\documentclass[border=2pt]{standalone}\n',
+        '\\usepackage{amsmath}\n\\usepackage{amssymb}\n',
         '\\usepackage{tikz}\n\\usepackage{pgfplots}\n\\usepackage{adjustbox}\n',
+        -- The same TikZ setup the PDF template loads, so artwork compiles identically.
+        '\\usetikzlibrary{positioning,arrows.meta,decorations.markings,decorations.pathreplacing,calc,patterns}\n',
+        '\\pgfplotsset{compat=1.17}\n\\usepgfplotslibrary{fillbetween}\n',
         preamble, '\n\\begin{document}\n', text, '\n\\end{document}\n')
       file:close()
       -- Argument vectors avoid shell interpolation; shell escape is disabled.
@@ -125,5 +133,26 @@ function Pandoc(doc)
       preamble = preamble .. pandoc.write(pandoc.Pandoc(blocks), 'latex') .. '\n'
     end
   end
+  -- Colours defined in one raw block stay defined for later ones in the PDF; each EPUB
+  -- drawing compiles alone, so give every drawing all the colour definitions (first wins,
+  -- and a drawing's own definitions still come after the preamble).
+  local seen, colours = {}, {}
+  local function collect(raw)
+    if raw.format ~= 'tex' and raw.format ~= 'latex' then return nil end
+    for name, model, spec in raw.text:gmatch('\\definecolor%s*(%b{})%s*(%b{})%s*(%b{})') do
+      if not seen[name] then
+        seen[name] = true
+        colours[#colours + 1] = '\\definecolor' .. name .. model .. spec
+      end
+    end
+    for name, spec in raw.text:gmatch('\\colorlet%s*(%b{})%s*(%b{})') do
+      if not seen[name] then
+        seen[name] = true
+        colours[#colours + 1] = '\\colorlet' .. name .. spec
+      end
+    end
+  end
+  doc:walk({RawBlock = collect, RawInline = collect})
+  if #colours > 0 then preamble = preamble .. table.concat(colours, '\n') .. '\n' end
   return doc:walk({RawBlock = convert_raw})
 end
