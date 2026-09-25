@@ -72,8 +72,9 @@ function Math(el)
     body = body:sub(1, s - 1) .. body:sub(e + 1)
   end
 
-  -- Leave room for the equation number when there is one
-  local width = tag == '' and '\\linewidth' or '\\dimexpr\\linewidth-4em\\relax'
+  -- Leave room for the equation number, and amsmath's gap before it, so
+  -- the number stays on the equation's line
+  local width = tag == '' and '\\linewidth' or '\\dimexpr\\linewidth-6em\\relax'
 
   return pandoc.RawInline('latex',
     '\\[\\sbox0{$\\displaystyle ' .. body .. '$}' ..
