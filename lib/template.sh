@@ -259,8 +259,37 @@ BOOK_CMDS_EOF
     % Define \\arraybackslash if it doesn't exist
     \\providecommand{\\arraybackslash}{\\let\\\\\\tabularnewline}
 
-    % Define \\pandocbounded command used by Pandoc for complex math expressions
-    \\providecommand{\\pandocbounded}[1]{\\ensuremath{#1}}
+    % Images never exceed the text block, and are never scaled up.
+    % Pandoc before 3.2 relies on graphicx defaults set by the template:
+    \\makeatletter
+    \\def\\maxwidth{\\ifdim\\Gin@nat@width>\\linewidth\\linewidth\\else\\Gin@nat@width\\fi}
+    \\def\\maxheight{\\ifdim\\Gin@nat@height>\\textheight\\textheight\\else\\Gin@nat@height\\fi}
+    \\makeatother
+    \\setkeys{Gin}{width=\\maxwidth,height=\\maxheight,keepaspectratio}
+    % Pandoc 3.2 and later wraps each image in \\pandocbounded instead:
+    \\makeatletter
+    \\newsavebox\\pandoc@box
+    \\providecommand*\\pandocbounded[1]{%
+      \\sbox\\pandoc@box{#1}%
+      \\Gscale@div\\@tempa{\\textheight}{\\dimexpr\\ht\\pandoc@box+\\dp\\pandoc@box\\relax}%
+      \\Gscale@div\\@tempb{\\linewidth}{\\wd\\pandoc@box}%
+      \\ifdim\\@tempb\\p@<\\@tempa\\p@\\let\\@tempa\\@tempb\\fi
+      \\ifdim\\@tempa\\p@<\\p@\\scalebox{\\@tempa}{\\usebox\\pandoc@box}%
+      \\else\\usebox{\\pandoc@box}%
+      \\fi}
+    \\makeatother
+    % cover_fit: cover -- scale a cover image by the larger of the two
+    % factors that make it reach the page's width and its height, so it
+    % covers the whole page; the caller clips what overflows
+    \\makeatletter
+    \\newsavebox\\mdtexpdf@coverbox
+    \\newcommand*\\mdtexpdfcoverimage[1]{%
+      \\sbox\\mdtexpdf@coverbox{\\includegraphics[width=\\Gin@nat@width,height=\\Gin@nat@height]{#1}}%
+      \\Gscale@div\\@tempa{\\paperwidth}{\\wd\\mdtexpdf@coverbox}%
+      \\Gscale@div\\@tempb{\\paperheight}{\\dimexpr\\ht\\mdtexpdf@coverbox+\\dp\\mdtexpdf@coverbox\\relax}%
+      \\ifdim\\@tempb\\p@>\\@tempa\\p@\\let\\@tempa\\@tempb\\fi
+      \\scalebox{\\@tempa}{\\usebox\\mdtexpdf@coverbox}}
+    \\makeatother
 
     % Define \\passthrough command, sometimes used by Pandoc with --listings
     \\providecommand{\\passthrough}[1]{#1}
@@ -1006,7 +1035,7 @@ $figure_numbering_commands
   \\begin{scope}
     \\clip (current page.south west) rectangle (current page.north east);
     \\node[inner sep=0pt,outer sep=0pt] at (current page.center) {
-      \\includegraphics[width=\\paperwidth]{\$cover_image\$}
+      \\mdtexpdfcoverimage{\$cover_image\$}
     };
   \\end{scope}
   \$else\$
@@ -1282,7 +1311,7 @@ ISBN: \$isbn\$\\\\[0.3cm]
   \\begin{scope}
     \\clip (current page.south west) rectangle (current page.north east);
     \\node[inner sep=0pt,outer sep=0pt] at (current page.center) {
-      \\includegraphics[width=\\paperwidth]{\$back_cover_image\$}
+      \\mdtexpdfcoverimage{\$back_cover_image\$}
     };
   \\end{scope}
   \$else\$

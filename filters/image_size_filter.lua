@@ -1,26 +1,21 @@
 -- image_size_filter.lua
--- Purpose: Ensure images never exceed \textwidth in LaTeX output.
--- Also converts figure captions from alt-text to proper LaTeX figure captions.
+-- Purpose: Keep an image's proportions when a width is given.
+--
+-- Images are kept within the text block by the template: graphicx defaults
+-- \maxwidth and \maxheight (pandoc before 3.2) and \pandocbounded (pandoc
+-- 3.2 and later). Pandoc's LaTeX writer reads only real dimensions and
+-- percentages ("80%", "5cm"); a TeX length name such as \textwidth is
+-- dropped, so none is set here.
 
 local is_latex = FORMAT:match('latex') ~= nil
 
 function Image(el)
   if not is_latex then return nil end
 
-  -- If no explicit width is set, cap to \textwidth
-  if not el.attributes.width or el.attributes.width == '' then
-    el.attributes.width = '\\textwidth'
+  -- A width alone scales the height in proportion
+  if el.attributes.width and el.attributes.width ~= '' then
+    el.attributes.height = nil
   end
-
-  -- If width is a percentage string (e.g. "80%"), convert to fraction of textwidth
-  local pct = el.attributes.width and el.attributes.width:match('^(%d+)%%$')
-  if pct then
-    local frac = tonumber(pct) / 100
-    el.attributes.width = string.format('%.2f\\textwidth', frac)
-  end
-
-  -- Remove height to allow proportional scaling
-  el.attributes.height = nil
 
   return el
 end
