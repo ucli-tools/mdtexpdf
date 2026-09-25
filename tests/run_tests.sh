@@ -1792,6 +1792,52 @@ EOF
     rm -f "$test_md" "$test_pdf"
 }
 
+# Index terms with TeX and makeindex specials, math, and three levels
+test_index_pdf_special_terms() {
+    test_start "PDF index with special characters and math in terms"
+
+    if ! command -v pdftotext &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pdftotext not installed"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_index_special.md"
+    local test_pdf="$TEST_OUTPUT/test_index_special.pdf"
+
+    cat > "$test_md" << 'EOF'
+---
+title: Index Special Terms
+author: Test Author
+date: 2026-01-24
+---
+
+# Terms
+
+A tax[index:100% inheritance tax] on estates.
+
+Groups[index:matrix groups|special linear group, SL(n,F)@special linear group, $SL(n,F)$] of matrices.
+
+Levels[index:a|b|c] and names[index:S_3 group] and bangs[index:factorial $n!$].
+EOF
+
+    rm -f "$test_pdf"
+    if $MDTEXPDF convert --index -t "Index Special Terms" -a "Test Author" -f "Footer" "$test_md" "$test_pdf" < /dev/null > /dev/null 2>&1; then
+        local text
+        text=$(pdftotext "$test_pdf" - 2>/dev/null)
+        if echo "$text" | grep -q "100% inheritance tax" \
+            && echo "$text" | grep -q "special linear group" \
+            && echo "$text" | grep -q "S_3 group"; then
+            test_pass
+        else
+            test_fail "special index terms missing from the index"
+        fi
+    else
+        test_fail "PDF index conversion with special terms failed"
+    fi
+
+    rm -f "$test_md" "$test_pdf"
+}
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -1857,6 +1903,7 @@ test_multifile_epub
 
 echo -e "\n${YELLOW}--- Index Generation Tests ---${NC}\n"
 test_index_pdf
+test_index_pdf_special_terms
 
 # Run module unit tests if available
 if [ -f "$SCRIPT_DIR/test_modules.sh" ]; then

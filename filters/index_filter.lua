@@ -7,25 +7,60 @@ local index_entries = {}
 local output_format = FORMAT
 local index_pattern = "%[index:([^%]]+)%]"
 
--- Convert an index term to the appropriate output format
+-- One level of a term, made safe for the .idx file and for typesetting the
+-- index: makeindex's quote character " escapes its level separator ! and
+-- itself (@ stays, as the sort@display separator); outside $...$ math,
+-- TeX's specials _ & % # get a backslash. Unescaped, "100% tax" loses
+-- everything after the % when the index is typeset.
+local function latex_index_level(level)
+    local out = {}
+    local pos = 1
+    while pos <= #level do
+        local s, e = level:find("%$[^$]*%$", pos)
+        local text = level:sub(pos, (s or (#level + 1)) - 1)
+        text = text:gsub('(["!])', '"%1')
+        text = text:gsub("(\\?)([_&%%#])", function(bs, ch)
+            if bs == "\\" then return bs .. ch end
+            return "\\" .. ch
+        end)
+        table.insert(out, text)
+        if not s then break end
+        table.insert(out, (level:sub(s, e):gsub('(["!])', '"%1')))
+        pos = e + 1
+    end
+    return table.concat(out)
+end
+
+-- Convert an index term to the appropriate output format.
+-- Levels are separated by | (main|sub|subsub).
 local function make_index_inline(term)
-    local main_term, sub_term = term:match("^([^|]+)|?(.*)$")
+    local levels = {}
+    for level in (term .. "|"):gmatch("([^|]*)|") do
+        if level ~= "" then
+            table.insert(levels, level)
+        end
+    end
+    if #levels == 0 then
+        return nil
+    end
+    local main_term = levels[1]
+    local sub_term = table.concat(levels, ", ", 2)
 
     -- Track for EPUB index generation
     if not index_entries[main_term] then
         index_entries[main_term] = {}
     end
-    if sub_term and sub_term ~= "" then
+    if sub_term ~= "" then
         table.insert(index_entries[main_term], sub_term)
     end
 
     -- LaTeX output
     if output_format:match("latex") or output_format:match("pdf") then
-        local latex_term = main_term
-        if sub_term and sub_term ~= "" then
-            latex_term = main_term .. "!" .. sub_term
+        local escaped = {}
+        for _, level in ipairs(levels) do
+            table.insert(escaped, latex_index_level(level))
         end
-        return pandoc.RawInline("latex", "\\index{" .. latex_term .. "}")
+        return pandoc.RawInline("latex", "\\index{" .. table.concat(escaped, "!") .. "}")
     end
 
     -- For other formats, return nothing (marker is silently removed)
@@ -130,6 +165,10 @@ function Inlines(inlines)
                     full = table.concat(parts)
                 elseif nxt.t == "Space" or nxt.t == "SoftBreak" then
                     table.insert(parts, " ")
+                    full = table.concat(parts)
+                elseif nxt.t == "Math" and nxt.mathtype == "InlineMath" then
+                    -- A term may carry math: keep it as $...$ for \index
+                    table.insert(parts, "$" .. nxt.text .. "$")
                     full = table.concat(parts)
                 else
                     -- Hit a non-text element (Emph, Strong, etc.); stop collecting

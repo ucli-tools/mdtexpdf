@@ -968,7 +968,9 @@ _execute_pandoc_with_index() {
     # Step 3: First makeindex pass (builds index from preliminary page numbers)
     if [ -f "${base_name}.idx" ]; then
         echo -e "${BLUE}  Pass 2/6: makeindex (building preliminary index)...${NC}"
-        makeindex "${base_name}.idx" > /dev/null 2>&1
+        # From the output directory: TeX Live's makeindex may not write to an
+        # absolute path (openout_any = p), and the index would silently vanish
+        (cd "$out_dir" && makeindex "${job_name}.idx") > /dev/null 2>&1
     else
         echo -e "${YELLOW}  Warning: No .idx file generated. Index may be empty.${NC}"
     fi
@@ -980,7 +982,9 @@ _execute_pandoc_with_index() {
     # Step 5: Second makeindex pass (rebuilds index with corrected page numbers)
     if [ -f "${base_name}.idx" ]; then
         echo -e "${BLUE}  Pass 4/6: makeindex (rebuilding with final page numbers)...${NC}"
-        makeindex "${base_name}.idx" > /dev/null 2>&1
+        # From the output directory: TeX Live's makeindex may not write to an
+        # absolute path (openout_any = p), and the index would silently vanish
+        (cd "$out_dir" && makeindex "${job_name}.idx") > /dev/null 2>&1
     fi
 
     # Step 6: Third xelatex pass (includes corrected index)
