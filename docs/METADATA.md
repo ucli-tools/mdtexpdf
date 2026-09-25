@@ -235,7 +235,7 @@ See [SIMPLE_BIBLIOGRAPHY.md](SIMPLE_BIBLIOGRAPHY.md) for detailed bibliography d
 |-------|------|-------------|---------|
 | `chapters_on_recto` | boolean | Start chapters on odd pages | true, false |
 | `drop_caps` | boolean | Decorative first letter | true, false |
-| `fit_wide_equations` | boolean | Shrink a display equation to the text width only when it is wider; others keep their size (PDF) | true, false |
+| `fit_wide_equations` | boolean | Shrink a display equation to the text width only when it is wider (others keep their size), and let a long inline formula break after a top-level comma (PDF) | true, false |
 
 #### Copyright Page Information
 

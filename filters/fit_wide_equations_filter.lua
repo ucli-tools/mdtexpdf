@@ -1,6 +1,7 @@
 -- fit_wide_equations_filter.lua
 -- Purpose: Shrink a display equation to the text width when, and only when,
--- it is wider than the text block. TeX measures each display in a box; one
+-- it is wider than the text block, and let a long inline formula break
+-- after a top-level comma. TeX measures each display in a box; one
 -- that fits is set at its natural size.
 -- Enabled by the metadata field fit_wide_equations: true (see docs/METADATA.md).
 
@@ -49,8 +50,44 @@ local function boxable(text)
   return not has_top_level_break(text)
 end
 
+-- A long inline formula may break after a top-level comma, as a list of
+-- items is broken by hand; TeX breaks math only after relations and binary
+-- operators, so a formula such as A{...}, C{...} would otherwise run into
+-- the margin
+local INLINE_BREAK_MIN = 60
+
+local function allow_comma_breaks(text)
+  local out, depth, lr, i, n = {}, 0, 0, 1, #text
+  while i <= n do
+    local c = text:sub(i, i)
+    if c == '\\' then
+      local cmd = text:match('^\\%a+', i)
+      if cmd then
+        if cmd == '\\left' then lr = lr + 1 elseif cmd == '\\right' then lr = lr - 1 end
+        table.insert(out, cmd)
+        i = i + #cmd
+      else
+        table.insert(out, text:sub(i, i + 1))
+        i = i + 2
+      end
+    else
+      if c == '{' then depth = depth + 1 elseif c == '}' then depth = depth - 1 end
+      table.insert(out, c)
+      if c == ',' and depth == 0 and lr == 0 then
+        table.insert(out, '\\allowbreak ')
+      end
+      i = i + 1
+    end
+  end
+  return table.concat(out)
+end
+
 function Math(el)
-  if el.mathtype ~= 'DisplayMath' then
+  if el.mathtype == 'InlineMath' then
+    if #el.text >= INLINE_BREAK_MIN then
+      el.text = allow_comma_breaks(el.text)
+      return el
+    end
     return nil
   end
   local body = el.text
