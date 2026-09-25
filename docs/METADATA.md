@@ -67,6 +67,7 @@ no_numbers: false                   # Disable section numbering (or use section_
 
 # Headers and footers
 header_footer_policy: "default"     # default, partial, all
+header_title: "Short Title"         # Running head, when the title is too long for it
 footer: "© 2025 Author Name"        # Custom footer text
 no_footer: false                    # Disable footer completely
 pageof: true                        # Show "Page X of Y"
@@ -194,6 +195,7 @@ narrator: "AI Narrator"             # Narrator name for metadata
 | `acknowledgments` | string | Acknowledgments page content (use YAML \| for multi-line) | See template |
 | `about-author` | string | About the Author page content (use YAML \| for multi-line) | See template |
 | `header_footer_policy` | string | Header/footer policy | "default", "partial", "all" |
+| `header_title` | string | Title in the running head (defaults to `title`) | Any string |
 | `footer` | string | Custom footer text | Any string |
 | `no_footer` | boolean | Disable footer | true, false |
 | `pageof` | boolean | Show "Page X of Y" | true, false |

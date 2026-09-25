@@ -821,6 +821,50 @@ EOF
     fi
 }
 
+# PDF running head from header_title (a long title does not fit the head)
+test_pdf_header_title() {
+    test_start "PDF running head uses header_title"
+
+    if ! command -v pandoc &> /dev/null || ! command -v pdftotext &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: pandoc or pdftotext not installed"
+        return
+    fi
+
+    if ! command -v pdflatex &> /dev/null && ! command -v xelatex &> /dev/null; then
+        echo -e "    ${YELLOW}SKIP${NC}: LaTeX not installed"
+        return
+    fi
+
+    local test_md="$TEST_OUTPUT/test_header_title.md"
+    local test_pdf="$TEST_OUTPUT/test_header_title.pdf"
+
+    cat > "$test_md" << 'EOF'
+---
+title: "A Title Far Too Long For The Running Head Of Any Page"
+header_title: "Short Head"
+author: "Test Author"
+format: "book"
+header_footer_policy: "all"
+---
+
+# Chapter 1
+
+Content under a running head.
+EOF
+
+    rm -f "$test_pdf"
+
+    if "$MDTEXPDF" convert "$test_md" "$test_pdf" --read-metadata 2>&1; then
+        if pdftotext "$test_pdf" - 2>/dev/null | grep -q "Short Head"; then
+            test_pass
+        else
+            test_fail "header_title not in the running head"
+        fi
+    else
+        test_fail "header_title conversion failed"
+    fi
+}
+
 # PDF with no footer (explicitly disabled)
 test_pdf_no_footer() {
     test_start "PDF with footer disabled"
@@ -1729,6 +1773,7 @@ test_pdf_date_footer
 test_pdf_no_numbers
 test_pdf_toc_cli
 test_pdf_header_footer_policy
+test_pdf_header_title
 test_pdf_no_footer
 
 echo -e "\n${YELLOW}--- EPUB Tests ---${NC}\n"

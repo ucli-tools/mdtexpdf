@@ -32,6 +32,7 @@ init_metadata_vars() {
 
     # PDF-specific metadata
     META_FOOTER=""
+    META_HEADER_TITLE=""
     META_TOC=""
     META_TOC_DEPTH=""
     META_INDEX=""
@@ -162,6 +163,7 @@ parse_html_metadata() {
             "section") META_SECTION="$value"; echo -e "${GREEN}Found metadata - section: $value${NC}" ;;
             "slug") META_SLUG="$value"; echo -e "${GREEN}Found metadata - slug: $value${NC}" ;;
             "footer") META_FOOTER="$value"; echo -e "${GREEN}Found metadata - footer: $value${NC}" ;;
+            "header_title") META_HEADER_TITLE="$value"; echo -e "${GREEN}Found metadata - header_title: $value${NC}" ;;
             "toc") META_TOC="$value"; echo -e "${GREEN}Found metadata - toc: $value${NC}" ;;
             "toc_depth") META_TOC_DEPTH="$value"; echo -e "${GREEN}Found metadata - toc_depth: $value${NC}" ;;
             "index") META_INDEX="$value"; echo -e "${GREEN}Found metadata - index: $value${NC}" ;;
@@ -251,6 +253,7 @@ parse_yaml_metadata() {
     index_val=$(yq eval '.index // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     [ "$index_val" = "true" ] && META_INDEX="true"
     META_FOOTER=$(yq eval '.footer // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_HEADER_TITLE=$(yq eval '.header_title // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_HEADER_FOOTER_POLICY=$(yq eval '.header_footer_policy // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
 
     # Bibliography and citations
@@ -379,6 +382,7 @@ _display_metadata_found() {
     [ -n "$META_TOC" ] && echo -e "${GREEN}Found metadata - toc: $META_TOC${NC}"
     [ -n "$META_TOC_DEPTH" ] && echo -e "${GREEN}Found metadata - toc_depth: $META_TOC_DEPTH${NC}"
     [ -n "$META_FOOTER" ] && echo -e "${GREEN}Found metadata - footer: $META_FOOTER${NC}"
+    [ -n "$META_HEADER_TITLE" ] && echo -e "${GREEN}Found metadata - header_title: $META_HEADER_TITLE${NC}"
     [ -n "$META_HEADER_FOOTER_POLICY" ] && echo -e "${GREEN}Found metadata - header_footer_policy: $META_HEADER_FOOTER_POLICY${NC}"
     [ -n "$META_NO_NUMBERS" ] && echo -e "${GREEN}Found metadata - section_numbers: false${NC}"
     [ -n "$META_NO_FOOTER" ] && echo -e "${GREEN}Found metadata - no_footer: true${NC}"

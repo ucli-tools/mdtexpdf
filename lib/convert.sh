@@ -265,7 +265,8 @@ _resolve_template_interactive() {
     # Create a template file in the current directory
     _PDF_TEMPLATE_PATH="$(pwd)/template.tex"
     echo -e "${YELLOW}Creating template file: $_PDF_TEMPLATE_PATH${NC}"
-    create_template_file "$_PDF_TEMPLATE_PATH" "$FOOTER_TEXT" "$TITLE" "$AUTHOR" "$_PDF_DATE_FOOTER_TEXT" "$ARG_SECTION_NUMBERS" "$ARG_FORMAT" "$ARG_HEADER_FOOTER_POLICY"
+    # The running head uses header_title when the title is too long for it
+    create_template_file "$_PDF_TEMPLATE_PATH" "$FOOTER_TEXT" "${META_HEADER_TITLE:-$TITLE}" "$AUTHOR" "$_PDF_DATE_FOOTER_TEXT" "$ARG_SECTION_NUMBERS" "$ARG_FORMAT" "$ARG_HEADER_FOOTER_POLICY"
 
     if [ ! -f "$_PDF_TEMPLATE_PATH" ]; then
         echo -e "${RED}Error: Failed to create template.tex.${NC}"
