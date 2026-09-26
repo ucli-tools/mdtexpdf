@@ -464,11 +464,15 @@ _generate_epub_cover() {
             "$temp_author"
 
         local title_y=$((img_height / 8))
+        # The author's name sits cover_author_offset of the height above the
+        # bottom edge, as on the PDF cover (default: a tenth)
+        local author_y
+        author_y=$(awk -v h="$img_height" -v o="${META_COVER_AUTHOR_OFFSET:-0.1}" 'BEGIN { printf "%d", h * o }')
         local temp_cover
         temp_cover=$(mktemp --suffix=.png)
         /usr/bin/convert "$temp_base" \
             "$temp_title" -gravity North -geometry +0+${title_y} -composite \
-            "$temp_author" -gravity South -geometry +0+$((img_height / 10)) -composite \
+            "$temp_author" -gravity South -geometry +0+${author_y} -composite \
             "$temp_cover"
 
         if [ -n "$temp_subtitle" ]; then
