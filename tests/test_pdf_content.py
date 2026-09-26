@@ -318,6 +318,23 @@ Body paragraph.
         self.assertNotIn("LMMath", book)
         self.assertIn("STIXTwoMath", math_fonts("math_font: stix-two\n"))
 
+    def test_mainfontoptions_reach_the_main_font(self):
+        """A small-capitals face kept in a separate font is used by \\textsc."""
+        source = """---
+title: Small capitals
+mainfont: "Latin Modern Roman"
+mainfontoptions: "SmallCapsFont=Latin Modern Roman Caps"
+---
+
+# Small capitals
+
+Text with \\textsc{Small Capitals} in it.
+"""
+        _, output = self.convert(source)
+        fonts = subprocess.run(["pdffonts", str(output)], capture_output=True,
+                               text=True, check=True).stdout
+        self.assertIn("LMRomanCaps", fonts)
+
     def test_latex_failures_report_a_concise_diagnostic(self):
         source = r'''---
 title: Broken LaTeX

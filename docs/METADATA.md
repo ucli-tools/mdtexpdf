@@ -200,6 +200,7 @@ narrator: "AI Narrator"             # Narrator name for metadata
 | `header_footer_policy` | string | Header/footer policy | "default", "partial", "all" |
 | `header_title` | string | Title in the running head (defaults to `title`) | Any string |
 | `mainfont` | string | Body font (XeLaTeX/LuaLaTeX; default DejaVu Serif) | Installed font name |
+| `mainfontoptions` | string | fontspec options for `mainfont`: a small-capitals face kept in a separate font, or the other faces of a font given by file | "SmallCapsFont=Latin Modern Roman Caps" |
 | `sansfont` | string | Sans font (default DejaVu Sans) | Installed font name |
 | `monofont` | string | Monospaced font (default DejaVu Sans Mono) | Installed font name |
 | `headings_sans` | boolean | Book format: set part, chapter and section headings in `sansfont` | true, false |

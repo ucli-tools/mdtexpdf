@@ -142,7 +142,7 @@ BOOK_CMDS_EOF
         % LuaLaTeX-specific setup
         \\usepackage{fontspec}
         % Load fonts with Unicode support
-        \$if(mainfont)\$\setmainfont{\$mainfont\$}[Ligatures=TeX]\$else\$\setmainfont{DejaVu Serif}[Ligatures=TeX]\$endif\$
+        \$if(mainfont)\$\setmainfont{\$mainfont\$}[Ligatures=TeX\$if(mainfontoptions)\$,\$mainfontoptions\$\$endif\$]\$else\$\setmainfont{DejaVu Serif}[Ligatures=TeX]\$endif\$
         \$if(sansfont)\$\setsansfont{\$sansfont\$}[Ligatures=TeX]\$else\$\setsansfont{DejaVu Sans}[Ligatures=TeX]\$endif\$
         \$if(monofont)\$\setmonofont{\$monofont\$}\$else\$\setmonofont{DejaVu Sans Mono}\$endif\$
     \\else
@@ -150,7 +150,7 @@ BOOK_CMDS_EOF
             % XeLaTeX-specific setup
             \\usepackage{fontspec}
             % Load fonts with Unicode support
-            \$if(mainfont)\$\setmainfont{\$mainfont\$}[Ligatures=TeX]\$else\$\setmainfont{DejaVu Serif}[Ligatures=TeX]\$endif\$
+            \$if(mainfont)\$\setmainfont{\$mainfont\$}[Ligatures=TeX\$if(mainfontoptions)\$,\$mainfontoptions\$\$endif\$]\$else\$\setmainfont{DejaVu Serif}[Ligatures=TeX]\$endif\$
             \$if(sansfont)\$\setsansfont{\$sansfont\$}[Ligatures=TeX]\$else\$\setsansfont{DejaVu Sans}[Ligatures=TeX]\$endif\$
             \$if(monofont)\$\setmonofont{\$monofont\$}\$else\$\setmonofont{DejaVu Sans Mono}\$endif\$
 
@@ -1204,7 +1204,7 @@ ISBN: \$isbn\$\\\\[0.3cm]
 \$publisher_address\$\\\\[0.3cm]
 \$endif\$
 \$if(publisher_website)\$
-\\url{\$publisher_website\$}\\\\[0.3cm]
+{\\urlstyle{same}\\hypersetup{urlcolor=.}\\url{\$publisher_website\$}}\\\\[0.3cm]
 \$endif\$
 \\end{flushleft}
 \\cleardoublepage
