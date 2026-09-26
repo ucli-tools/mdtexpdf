@@ -391,7 +391,9 @@ _generate_epub_cover() {
         if [[ ! "$epub_cover_base" = /* ]]; then
             epub_cover_base="$input_dir/$epub_cover_base"
         fi
-        _EPUB_COVER_GENERATED="${INPUT_FILE%.md}_epub_cover.png"
+        # JPEG, like the photographs covers are: a PNG of a print-resolution
+        # cover would outweigh the whole book
+        _EPUB_COVER_GENERATED="${INPUT_FILE%.md}_epub_cover.jpg"
         local cover_title="${ARG_TITLE:-$META_TITLE}"
         local cover_subtitle="${META_SUBTITLE:-}"
         local cover_author="${ARG_AUTHOR:-$META_AUTHOR}"
@@ -400,10 +402,16 @@ _generate_epub_cover() {
 
         echo -e "${YELLOW}Generating EPUB cover with text overlay...${NC}"
 
+        # E-book stores ask for covers up to 1600x2560; a larger (print)
+        # image is scaled down to fit that box, a smaller one is kept as is
+        local temp_scaled
+        temp_scaled=$(mktemp --suffix=.png)
+        /usr/bin/convert "$epub_cover_base" -resize '1600x2560>' "$temp_scaled"
+
         # Get image dimensions
         local img_width img_height
-        img_width=$(identify -format "%w" "$epub_cover_base" 2>/dev/null)
-        img_height=$(identify -format "%h" "$epub_cover_base" 2>/dev/null)
+        img_width=$(identify -format "%w" "$temp_scaled" 2>/dev/null)
+        img_height=$(identify -format "%h" "$temp_scaled" 2>/dev/null)
 
         # Calculate font sizes relative to image height
         local title_size=$((img_height / 12))
@@ -414,7 +422,7 @@ _generate_epub_cover() {
         # Build cover using composite approach with text wrapping
         local temp_base temp_title temp_subtitle temp_author
         temp_base=$(mktemp --suffix=.png)
-        /usr/bin/convert "$epub_cover_base" \
+        /usr/bin/convert "$temp_scaled" \
             -fill "rgba(0,0,0,$cover_overlay)" -draw "rectangle 0,0,$img_width,$img_height" \
             "$temp_base"
 
@@ -456,20 +464,25 @@ _generate_epub_cover() {
             "$temp_author"
 
         local title_y=$((img_height / 8))
+        local temp_cover
+        temp_cover=$(mktemp --suffix=.png)
         /usr/bin/convert "$temp_base" \
             "$temp_title" -gravity North -geometry +0+${title_y} -composite \
             "$temp_author" -gravity South -geometry +0+$((img_height / 10)) -composite \
-            "$_EPUB_COVER_GENERATED"
+            "$temp_cover"
 
         if [ -n "$temp_subtitle" ]; then
             local title_subtitle_gap=$((img_height / 40))
             local subtitle_y=$((title_y + title_actual_height + title_subtitle_gap))
-            /usr/bin/convert "$_EPUB_COVER_GENERATED" \
+            /usr/bin/convert "$temp_cover" \
                 "$temp_subtitle" -gravity North -geometry +0+${subtitle_y} -composite \
-                "$_EPUB_COVER_GENERATED"
+                "$temp_cover"
         fi
 
-        rm -f "$temp_base" "$temp_title" "$temp_subtitle" "$temp_author"
+        # Encoded once, after every overlay, so the text is not recompressed
+        /usr/bin/convert "$temp_cover" -quality 92 "$_EPUB_COVER_GENERATED"
+
+        rm -f "$temp_scaled" "$temp_base" "$temp_title" "$temp_subtitle" "$temp_author" "$temp_cover"
 
         if [ -f "$_EPUB_COVER_GENERATED" ]; then
             _EPUB_COVER="$_EPUB_COVER_GENERATED"
