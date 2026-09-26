@@ -847,7 +847,8 @@ setup_pdf_bibliography() {
 # =============================================================================
 
 # Report what the final LaTeX pass left behind: errors it ran past, characters
-# no font could print (they come out blank), lines run into the margin, and
+# no font could print (they come out blank), lines run into the margin, pages
+# run past the foot (an unbreakable figure taller than the room left), and
 # unresolved references. A PDF can be produced with all of these.
 # Arguments: $1=path to the final .log
 _report_latex_log() {
@@ -856,9 +857,9 @@ _report_latex_log() {
     local errors missing overfull undefined
     errors=$(grep -c '^! ' "$log")
     missing=$(grep -c '^Missing character' "$log")
-    overfull=$(grep -c '^Overfull \\hbox' "$log")
+    overfull=$(grep -c '^Overfull \\[hv]box' "$log")
     undefined=$(grep -c 'LaTeX Warning: \(Reference\|Citation\) .* undefined' "$log")
-    local summary="$errors errors, $missing missing characters, $overfull overfull lines, $undefined undefined references"
+    local summary="$errors errors, $missing missing characters, $overfull overfull lines or pages, $undefined undefined references"
     if [ $((errors + missing + overfull + undefined)) -eq 0 ]; then
         echo -e "${GREEN}Build report: $summary${NC}"
         return 0
@@ -867,7 +868,7 @@ _report_latex_log() {
     grep -m 3 -A 1 '^! ' "$log" | sed 's/^/  /'
     grep '^Missing character' "$log" | sed 's/^Missing character: There is no /  missing: /; s/!$//' \
         | sort | uniq -c | sort -rn | head -5
-    grep '^Overfull \\hbox' "$log" | sed 's/^/  /' | head -3
+    grep '^Overfull \\[hv]box' "$log" | sed 's/^/  /' | head -3
     return 0
 }
 
