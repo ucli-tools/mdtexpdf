@@ -112,7 +112,17 @@ function Blocks(blocks)
         elseif block.t == "Para" then
             if after_chapter then
                 local modified_para, is_short = apply_drop_cap(block)
-                table.insert(result, modified_para)
+                if modified_para ~= block then
+                    -- The drop cap is three lines tall: the page may not break
+                    -- after the first or second line, or the letter would hang
+                    -- into the footer; the paragraph (and its heading, kept
+                    -- with it) moves to the next page instead
+                    table.insert(result, pandoc.RawBlock("latex", "{\\clubpenalties 3 10000 10000 0"))
+                    table.insert(result, modified_para)
+                    table.insert(result, pandoc.RawBlock("latex", "\\par}"))
+                else
+                    table.insert(result, modified_para)
+                end
                 
                 -- Add vertical space after short paragraphs to prevent overlap
                 if is_short then
