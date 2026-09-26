@@ -122,6 +122,17 @@ convert_raw = function(block)
   end
 end
 
+-- Text set in a size of its own ([text]{size="28pt"}, a title page): HTML has
+-- no size attribute on a span, so the size becomes CSS, relative to the
+-- 12pt body text the PDF is set in
+local function sized_span(el)
+  local value = el.attributes.size and el.attributes.size:match('^([%d.]+)pt$')
+  if not value then return nil end
+  el.attributes.size = nil
+  el.attributes.style = string.format('font-size: %.2fem', tonumber(value) / 12)
+  return el
+end
+
 function Pandoc(doc)
   if not FORMAT:match('epub') then return nil end
   local headers = doc.meta['header-includes']
@@ -154,5 +165,5 @@ function Pandoc(doc)
   end
   doc:walk({RawBlock = collect, RawInline = collect})
   if #colours > 0 then preamble = preamble .. table.concat(colours, '\n') .. '\n' end
-  return doc:walk({RawBlock = convert_raw})
+  return doc:walk({RawBlock = convert_raw, Span = sized_span})
 end

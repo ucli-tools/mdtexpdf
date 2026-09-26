@@ -27,6 +27,35 @@ _EPUB_CMD=""
 _EPUB_BIB_TEMP_DIR=""
 
 # =============================================================================
+# EPUB Navigation Properties
+# =============================================================================
+
+# Declare the "mathml" property on the navigation document when its entries
+# hold MathML (headings with mathematics): pandoc writes the math into
+# nav.xhtml but does not declare it, which EPUBCheck reports as an error.
+# Arguments: $1=EPUB file
+declare_epub_nav_mathml() {
+    local epub_file_abs
+    epub_file_abs=$(realpath "$1")
+    unzip -p "$epub_file_abs" EPUB/nav.xhtml 2>/dev/null | grep -q '<math' || return 0
+    unzip -p "$epub_file_abs" EPUB/content.opf 2>/dev/null | grep -q 'id="nav"[^>]*properties="nav mathml"' && return 0
+
+    local temp_dir original_dir
+    temp_dir=$(mktemp -d)
+    original_dir=$(pwd)
+    unzip -q "$epub_file_abs" -d "$temp_dir" 2>/dev/null || { rm -rf "$temp_dir"; return 1; }
+    sed -i 's/\(<item id="nav"[^>]*properties="nav\)"/\1 mathml"/' "$temp_dir/EPUB/content.opf"
+    rm -f "$epub_file_abs"
+    cd "$temp_dir" || return 1
+    zip -X0 "$epub_file_abs" mimetype 2>/dev/null
+    zip -Xr9D "$epub_file_abs" META-INF EPUB 2>/dev/null
+    cd "$original_dir" || return 1
+    rm -rf "$temp_dir"
+    echo -e "${GREEN}EPUB navigation declared as holding MathML${NC}"
+    return 0
+}
+
+# =============================================================================
 # EPUB Spine Reordering
 # =============================================================================
 
@@ -684,6 +713,7 @@ _execute_epub_pandoc() {
 
         # Fix spine order
         fix_epub_spine_order "$OUTPUT_FILE"
+        declare_epub_nav_mathml "$OUTPUT_FILE"
 
         # Validate if requested
         if [ "$ARG_VALIDATE" = true ]; then
@@ -746,7 +776,13 @@ generate_epub() {
     _EPUB_CMD="pandoc \"$_EPUB_TEMP_INPUT\" --from markdown --to epub3 --output \"$OUTPUT_FILE\" --epub-title-page=false --mathml"
     [ -n "$_EPUB_TITLE" ] && _EPUB_CMD="$_EPUB_CMD --metadata title=\"$_EPUB_TITLE\""
     [ -n "$_EPUB_AUTHOR" ] && _EPUB_CMD="$_EPUB_CMD --metadata author=\"$_EPUB_AUTHOR\""
-    [ -n "$_EPUB_DATE" ] && _EPUB_CMD="$_EPUB_CMD --metadata date=\"$_EPUB_DATE\""
+    # The package date must be a W3C date: "February 21, 2026" pandoc reads
+    # itself, "February 2026" it leaves empty, so give it 2026-02
+    local opf_date="$_EPUB_DATE"
+    if [ -n "$opf_date" ] && ! date -d "$opf_date" +%F >/dev/null 2>&1; then
+        opf_date=$(date -d "1 $opf_date" +%Y-%m 2>/dev/null || echo "$opf_date")
+    fi
+    [ -n "$opf_date" ] && _EPUB_CMD="$_EPUB_CMD --metadata date=\"$opf_date\""
     [ -n "$_EPUB_DESCRIPTION" ] && _EPUB_CMD="$_EPUB_CMD --metadata description=\"$_EPUB_DESCRIPTION\""
     [ -n "$_EPUB_LANGUAGE" ] && _EPUB_CMD="$_EPUB_CMD --metadata lang=\"$_EPUB_LANGUAGE\""
     [ -n "$_EPUB_COVER" ] && _EPUB_CMD="$_EPUB_CMD --epub-cover-image=\"$_EPUB_COVER\""
