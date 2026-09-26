@@ -1045,10 +1045,10 @@ $figure_numbering_commands
 \\ifdefined\\symbf\\renewcommand{\\boldsymbol}[1]{\\symbf{#1}}\\fi
 \$if(mainfont)\$
 % Bold Latin letters and digits stay in the text face's bold, as they are
-% without a math font (fontspec); bold Greek, which the text face lacks,
-% comes from the math font
+% without a math font (fontspec), when that face is found by name; bold
+% Greek, which the text face lacks, comes from the math font
 \\ifdefined\\symbf
-\\setmathfont{\$mainfont\$ Bold}[range={bfup/{Latin,latin,num}->up}]
+\\IfFontExistsTF{\$mainfont\$ Bold}{\\setmathfont{\$mainfont\$ Bold}[range={bfup/{Latin,latin,num}->up}]}{}
 \\fi
 \$endif\$
 \$endif\$
