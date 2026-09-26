@@ -459,6 +459,22 @@ _add_meta_var() {
     fi
 }
 
+# Internal: The OpenType math font a math_font setting names: a preset, or a
+# font file or name given as is. Empty (or cm) keeps Computer Modern.
+# Arguments: $1=math_font value
+_math_font_file() {
+    case "$1" in
+        ""|cm|computer-modern) echo "" ;;
+        newcm-book)   echo "NewCMMath-Book.otf" ;;
+        newcm)        echo "NewCMMath-Regular.otf" ;;
+        latin-modern) echo "latinmodern-math.otf" ;;
+        stix-two)     echo "STIXTwoMath-Regular.otf" ;;
+        termes)       echo "texgyretermes-math.otf" ;;
+        pagella)      echo "texgyrepagella-math.otf" ;;
+        *)            echo "$1" ;;
+    esac
+}
+
 # Internal: Helper to conditionally add a boolean pandoc variable from a META_* value.
 # Arguments: $1=variable_name, $2=meta_value
 _add_meta_bool() {
@@ -487,6 +503,7 @@ _build_book_feature_vars() {
     _add_meta_var "sansfont" "$META_SANSFONT"
     _add_meta_var "monofont" "$META_MONOFONT"
     _add_meta_bool "headings_sans" "$META_HEADINGS_SANS"
+    _add_meta_var "math_font_file" "$(_math_font_file "$META_MATH_FONT")"
     _add_meta_bool "equation_numbers" "$META_EQUATION_NUMBERS"
 
     # Publishing

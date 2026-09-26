@@ -198,8 +198,11 @@ truncate_address() {
 select_pdf_engine() {
     local input_file="$1"
 
-    # A named font needs fontspec, which only XeLaTeX and LuaLaTeX load
-    if [ -n "$META_MAINFONT$META_SANSFONT$META_MONOFONT" ] || \
+    # A named font needs fontspec, and an OpenType math font unicode-math:
+    # only XeLaTeX and LuaLaTeX load them
+    local math_font="$META_MATH_FONT"
+    case "$math_font" in cm|computer-modern) math_font="" ;; esac
+    if [ -n "$META_MAINFONT$META_SANSFONT$META_MONOFONT$math_font" ] || \
         grep -qE '^(mainfont|sansfont|monofont):' "$input_file" 2>/dev/null; then
         if [ "$XELATEX_AVAILABLE" = true ]; then
             PDF_ENGINE="xelatex"

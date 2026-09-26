@@ -62,6 +62,7 @@ init_metadata_vars() {
     META_SANSFONT=""
     META_MONOFONT=""
     META_HEADINGS_SANS=""
+    META_MATH_FONT=""
     META_FIT_WIDE_EQUATIONS=""
     META_EQUATION_NUMBERS=""
     META_PUBLISHER=""
@@ -304,6 +305,7 @@ parse_yaml_metadata() {
     META_SANSFONT=$(yq eval '.sansfont // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_MONOFONT=$(yq eval '.monofont // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_HEADINGS_SANS=$(yq eval '.headings_sans // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_MATH_FONT=$(yq eval '.math_font // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_FIT_WIDE_EQUATIONS=$(yq eval '.fit_wide_equations // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_EQUATION_NUMBERS=$(yq eval '.equation_numbers // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_PUBLISHER=$(yq eval '.publisher // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
@@ -418,6 +420,7 @@ _display_metadata_found() {
     [ -n "$META_SANSFONT" ] && echo -e "${GREEN}Found metadata - sansfont: $META_SANSFONT${NC}"
     [ -n "$META_MONOFONT" ] && echo -e "${GREEN}Found metadata - monofont: $META_MONOFONT${NC}"
     [ -n "$META_HEADINGS_SANS" ] && echo -e "${GREEN}Found metadata - headings_sans: $META_HEADINGS_SANS${NC}"
+    [ -n "$META_MATH_FONT" ] && echo -e "${GREEN}Found metadata - math_font: $META_MATH_FONT${NC}"
     [ -n "$META_FIT_WIDE_EQUATIONS" ] && echo -e "${GREEN}Found metadata - fit_wide_equations: $META_FIT_WIDE_EQUATIONS${NC}"
     [ -n "$META_EQUATION_NUMBERS" ] && echo -e "${GREEN}Found metadata - equation_numbers: $META_EQUATION_NUMBERS${NC}"
     [ -n "$META_PUBLISHER" ] && echo -e "${GREEN}Found metadata - publisher: $META_PUBLISHER${NC}"

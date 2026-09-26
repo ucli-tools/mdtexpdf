@@ -69,6 +69,7 @@ no_numbers: false                   # Disable section numbering (or use section_
 header_footer_policy: "default"     # default, partial, all
 header_title: "Short Title"         # Running head, when the title is too long for it
 headings_sans: true                 # Book format: parts, chapters, sections in sansfont
+math_font: "newcm-book"             # Math typeface (default: Computer Modern)
 footer: "© 2025 Author Name"        # Custom footer text
 no_footer: false                    # Disable footer completely
 pageof: true                        # Show "Page X of Y"
@@ -202,6 +203,7 @@ narrator: "AI Narrator"             # Narrator name for metadata
 | `sansfont` | string | Sans font (default DejaVu Sans) | Installed font name |
 | `monofont` | string | Monospaced font (default DejaVu Sans Mono) | Installed font name |
 | `headings_sans` | boolean | Book format: set part, chapter and section headings in `sansfont` | true, false |
+| `math_font` | string | Math typeface, set through unicode-math (XeLaTeX/LuaLaTeX). Presets: `newcm-book` (Computer Modern's design, drawn heavier to sit with a book-weight text face), `newcm`, `latin-modern`, `stix-two`, `termes`, `pagella`; or any installed OpenType math font file or name. `cm` or unset keeps Computer Modern | "newcm-book", "stix-two", "XITSMath-Regular.otf" |
 | `footer` | string | Custom footer text | Any string |
 | `no_footer` | boolean | Disable footer | true, false |
 | `pageof` | boolean | Show "Page X of Y" | true, false |

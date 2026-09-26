@@ -297,6 +297,27 @@ Body paragraph.
         }
         self.assertGreater(heights["Towering"], 2 * heights["Modest"])
 
+    def test_math_font_setting_chooses_the_math_font(self):
+        def math_fonts(setting):
+            source = "---\ntitle: Math font\n" + setting + "---\n\n# Math\n\n" \
+                "Inline $\\sum_{k=0}^{\\infty} x_k \\in \\mathbb{C}$ and\n\n" \
+                "$$\\int_0^1 \\frac{\\alpha}{\\beta}\\,dt = \\mathfrak{g}.$$\n"
+            _, output = self.convert(source)
+            fonts = subprocess.run(["pdffonts", str(output)], capture_output=True,
+                                   text=True, check=True).stdout
+            return fonts
+
+        # Without the setting, math keeps the Computer Modern design (Latin
+        # Modern under pdfLaTeX, CM under XeLaTeX)
+        default = math_fonts("")
+        self.assertTrue("CMMI" in default or "LMMath" in default, default)
+        self.assertNotIn("NewCMMath", default)
+        book = math_fonts("math_font: newcm-book\n")
+        self.assertIn("NewCMMath-Book", book)
+        self.assertNotIn("CMMI", book)
+        self.assertNotIn("LMMath", book)
+        self.assertIn("STIXTwoMath", math_fonts("math_font: stix-two\n"))
+
     def test_latex_failures_report_a_concise_diagnostic(self):
         source = r'''---
 title: Broken LaTeX

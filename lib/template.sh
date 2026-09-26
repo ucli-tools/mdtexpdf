@@ -1033,6 +1033,26 @@ $figure_numbering_commands
 \\makeindex
 \$endif\$
 
+% Math font (math_font): an OpenType math font through unicode-math, loaded
+% after every math package; without it math is set in Computer Modern.
+% mathbf=sym takes bold letters from the math font: the text font has no
+% math Greek, and a bold gamma would print as nothing
+\$if(math_font_file)\$
+\\ifxetex\\usepackage[mathbf=sym]{unicode-math}\\setmathfont{\$math_font_file\$}\\else
+\\ifluatex\\usepackage[mathbf=sym]{unicode-math}\\setmathfont{\$math_font_file\$}\\fi\\fi
+% \\boldsymbol asks for a bold math version the font does not have: take
+% the bold letters it does have
+\\ifdefined\\symbf\\renewcommand{\\boldsymbol}[1]{\\symbf{#1}}\\fi
+\$if(mainfont)\$
+% Bold Latin letters and digits stay in the text face's bold, as they are
+% without a math font (fontspec); bold Greek, which the text face lacks,
+% comes from the math font
+\\ifdefined\\symbf
+\\setmathfont{\$mainfont\$ Bold}[range={bfup/{Latin,latin,num}->up}]
+\\fi
+\$endif\$
+\$endif\$
+
 % Custom header includes from document metadata
 \$for(header-includes)\$
 \$header-includes\$
