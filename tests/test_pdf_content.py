@@ -252,6 +252,51 @@ Before … after.
         self.assertIn("…", latex)
         self.assertNotIn(r"\ldots", latex)
 
+    def test_document_front_matter_pages_precede_the_contents(self):
+        """A book's own title page keeps its sizes; its contents follow it."""
+        source = '''---
+title: Front matter
+author: Test Author
+format: book
+toc: true
+no_title_page: true
+---
+
+# Title Page
+
+[*Towering*]{size="28pt"}
+
+[*Modest*]{size="10pt"}
+
+# Dedication
+
+*For the reader*
+
+# Opening Chapter
+
+Body paragraph.
+'''
+        _, output = self.convert(source)
+        pages = self.pdf_text(output).split("\f")
+
+        def page_of(words):
+            return next(i for i, page in enumerate(pages) if words in page)
+
+        self.assertLess(page_of("Towering"), page_of("For the reader"))
+        self.assertLess(page_of("For the reader"), page_of("Contents"))
+        self.assertLess(page_of("Contents"), page_of("Body paragraph"))
+
+        result = subprocess.run(
+            ["pdftotext", "-bbox-layout", str(output), "-"],
+            capture_output=True, text=True, check=True,
+        )
+        heights = {
+            word.text: float(word.attrib["yMax"]) - float(word.attrib["yMin"])
+            for word in ET.fromstring(result.stdout).iter()
+            if word.tag.endswith("word") and word.text in ("Towering", "Modest")
+        }
+        self.assertGreater(heights["Towering"], 2 * heights["Modest"])
+
     def test_latex_failures_report_a_concise_diagnostic(self):
         source = r'''---
 title: Broken LaTeX

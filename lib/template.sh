@@ -1236,11 +1236,15 @@ ISBN: \$isbn\$\\\\[0.3cm]
 \\cleardoublepage
 \$endif\$
 
-% Set TOC depth and generate TOC if needed
+% Set TOC depth and generate TOC if needed (a document that opens with its
+% own front matter pages has its contents after them: book_structure.lua)
 \\setcounter{tocdepth}{$ARG_TOC_DEPTH}
 \$if(toc)\$
+\$if(toc_in_body)\$
+\$else\$
 \\tableofcontents
 \\newpage
+\$endif\$
 \$endif\$
 
 \$if(format_book)\$

@@ -175,21 +175,73 @@ end
 -- PASS 2: Block processing (dedication/epigraph content)
 -- ============================================
 
+local function is_front_matter_page(header_text)
+    return string.match(header_text, '^[Dd]edication$')
+        or string.match(header_text, '^[Ee]pigraph$')
+        or string.match(header_text, '^[Cc]opyright [Pp]age$')
+        or string.match(header_text, '^[Tt]itle [Pp]age$')
+end
+
 local function pass2_process_blocks(doc)
     local new_blocks = {}
     local i = 1
+    -- A document that opens with its own front matter pages (a Word title
+    -- page, dedication, copyright page) has its contents after them
+    local opening = true
+    local had_front_matter = false
 
     while i <= #doc.blocks do
         local block = doc.blocks[i]
 
+        if opening and not (block.t == "Header"
+                and is_front_matter_page(pandoc.utils.stringify(block.content))) then
+            opening = false
+            if had_front_matter and PANDOC_WRITER_OPTIONS.table_of_contents then
+                table.insert(new_blocks, pandoc.RawBlock('latex',
+                    '\\tableofcontents\\clearpage'))
+                doc.meta.toc_in_body = true
+            end
+        end
+
         -- Check if this is a dedication or epigraph header
         if block.t == "Header" then
             local header_text = pandoc.utils.stringify(block.content)
+            if opening and is_front_matter_page(header_text) then
+                had_front_matter = true
+            end
 
-            if string.match(header_text, '^[Dd]edication$') then
-                -- Add the opening LaTeX
+            if string.match(header_text, '^[Tt]itle [Pp]age$') then
+                -- The document's own title page: centered, its lines in the
+                -- sizes they were set in, a publisher's block (from its
+                -- logo on) at the foot of the page
                 table.insert(new_blocks, pandoc.RawBlock('latex',
-                    '\\clearpage\\thispagestyle{empty}\\vspace*{\\fill}\\begin{center}\\itshape\\large'))
+                    '\\clearpage\\thispagestyle{titlepage}\\vspace*{0.08\\textheight}'
+                    .. '\\begin{center}\\setlength{\\parskip}{0.6em}'))
+
+                i = i + 1
+                local at_foot = false
+                while i <= #doc.blocks and doc.blocks[i].t ~= "Header" do
+                    local b = doc.blocks[i]
+                    if not at_foot and (b.t == "Para" or b.t == "Plain")
+                            and #b.content == 1 and b.content[1].t == "Image" then
+                        table.insert(new_blocks, pandoc.RawBlock('latex', '\\vfill'))
+                        at_foot = true
+                    end
+                    table.insert(new_blocks, b)
+                    i = i + 1
+                end
+
+                table.insert(new_blocks, pandoc.RawBlock('latex',
+                    '\\end{center}\\clearpage'))
+
+                goto continue
+
+            elseif string.match(header_text, '^[Dd]edication$') then
+                -- Add the opening LaTeX (text already in italics stays
+                -- italic: \emph inside \itshape would turn it upright)
+                table.insert(new_blocks, pandoc.RawBlock('latex',
+                    '\\clearpage\\thispagestyle{empty}\\vspace*{\\fill}\\begin{center}\\itshape\\large'
+                    .. '\\let\\emph\\textit'))
 
                 -- Collect content until next header
                 i = i + 1
@@ -207,7 +259,8 @@ local function pass2_process_blocks(doc)
             elseif string.match(header_text, '^[Ee]pigraph$') then
                 -- Add the opening LaTeX
                 table.insert(new_blocks, pandoc.RawBlock('latex',
-                    '\\clearpage\\thispagestyle{empty}\\vspace*{\\fill}\\begin{flushright}\\itshape\\large'))
+                    '\\clearpage\\thispagestyle{empty}\\vspace*{\\fill}\\begin{flushright}\\itshape\\large'
+                    .. '\\let\\emph\\textit'))
 
                 -- Collect content until next header
                 i = i + 1
@@ -253,17 +306,57 @@ local function pass2_process_blocks(doc)
 end
 
 -- ============================================
+-- SIZED TEXT: [text]{size="28pt"}
+-- Type sizes a document carries over, as on a Word title page
+-- ============================================
+
+local function size_commands(size)
+    local value, unit = string.match(size or '', '^([%d.]+)(%a*)$')
+    if not value then return nil end
+    unit = (unit ~= '' and unit) or 'pt'
+    local skip = string.format('%.1f', tonumber(value) * 1.2)
+    return '\\fontsize{' .. value .. unit .. '}{' .. skip .. unit .. '}\\selectfont'
+end
+
+-- A paragraph that is one sized span: its line spacing follows the size
+local function sized_para(el)
+    if not FORMAT:match('latex') then return nil end
+    if #el.content ~= 1 or el.content[1].t ~= "Span" then return nil end
+    local sizing = size_commands(el.content[1].attributes.size)
+    if not sizing then return nil end
+    return {
+        pandoc.RawBlock('latex', '{' .. sizing),
+        pandoc.Para(el.content[1].content),
+        pandoc.RawBlock('latex', '\\par}'),
+    }
+end
+
+local function sized_span(el)
+    if not FORMAT:match('latex') then return nil end
+    local sizing = size_commands(el.attributes.size)
+    if not sizing then return nil end
+    local result = { pandoc.RawInline('latex', '{' .. sizing .. ' ') }
+    for _, inline in ipairs(el.content) do table.insert(result, inline) end
+    table.insert(result, pandoc.RawInline('latex', '}'))
+    return result
+end
+
+-- ============================================
 -- MULTI-PASS FILTER
 -- Return a list of filters applied in order:
 --   Pass 1: Detect parts (document-level scan)
---   Pass 2: Process front matter blocks (Dedication, Epigraph, Copyright Page)
+--   Pass 2: Process front matter blocks (Dedication, Epigraph, Copyright Page,
+--           Title Page), and set the contents after them
 --           Must run BEFORE Header processing so that these headers are still
 --           intact as Header elements (not yet converted to RawBlocks).
 --   Pass 3: Process remaining headers (Part, Chapter, etc. → LaTeX commands)
+--   Pass 4: Sized paragraphs and spans → \fontsize
 -- ============================================
 
 return {
     { Pandoc = pass1_detect_parts },
     { Pandoc = pass2_process_blocks },
-    { Header = process_header }
+    { Header = process_header },
+    { Para = sized_para },
+    { Span = sized_span }
 }

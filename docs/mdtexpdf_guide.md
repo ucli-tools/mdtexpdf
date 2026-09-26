@@ -745,6 +745,29 @@ Supplementary material.
 **Term Three**: Another definition explaining this concept.
 ```
 
+### Front Matter Pages in the Body
+
+A book converted from a word processor (docx2md does this) may carry its own opening pages. These headings, at the very start of the body, each become a page of their own:
+
+| Heading | Page |
+|---|---|
+| `# Title Page` | centered; a paragraph that holds only an image (a publisher's logo) and what follows it sit at the foot |
+| `# Dedication` | centered, italic |
+| `# Epigraph` | right-aligned, italic |
+| `# Copyright Page` | small type, left-aligned, at the foot |
+
+With `toc: true`, the contents follow these pages instead of preceding them. Set `no_title_page: true` so that the document's own title page is not preceded by the one built from the metadata.
+
+Text can keep the size the source gave it, as on a title page:
+
+```markdown
+# Title Page
+
+[*Book Title*]{size="28pt"}
+
+[Author Name]{size="20pt"}
+```
+
 ### Back Matter
 
 **Acknowledgments** and **About the Author** are set via YAML metadata variables, not as markdown headings:
@@ -791,6 +814,14 @@ back_cover_text_color: "white"              # text color
 ```bash
 mdtexpdf convert my_book.md --read-metadata
 ```
+
+A book with an index (`index: true`) ends its build with a report from the last LaTeX pass:
+
+```
+Build report: 0 errors, 0 missing characters, 0 overfull lines, 0 undefined references
+```
+
+A PDF is produced even when these are not zero, so read the report: a missing character prints as nothing (the font lacks the glyph), and an overfull line runs into the margin.
 
 ### Using Makefile
 

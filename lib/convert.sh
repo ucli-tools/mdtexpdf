@@ -829,6 +829,31 @@ setup_pdf_bibliography() {
 # Helper: Execute Pandoc and Cleanup
 # =============================================================================
 
+# Report what the final LaTeX pass left behind: errors it ran past, characters
+# no font could print (they come out blank), lines run into the margin, and
+# unresolved references. A PDF can be produced with all of these.
+# Arguments: $1=path to the final .log
+_report_latex_log() {
+    local log="$1"
+    [ -f "$log" ] || return 0
+    local errors missing overfull undefined
+    errors=$(grep -c '^! ' "$log")
+    missing=$(grep -c '^Missing character' "$log")
+    overfull=$(grep -c '^Overfull \\hbox' "$log")
+    undefined=$(grep -c 'LaTeX Warning: \(Reference\|Citation\) .* undefined' "$log")
+    local summary="$errors errors, $missing missing characters, $overfull overfull lines, $undefined undefined references"
+    if [ $((errors + missing + overfull + undefined)) -eq 0 ]; then
+        echo -e "${GREEN}Build report: $summary${NC}"
+        return 0
+    fi
+    echo -e "${YELLOW}Build report: $summary${NC}"
+    grep -m 3 -A 1 '^! ' "$log" | sed 's/^/  /'
+    grep '^Missing character' "$log" | sed 's/^Missing character: There is no /  missing: /; s/!$//' \
+        | sort | uniq -c | sort -rn | head -5
+    grep '^Overfull \\hbox' "$log" | sed 's/^/  /' | head -3
+    return 0
+}
+
 _report_pandoc_failure() {
     local diagnostics_file="$1"
     local context="$2"
@@ -1003,6 +1028,7 @@ _execute_pandoc_with_index() {
     # Check result and clean up LaTeX artifacts
     if [ -f "$OUTPUT_FILE" ]; then
         echo -e "${GREEN}Success! PDF created as $OUTPUT_FILE${NC}"
+        _report_latex_log "${base_name}.log"
 
         if detect_cjk_characters "$INPUT_FILE" >/dev/null 2>&1; then
             echo -e "${GREEN}✓ CJK characters (Chinese, Japanese, Korean) have been properly rendered in the PDF.${NC}"
