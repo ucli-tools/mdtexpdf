@@ -4,6 +4,49 @@ local preamble = ''
 local render_count = 0
 local convert_raw
 
+-- A figure's description is an HTML comment right after it (the form mdaudiobook reads
+-- aloud after the caption):
+--   <!-- audio-description
+--   Here in Figure 2.1 we see ...
+--   -->
+-- It becomes the image's alt text, so a screen reader describes the picture; the comment
+-- itself never shows.
+local DESCRIPTION = '^%s*<!%-%-%s*audio%-description%s+(.-)%s*%-%->%s*$'
+local pending_description
+
+local function description_of(block)
+  if block and block.t == 'RawBlock' and block.format == 'html' then
+    return block.text:match(DESCRIPTION)
+  end
+end
+
+-- TeX maths as text a screen reader can say. Pandoc's plain writer turns most of it
+-- into Unicode (θ, x², ∫₀¹); fractions and roots it cannot, so they are rewritten first,
+-- and whatever it still leaves as TeX loses its markup.
+local function simplify_tex(tex)
+  local function group(value)
+    value = value:sub(2, -2)
+    return value:match('^[%w.]+$') and value or '(' .. value .. ')'
+  end
+  local previous
+  repeat
+    previous = tex
+    tex = tex:gsub('\\[dt]?frac%s*(%b{})%s*(%b{})', function(a, b) return group(a) .. '/' .. group(b) end)
+      :gsub('\\sqrt%s*(%b{})', function(a) return '√' .. group(a) end)
+  until tex == previous
+  return tex
+end
+
+local function plain_text(blocks)
+  local doc = pandoc.Pandoc(blocks):walk({Math = function(math)
+    math.text = simplify_tex(math.text)
+    return math
+  end})
+  local text = pandoc.write(doc, 'plain')
+  text = text:gsub('%$([^$]*)%$', '%1'):gsub('\\[,;:! ]', ' '):gsub('\\(%a+)', '%1'):gsub('[{}]', '')
+  return (text:gsub('%s+', ' '):gsub('^ ', ''):gsub(' $', ''))
+end
+
 local function strip_layout(text)
   local lines, fence_char, fence_length, changed = {}, nil, 0, false
   for line in (text .. '\n'):gmatch('(.-)\n') do
@@ -95,7 +138,16 @@ local function render_artwork(text)
   -- PNG IHDR width at 144 dpi, expressed in physical points for reading size.
   local width = string.unpack('>I4', png, 17) / 2
   local caption_inlines = caption and pandoc.utils.blocks_to_inlines(pandoc.read(caption, 'latex').blocks) or {}
-  local artwork = pandoc.Image(caption_inlines, name, '', pandoc.Attr('', {}, {
+  -- Alt text: the figure's description when it has one (only the first drawing of a
+  -- figure takes it), else the caption as plain text
+  local alt = ''
+  if pending_description then
+    alt = plain_text(pandoc.read(pending_description, 'markdown').blocks)
+    pending_description = nil
+  elseif caption then
+    alt = plain_text(pandoc.read(caption, 'latex').blocks)
+  end
+  local artwork = pandoc.Image(alt ~= '' and {pandoc.Str(alt)} or {}, name, '', pandoc.Attr('', {}, {
     style = string.format('width:%.1fpt;max-width:85%%;height:auto;', width)
   }))
   local blocks = {pandoc.Plain({artwork})}
@@ -120,6 +172,41 @@ convert_raw = function(block)
   if text:find('\\begin{tikzpicture}', 1, true) then
     return render_artwork(text)
   end
+end
+
+-- A drawing or an image followed by its description: render the drawing with the
+-- description as alt text (or set it on the image), and drop the comment
+local function describe_figures(blocks)
+  local out, i = pandoc.List(), 1
+  while i <= #blocks do
+    local block, text = blocks[i], description_of(blocks[i + 1])
+    local drawing = text and block.t == 'RawBlock' and (block.format == 'tex' or block.format == 'latex')
+      and block.text:find('\\begin{tikzpicture}', 1, true)
+    local images = 0
+    if text and not drawing and block.t ~= 'RawBlock' then
+      block:walk({Image = function() images = images + 1 end})
+    end
+    if drawing then
+      pending_description = text
+      local result = convert_raw(block)
+      pending_description = nil
+      if result == nil then out:insert(block)
+      elseif result.t then out:insert(result)
+      else out:extend(result) end
+      i = i + 2
+    elseif images == 1 then
+      local alt = plain_text(pandoc.read(text, 'markdown').blocks)
+      out:insert(block:walk({Image = function(image)
+        image.caption = {pandoc.Str(alt)}
+        return image
+      end}))
+      i = i + 2
+    else
+      out:insert(block)
+      i = i + 1
+    end
+  end
+  return out
 end
 
 -- Text set in a size of its own ([text]{size="28pt"}, a title page): HTML has
@@ -165,5 +252,6 @@ function Pandoc(doc)
   end
   doc:walk({RawBlock = collect, RawInline = collect})
   if #colours > 0 then preamble = preamble .. table.concat(colours, '\n') .. '\n' end
+  doc = doc:walk({Blocks = describe_figures})
   return doc:walk({RawBlock = convert_raw, Span = sized_span})
 end

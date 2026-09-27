@@ -24,6 +24,8 @@ init_metadata_vars() {
     META_DATE=""
     META_DESCRIPTION=""
     META_LANGUAGE=""
+    # EPUB accessibility summary (a sentence; generated from the content when empty)
+    META_ACCESSIBILITY_SUMMARY=""
 
     # Document structure metadata
     META_SECTION=""
@@ -246,6 +248,7 @@ parse_yaml_metadata() {
     META_DATE=$(yq eval '.date // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_DESCRIPTION=$(yq eval '.description // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
     META_LANGUAGE=$(yq eval '.language // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
+    META_ACCESSIBILITY_SUMMARY=$(yq eval '.accessibility_summary // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')
 
     # Document structure metadata
     META_SECTION=$(yq eval '.section // ""' "$temp_yaml" 2>/dev/null | sed 's/^null$//')

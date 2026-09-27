@@ -228,6 +228,78 @@ Inside the unwrapped minipage.
         # MathML 3, which epubcheck applies, does not allow displaystyle on mfrac.
         self.assertTrue(all(el.get('displaystyle') is None for el in fractions))
 
+    def test_descriptions_become_alt_text_and_never_show(self):
+        # A description comment after a figure is the image's alt text; a caption without
+        # one gives plain text, never TeX; comments stay hidden even with arrows in them.
+        documents, images = self.convert(r'''---
+title: Descriptions
+---
+
+# Chapter
+
+Prose arrow: a -> b.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\draw[->] (0,0) -- (1,0);
+\end{tikzpicture}
+\caption{A line marked at $\frac{1}{2}$.}
+\end{figure}
+
+<!-- audio-description
+Here in Figure 1 we see an arrow running right, from $a$ to $b$ -> the end.
+-->
+
+```{=latex}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\draw (0,0) circle (1);
+\end{tikzpicture}
+\caption{A circle of radius $\frac{1}{2}$ at angle $\theta$, and $\sqrt{2}$.}
+\end{figure}
+```
+
+<!-- a note for the author -> never shown -->
+
+After the figures.
+''', cli=True)
+        self.assertEqual(len(images), 2)
+        text = ' '.join(''.join(doc.itertext()) for doc in documents)
+        self.assertIn('a → b', text)
+        for hidden in ('audio-description', 'Here in Figure', 'never shown', '<!'):
+            self.assertNotIn(hidden, text)
+        alts = [el.get('alt') for doc in documents for el in doc.iter() if el.tag.endswith('}img')]
+        self.assertEqual(alts[0], 'Here in Figure 1 we see an arrow running right, from a to b -> the end.')
+        self.assertEqual(alts[1], 'A circle of radius 1/2 at angle θ, and √2.')
+        self.assertIn('A line marked at', text)          # the caption itself still shows
+
+    def test_accessibility_is_declared(self):
+        self.convert(r'''---
+title: Accessible
+---
+
+# Chapter
+
+Mathematics: $x^2$.
+
+\begin{figure}[H]
+\begin{tikzpicture}
+\draw (0,0) -- (1,1);
+\end{tikzpicture}
+\caption{A diagonal.}
+\end{figure}
+''', cli=True)
+        with zipfile.ZipFile(self.directory / 'book with spaces.epub') as archive:
+            opf = archive.read('EPUB/content.opf').decode()
+        for value in ('accessMode">textual', 'accessMode">visual', 'accessModeSufficient">textual<',
+                      'accessibilityFeature">alternativeText', 'accessibilityFeature">MathML',
+                      'accessibilityFeature">tableOfContents', 'accessibilityHazard">none',
+                      'accessibilitySummary">'):
+            self.assertIn(value, opf)
+        self.assertIn('Every image has a text alternative.', opf)
+
     def test_tex_control_words_are_not_shortened(self):
         # In capture mode the renderer fails if a longer command lost its prefix.
         renderer = self.directory / 'xelatex'

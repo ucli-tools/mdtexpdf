@@ -335,6 +335,7 @@ mdtexpdf convert document.md --read-metadata --epub  # With YAML metadata
 - **Same Metadata**: Uses the same YAML frontmatter as PDF output
 - **TikZ Drawings**: Embedded PNG artwork with surrounding space; existing captions are retained
 - **Print Layout**: Markdown inside `minipage` and `samepage` remains readable in reflowable EPUB
+- **Accessibility**: a figure's description comment (`<!-- audio-description ... -->` right after it) becomes its alt text, other captions become plain-text alt text (never raw TeX), and the package declares its accessibility (schema.org metadata computed from the content)
 
 ### Cover Generation
 

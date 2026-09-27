@@ -300,6 +300,44 @@ Complex math may need alternatives:
 - Optimize file sizes for faster loading
 - Prefer PNG for diagrams, JPG for photos
 
+### Figure descriptions (alt text)
+
+A screen reader cannot see a drawing. Describe it in an HTML comment right after the
+figure, and the EPUB uses the description as the image's alt text:
+
+```markdown
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \draw (0,0) circle (1);
+\end{tikzpicture}
+\caption{The unit circle.}
+\end{figure}
+
+<!-- audio-description
+Here in Figure 2.1 we see a circle drawn around the origin, with a dot on its
+right-hand edge where $x$ is one and $y$ is zero.
+-->
+```
+
+The comment shows nowhere: not in the PDF, not in the EPUB's text. It is the same comment
+mdaudiobook reads aloud after the caption, so one description serves the listener and the
+screen-reader user. It is Markdown: `$x$` becomes the letter x in the alt text. A description
+also works after a Markdown image. A figure without one gets its caption as alt text, as
+plain text (maths as Unicode, never raw TeX).
+
+### Accessibility metadata
+
+Every EPUB declares its accessibility in the package document (schema.org metadata, as
+EPUB Accessibility 1.1 and the e-book stores ask): access modes, whether every image has a
+text alternative, MathML, table of contents, headings, hazards. The values are computed
+from what the EPUB holds, so they stay true. The summary sentence is generated too; give
+your own with `accessibility_summary` in the metadata:
+
+```yaml
+accessibility_summary: "Reflowable text; every figure has a text description; mathematics as MathML."
+```
+
 ---
 
 ## Testing Your EPUB

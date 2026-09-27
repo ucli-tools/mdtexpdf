@@ -56,6 +56,85 @@ declare_epub_nav_mathml() {
 }
 
 # =============================================================================
+# EPUB Accessibility Metadata
+# =============================================================================
+
+# Declare how the publication can be read (schema.org accessibility metadata in the
+# package document, as EPUB Accessibility 1.1 and the e-book stores ask), from what the
+# EPUB actually holds: its images and whether each has a text alternative, MathML,
+# headings, and any audio, video or animation. An accessibility_summary in the metadata
+# replaces the generated summary.
+# Arguments: $1=EPUB file
+declare_epub_accessibility() {
+    local epub_file_abs opf xhtml
+    epub_file_abs=$(realpath "$1")
+    opf=$(unzip -p "$epub_file_abs" EPUB/content.opf 2>/dev/null) || return 1
+    printf '%s' "$opf" | grep -q 'schema:accessMode' && return 0
+    xhtml=$(unzip -p "$epub_file_abs" 'EPUB/text/*.xhtml' 2>/dev/null)
+
+    local images unlabelled has_math=false has_headings=false moving=false
+    images=$(printf '%s' "$xhtml" | grep -o '<img[^>]*>' | wc -l)
+    unlabelled=$(printf '%s' "$xhtml" | grep -o '<img[^>]*>' | grep -c -v -E 'alt="[^"]+"')
+    printf '%s' "$xhtml" | grep -q '<math' && has_math=true
+    printf '%s' "$xhtml" | grep -q -E '<h[1-6][ >]' && has_headings=true
+    printf '%s' "$opf" | grep -q -E 'media-type="(audio/|video/|image/gif)' && moving=true
+
+    local meta summary
+    meta='<meta property="schema:accessMode">textual</meta>'
+    [ "$images" -gt 0 ] && meta="$meta"$'\n''<meta property="schema:accessMode">visual</meta>'
+    if [ "$images" -eq 0 ] || [ "$unlabelled" -eq 0 ]; then
+        meta="$meta"$'\n''<meta property="schema:accessModeSufficient">textual</meta>'
+    fi
+    [ "$images" -gt 0 ] && meta="$meta"$'\n''<meta property="schema:accessModeSufficient">textual,visual</meta>'
+    meta="$meta"$'\n''<meta property="schema:accessibilityFeature">tableOfContents</meta>'
+    meta="$meta"$'\n''<meta property="schema:accessibilityFeature">readingOrder</meta>'
+    meta="$meta"$'\n''<meta property="schema:accessibilityFeature">displayTransformability</meta>'
+    [ "$has_headings" = true ] && meta="$meta"$'\n''<meta property="schema:accessibilityFeature">structuralNavigation</meta>'
+    [ "$images" -gt 0 ] && [ "$unlabelled" -eq 0 ] && meta="$meta"$'\n''<meta property="schema:accessibilityFeature">alternativeText</meta>'
+    [ "$has_math" = true ] && meta="$meta"$'\n''<meta property="schema:accessibilityFeature">MathML</meta>'
+    if [ "$moving" = true ]; then
+        meta="$meta"$'\n''<meta property="schema:accessibilityHazard">unknown</meta>'
+    else
+        meta="$meta"$'\n''<meta property="schema:accessibilityHazard">none</meta>'
+    fi
+
+    summary="${META_ACCESSIBILITY_SUMMARY:-}"
+    if [ -z "$summary" ]; then
+        summary="Reflowable text with a table of contents and a reading order that follows the print edition."
+        [ "$has_headings" = true ] && summary="$summary Headings structure every chapter for navigation."
+        if [ "$images" -gt 0 ] && [ "$unlabelled" -eq 0 ]; then
+            summary="$summary Every image has a text alternative."
+        elif [ "$images" -gt 0 ]; then
+            summary="$summary $unlabelled of $images images have no text alternative."
+        fi
+        [ "$has_math" = true ] && summary="$summary Mathematics is encoded as MathML."
+    fi
+    summary=$(printf '%s' "$summary" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+    meta="$meta"$'\n''<meta property="schema:accessibilitySummary">'"$summary"'</meta>'
+
+    local temp_dir original_dir
+    temp_dir=$(mktemp -d)
+    original_dir=$(pwd)
+    unzip -q "$epub_file_abs" -d "$temp_dir" 2>/dev/null || { rm -rf "$temp_dir"; return 1; }
+    META_BLOCK="$meta" awk '/<\/metadata>/ { n = split(ENVIRON["META_BLOCK"], lines, "\n")
+                                            for (i = 1; i <= n; i++) print "    " lines[i] }
+                           { print }' "$temp_dir/EPUB/content.opf" > "$temp_dir/content.opf.new" \
+        && mv "$temp_dir/content.opf.new" "$temp_dir/EPUB/content.opf"
+    rm -f "$epub_file_abs"
+    cd "$temp_dir" || return 1
+    zip -X0 "$epub_file_abs" mimetype 2>/dev/null
+    zip -Xr9D "$epub_file_abs" META-INF EPUB 2>/dev/null
+    cd "$original_dir" || return 1
+    rm -rf "$temp_dir"
+    if [ "$images" -gt 0 ] && [ "$unlabelled" -gt 0 ]; then
+        echo -e "${YELLOW}EPUB accessibility declared; $unlabelled of $images images have no text alternative${NC}"
+    else
+        echo -e "${GREEN}EPUB accessibility declared ($images images, all with text alternatives)${NC}"
+    fi
+    return 0
+}
+
+# =============================================================================
 # EPUB Spine Reordering
 # =============================================================================
 
@@ -290,10 +369,32 @@ preprocess_epub_chemistry() {
     # Arrow conversions, outside fenced blocks and TikZ pictures only: raw LaTeX keeps its
     # ASCII arrows, since options such as \draw[->] must reach LaTeX unchanged (a figure
     # may be written as a bare \begin{figure} environment, without a ```{=latex} fence).
-    awk 'BEGIN { fenced = 0; tikz = 0 }
+    # HTML comments are left as they are: the "->" of a closing "-->" turned into an arrow
+    # would leave the comment open, and pandoc would print it as text.
+    awk 'BEGIN { fenced = 0; tikz = 0; comment = 0 }
          /^```/ { fenced = !fenced; print; next }
          /\\begin\{tikzpicture\}/ { tikz++ }
-         { if (!fenced && !tikz) { gsub(/->/, "→"); gsub(/<=>/, "⇌") } print }
+         {
+           if (!fenced && !tikz) {
+             rest = $0; out = ""
+             while (rest != "") {
+               if (comment) {
+                 i = index(rest, "-->")
+                 if (i == 0) { out = out rest; rest = "" }
+                 else { out = out substr(rest, 1, i + 2); rest = substr(rest, i + 3); comment = 0 }
+               } else {
+                 i = index(rest, "<!--")
+                 text = (i == 0) ? rest : substr(rest, 1, i - 1)
+                 gsub(/->/, "→", text); gsub(/<=>/, "⇌", text)
+                 out = out text
+                 if (i == 0) rest = ""
+                 else { out = out "<!--"; rest = substr(rest, i + 4); comment = 1 }
+               }
+             }
+             $0 = out
+           }
+           print
+         }
          /\\end\{tikzpicture\}/ { if (tikz > 0) tikz-- }' \
         "$input_file" > "$input_file.arrows" && mv "$input_file.arrows" "$input_file"
 }
@@ -731,6 +832,7 @@ _execute_epub_pandoc() {
         # Fix spine order
         fix_epub_spine_order "$OUTPUT_FILE"
         declare_epub_nav_mathml "$OUTPUT_FILE"
+        declare_epub_accessibility "$OUTPUT_FILE"
 
         # Validate if requested
         if [ "$ARG_VALIDATE" = true ]; then

@@ -181,6 +181,7 @@ narrator: "AI Narrator"             # Narrator name for metadata
 | `date` | string | Publication date | "2025-01-01" |
 | `description` | string | Brief description | "Mathematical exploration of Bell's theorem" |
 | `language` | string | ISO language code | "en" |
+| `accessibility_summary` | string | EPUB accessibility summary (generated when absent) | "Every figure has a text description." |
 
 ### PDF-Specific Metadata
 
