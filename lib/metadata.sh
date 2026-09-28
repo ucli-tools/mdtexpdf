@@ -226,9 +226,10 @@ parse_yaml_metadata() {
         return
     fi
 
-    # Extract YAML frontmatter block (between first --- and second ---)
+    # Extract YAML frontmatter block (between first --- and second ---); a later
+    # --- in the body (a horizontal rule) is not front matter
     local yaml_content
-    yaml_content=$(sed -n '/^---$/,/^---$/p' "$input_file" | sed '1d;$d')
+    yaml_content=$(awk '/^---[[:space:]]*$/ { n++; if (n == 2) exit; next } n == 1' "$input_file")
 
     if [ -z "$yaml_content" ]; then
         echo -e "${YELLOW}Empty YAML frontmatter block${NC}"

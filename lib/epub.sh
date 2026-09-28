@@ -641,7 +641,7 @@ _prepare_epub_content() {
         # Re-parse donation wallets from YAML
         local temp_yaml
         temp_yaml=$(mktemp)
-        sed -n '/^---$/,/^---$/p' "$INPUT_FILE" | tail -n +2 | head -n -1 > "$temp_yaml"
+        awk '/^---[[:space:]]*$/ { n++; if (n == 2) exit; next } n == 1' "$INPUT_FILE" > "$temp_yaml"
         local wallet_count
         wallet_count=$(yq eval '.donation_wallets | length' "$temp_yaml" 2>/dev/null)
         if [ -n "$wallet_count" ] && [ "$wallet_count" != "0" ] && [ "$wallet_count" != "null" ]; then
