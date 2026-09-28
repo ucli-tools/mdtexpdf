@@ -216,7 +216,7 @@ def block_text(root):
         pre = pre or name == 'pre'
         keep = (lambda t: t.replace('\n', BREAK)) if pre else (lambda t: t)
         if name in ('script', 'style', 'head') or ns(el) == MATHML:
-            pass
+            parts.append(' ')      # a formula still separates the words around it
         else:
             if el.text:
                 parts.append(keep(el.text))
@@ -533,11 +533,31 @@ def strip_environment(text, name):
     return re.sub(r'\\begin\{' + name + r'\}.*?\\end\{' + name + r'\}', ' ', text, flags=re.S)
 
 
+TEX_ACCENTS = {'"': '\u0308', "'": '\u0301', '`': '\u0300', '^': '\u0302', '~': '\u0303',
+               '=': '\u0304', '.': '\u0307', 'c': '\u0327', 'v': '\u030c', 'u': '\u0306',
+               'H': '\u030b', 'k': '\u0328', 'r': '\u030a'}
+
+
+def tex_accents(text):
+    """\\"o, \\"{o}, \\c{c} ... as the accented letters they print."""
+    def accent(m):
+        return unicodedata.normalize('NFC', m.group(2) + TEX_ACCENTS[m.group(1)])
+    text = re.sub(r'\\([\"\'`^~=.])\s*\{?([A-Za-z])\}?', accent, text)
+    return re.sub(r'\\([cvuHkr])\s*\{([A-Za-z])\}', accent, text)
+
+
 def tex_to_text(tex):
     """The words a reader should see from a raw TeX block (heuristic, independent of
     the converter): drawings, maths, layout and arguments that are not text removed."""
     t = re.sub(r'(?<!\\)%.*', '', tex)
     t = re.sub(r'\n\s*\n', '\u2063', t)
+    t = tex_accents(t)
+    # print-only TeX primitives ("keep these lines together" and the like)
+    t = re.sub(r'\\par\\penalty-?\d+\\begingroup.*?\\endgroup', ' ', t, flags=re.S)
+    t = re.sub(r'\\ifdim.*?\\fi\b', ' ', t, flags=re.S)
+    t = re.sub(r'\\(advance|multiply|divide)\s*\\\w+\s*by\s*-?\s*\\?\w+', ' ', t)
+    t = re.sub(r'\\(dimen|skip|count)\d+\s*=?\s*-?[\d.]*\s*\\?\w*', ' ', t)
+    t = re.sub(r'\\penalty\s*-?\d+', ' ', t)
     t = strip_environment(t, 'tikzpicture')
     t = re.sub(r'\\csname.*?\\endcsname', ' ', t, flags=re.S)
     t = re.sub(r'=\s*-?\d+(\.\d+)?\s*(pt|em|ex|cm|mm|in)?', ' ', t)
