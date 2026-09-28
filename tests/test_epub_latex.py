@@ -536,14 +536,26 @@ An [index:apple]apple here and an [index:apple]apple there.
 # Chapter 2: Pears
 
 A [index:fruit|pear]pear and the [index:zeta@$\zeta$ function]zeta function.
+
+# Chapter 3: Roots of $x^2$
+
+A [index:root]root.
 ''', cli=True)
         text = self.text_of(documents)
         self.assertNotIn('[index:', text)
         anchors = {el.get('id') for doc in documents for el in doc.iter() if (el.get('id') or '').startswith('idx-')}
-        self.assertEqual(len(anchors), 4)
+        self.assertEqual(len(anchors), 5)
         links = [(''.join(el.itertext()), el.get('href')) for doc in documents for el in doc.iter()
                  if el.tag.endswith('}a') and '#idx-' in (el.get('href') or '')]
-        self.assertEqual([t for t, _ in links], ['Chapter 1: Apples', '2', 'Chapter 2: Pears', 'Chapter 2: Pears'])
+        # terms sort apple, fruit (pear), root, zeta
+        self.assertEqual([t for t, _ in links][:3], ['Chapter 1: Apples', '2', 'Chapter 2: Pears'])
+        self.assertEqual(links[4][0], 'Chapter 2: Pears')
+        # a heading with maths links with its maths typeset (MathML), never as TeX
+        self.assertTrue(links[3][0].startswith('Chapter 3: Roots of'))
+        root = [el for doc in documents for el in doc.iter()
+                if el.tag.endswith('}a') and el.get('href', '').endswith(links[3][1].split('#')[1])]
+        self.assertTrue(any(m.tag.endswith('}math') for m in root[0].iter()))
+        self.assertNotIn('$', text)
         self.assertEqual({h.split('#')[1] for _, h in links}, anchors)
         self.assertIn('Index', text)
 

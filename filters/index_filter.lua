@@ -230,12 +230,18 @@ function Pandoc(doc)
 
     -- where each anchor falls, in reading order
     local occurrences = {}
-    local heading = {text = "Opening pages"}
+    local heading = {text = {pandoc.Str("Opening"), pandoc.Space(), pandoc.Str("pages")}}
     doc.blocks:walk({
         traverse = "topdown",
         Header = function(header)
             if header.level <= 2 then
-                heading = {text = pandoc.utils.stringify(header.content)}
+                -- the heading as written (maths stays maths), without its anchors,
+                -- notes or links, which a link's text cannot hold
+                heading = {text = pandoc.Inlines(header.content):walk({
+                    Span = function(span) return span.content end,
+                    Note = function() return {} end,
+                    Link = function(link) return link.content end,
+                })}
             end
         end,
         Span = function(span)
@@ -283,7 +289,7 @@ function Pandoc(doc)
             else
                 table.insert(out, pandoc.Str(#out == 0 and "" or ";"))
                 if #out > 1 then table.insert(out, pandoc.Space()) end
-                table.insert(out, pandoc.Link({pandoc.Str(place.heading.text)}, "#" .. place.id))
+                table.insert(out, pandoc.Link(place.heading.text:clone(), "#" .. place.id))
                 previous, count = place.heading, 1
             end
         end
