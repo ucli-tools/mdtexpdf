@@ -38,7 +38,7 @@ class EpubLatexTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         with zipfile.ZipFile(output) as archive:
             self.assertIsNone(archive.testzip())
-            documents = [ET.fromstring(archive.read(n)) for n in archive.namelist()
+            documents = [ET.fromstring(archive.read(n)) for n in sorted(archive.namelist())
                          if n.endswith('.xhtml')]
             images = [archive.read(n) for n in archive.namelist()
                       if n.endswith('.png')]
@@ -324,6 +324,227 @@ title: TeX commands
 \node {\parbox{2cm}{$\partial x$}};
 \end{tikzpicture}
 ''', env=env)
+
+
+    # --- what the PDF shows reaches the EPUB -------------------------------------------
+
+    @staticmethod
+    def text_of(documents):
+        return ' '.join(''.join(doc.itertext()) for doc in documents)
+
+    @staticmethod
+    def spans(documents, name):
+        return [''.join(el.itertext()) for doc in documents for el in doc.iter()
+                if el.tag.endswith('}span') and name in (el.get('class') or '').split()]
+
+    def test_raw_tex_tables_captions_and_fitted_equations_reach_the_epub(self):
+        documents, _ = self.convert(r'''---
+title: Raw TeX
+---
+
+# Chapter
+
+```{=latex}
+\begin{table}[H]
+\centering
+\small
+\newcolumntype{R}[1]{>{\raggedright\arraybackslash\hspace{0pt}}p{#1}}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{R{3cm} R{4cm}}
+\hline
+\textbf{Kind} & \textbf{Meaning} \\[4pt]
+\hline
+\noalign{\vskip 3pt}
+\textbf{Round.} A wheel & Turns \(x^2\) times \\[11pt]
+\hline
+\end{tabular}
+\caption[Short]{Wheels and their turns.}
+\end{table}
+```
+
+```{=latex}
+\begin{center}\textit{\(a\) plus \(b\) equals the sum.}\end{center}
+```
+
+```{=latex}
+\begingroup\postdisplaypenalty=10000 \csname @beginparpenalty\endcsname=10000
+```
+
+$$a + b = c$$
+
+```{=latex}
+\begin{center}\parbox{\linewidth}{\centering\itshape A caption kept in a box.}\end{center}
+\endgroup
+```
+
+```{=latex}
+\newpage
+```
+
+```{=latex}
+\[\sbox0{$\displaystyle
+p = q + r
+$}%
+\ifdim\wd0>\linewidth\resizebox{\linewidth}{!}{\usebox0}\else\usebox0\fi
+\tag{7.7.7}
+\]
+```
+
+```{=latex}
+\begin{figure}[H]
+\centering
+\begin{tabular}{p{3cm} p{3cm}}
+\hline
+Question & Answer \\
+\hline
+\end{tabular}
+\captionof{table}{Questions beside answers.}
+\end{figure}
+```
+
+Closing prose.
+''', cli=True)
+        text = self.text_of(documents)
+        tables = [el for doc in documents for el in doc.iter() if el.tag.endswith('}table')]
+        self.assertEqual(len(tables), 2)
+        for phrase in ('Wheels and their turns.', 'A wheel', 'plus', 'equals the sum.',
+                       'A caption kept in a box.', 'Questions beside answers.', '(7.7.7)'):
+            self.assertIn(phrase, text)
+        for leak in ('\\', 'begingroup', 'newcolumntype', 'sbox', '$'):
+            self.assertNotIn(leak, text)
+        displays = [el for doc in documents for el in doc.iter()
+                    if el.tag.endswith('}math') and el.get('display') == 'block']
+        self.assertEqual(len(displays), 2)
+
+    def test_numbers_follow_the_pdf(self):
+        documents, _ = self.convert(r'''---
+title: Numbers
+format: book
+equation_numbers: true
+---
+
+# Part 1: Opening
+
+## Chapter 1: First
+
+$$a = b$$
+
+$$c = d \tag{9.9.9}$$
+
+$$e = f \notag$$
+
+$$g = h$$
+
+```{=latex}
+\begin{table}[H]
+\begin{tabular}{ll}
+x & y \\
+\end{tabular}
+\caption{A small table.}
+\end{table}
+```
+
+```{=latex}
+\begin{minipage}{\linewidth}
+
+$$m = n$$
+
+\end{minipage}
+```
+
+## Chapter 2: Second
+
+```{=latex}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\draw (0,0) -- (1,0);
+\end{tikzpicture}
+\caption{A line.}
+\end{figure}
+```
+
+$$k = l$$
+
+# Appendices
+
+## Appendix A: Extra
+
+$$u = v$$
+
+The end.
+''', cli=True)
+        self.assertEqual(self.spans(documents, 'eqno'), ['(1.1)', '(9.9.9)', '(1.2)', '(2.1)', '(A.1)'])
+        self.assertEqual(self.spans(documents, 'caption-label'), ['Table 1.1:', 'Figure 2.1:'])
+
+    def test_formulas_are_repaired_only_when_they_fail(self):
+        manuscript = r'''---
+title: Formulas
+---
+
+# Chapter
+
+Primes stay primes: $f''(x)$ and $G^{''}$. A set symbol $\mathbbm{1}$ and a word $"x"$.
+'''
+        documents, _ = self.convert(manuscript, cli=True)
+        maths = ' '.join(''.join(el.itertext()) for doc in documents for el in doc.iter()
+                         if el.tag.endswith('}math'))
+        self.assertIn('″', maths)                       # both double primes kept
+        self.assertEqual(maths.count('″'), 2)
+        self.assertIn('𝟙', maths)                       # \mathbbm{1} as \mathbb{1}
+        self.assertFalse(self.spans(documents, 'math'))  # no formula left as TeX
+        (self.directory / 'book with spaces.epub').unlink()
+        output = self.convert(r'''---
+title: Broken
+---
+
+# Chapter
+
+No rule can repair $\notacommandanywhere{1}$.
+''', cli=True, success=False)
+        self.assertIn('cannot be converted to MathML', output)
+        self.assertIn('notacommandanywhere', output)
+
+    def test_display_maths_is_contained_and_numbered_beside_it(self):
+        documents, _ = self.convert(r'''---
+title: Contained
+equation_numbers: true
+---
+
+# Chapter
+
+$$x = \sum_{n=1}^{100} n$$
+''', cli=True)
+        wrappers = [el for doc in documents for el in doc.iter()
+                    if el.tag.endswith('}span') and (el.get('class') or '').split() == ['math', 'display']]
+        self.assertEqual(len(wrappers), 1)
+        scroller = wrappers[0][0]
+        self.assertIn('overflow-x:auto', scroller.get('style'))
+        self.assertTrue(scroller[0].tag.endswith('}math'))
+        self.assertEqual(self.spans(documents, 'eqno'), ['(1)'])
+
+    def test_index_markers_become_a_linked_index(self):
+        documents, _ = self.convert(r'''---
+title: Index
+---
+
+# Chapter 1: Apples
+
+An [index:apple]apple here and an [index:apple]apple there.
+
+# Chapter 2: Pears
+
+A [index:fruit|pear]pear and the [index:zeta@$\zeta$ function]zeta function.
+''', cli=True)
+        text = self.text_of(documents)
+        self.assertNotIn('[index:', text)
+        anchors = {el.get('id') for doc in documents for el in doc.iter() if (el.get('id') or '').startswith('idx-')}
+        self.assertEqual(len(anchors), 4)
+        links = [(''.join(el.itertext()), el.get('href')) for doc in documents for el in doc.iter()
+                 if el.tag.endswith('}a') and '#idx-' in (el.get('href') or '')]
+        self.assertEqual([t for t, _ in links], ['Chapter 1: Apples', '2', 'Chapter 2: Pears', 'Chapter 2: Pears'])
+        self.assertEqual({h.split('#')[1] for _, h in links}, anchors)
+        self.assertIn('Index', text)
 
 
 if __name__ == '__main__':

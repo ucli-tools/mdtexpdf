@@ -4,6 +4,8 @@
 -- For EPUB/HTML, collects terms and generates an index appendix
 
 local index_entries = {}
+local anchors = {}          -- anchor id -> levels of its term (non-LaTeX formats)
+local anchor_count = 0
 local output_format = FORMAT
 local index_pattern = "%[index:([^%]]+)%]"
 
@@ -63,8 +65,11 @@ local function make_index_inline(term)
         return pandoc.RawInline("latex", "\\index{" .. table.concat(escaped, "!") .. "}")
     end
 
-    -- For other formats, return nothing (marker is silently removed)
-    return nil
+    -- Other formats (EPUB, HTML): an anchor the linked index points to
+    anchor_count = anchor_count + 1
+    local id = "idx-" .. anchor_count
+    anchors[id] = levels
+    return pandoc.Span({}, pandoc.Attr(id))
 end
 
 -- Process a text string that may contain one or more [index:...] markers
@@ -190,56 +195,135 @@ function Inlines(inlines)
     return result
 end
 
--- For EPUB/HTML: generate an index appendix at the end of the document
+-- For EPUB/HTML: a linked index at the end of the document. Each entry lists where
+-- its term occurs by the heading (level 1 or 2) the occurrence falls under, linked to
+-- the occurrence itself; further occurrences under the same heading follow as 2, 3, ...
+-- A level written sort@display sorts by its first part and shows its second.
+local function split_level(level)
+    local sort, display = level:match("^(.-)@(.+)$")
+    if sort then return sort, display end
+    return level, level
+end
+
+local function display_inlines(text)
+    local blocks = pandoc.read(text, "markdown").blocks
+    if #blocks == 0 then return {pandoc.Str(text)} end
+    return pandoc.utils.blocks_to_inlines(blocks)
+end
+
+local function sort_key(text)
+    return (text:gsub("%$", ""):gsub("^[^%w\128-\255]+", ""):lower())
+end
+
 function Pandoc(doc)
     if output_format:match("latex") or output_format:match("pdf") then
         return doc
     end
-
-    local has_entries = false
-    for _ in pairs(index_entries) do
-        has_entries = true
-        break
-    end
-
-    if not has_entries then
+    if anchor_count == 0 then
         return doc
     end
 
-    local index_blocks = {}
-    table.insert(index_blocks, pandoc.Header(1, pandoc.Str("Index")))
-
-    local sorted_terms = {}
-    for term in pairs(index_entries) do
-        table.insert(sorted_terms, term)
-    end
-    table.sort(sorted_terms)
-
-    local current_letter = ""
-    for _, term in ipairs(sorted_terms) do
-        local first_letter = term:sub(1, 1):upper()
-        if first_letter ~= current_letter then
-            current_letter = first_letter
-            table.insert(index_blocks, pandoc.Header(2, pandoc.Str(current_letter)))
-        end
-
-        local subterms = index_entries[term]
-        if #subterms > 0 then
-            local subitems = {}
-            for _, sub in ipairs(subterms) do
-                table.insert(subitems, pandoc.Plain({pandoc.Str(sub)}))
+    -- where each anchor falls, in reading order
+    local occurrences = {}
+    local heading = {text = "Opening pages"}
+    doc.blocks:walk({
+        traverse = "topdown",
+        Header = function(header)
+            if header.level <= 2 then
+                heading = {text = pandoc.utils.stringify(header.content)}
             end
-            table.insert(index_blocks, pandoc.Para({pandoc.Strong({pandoc.Str(term)})}))
-            table.insert(index_blocks, pandoc.BulletList({{pandoc.Plain(subitems)}}))
-        else
-            table.insert(index_blocks, pandoc.Para({pandoc.Str(term)}))
+        end,
+        Span = function(span)
+            if anchors[span.identifier] then
+                table.insert(occurrences, {id = span.identifier, heading = heading})
+            end
+        end,
+    })
+
+    -- the tree of terms
+    local root = {children = {}}
+    for _, occurrence in ipairs(occurrences) do
+        local node = root
+        for _, level in ipairs(anchors[occurrence.id]) do
+            local sort, display = split_level(level)
+            local key = sort_key(sort) .. "\0" .. display
+            if not node.children[key] then
+                node.children[key] = {sort = sort_key(sort), display = display, children = {}, places = {}}
+            end
+            node = node.children[key]
         end
+        table.insert(node.places, occurrence)
     end
+
+    local function sorted(children)
+        local list = {}
+        for _, child in pairs(children) do table.insert(list, child) end
+        table.sort(list, function(a, b)
+            if a.sort ~= b.sort then return a.sort < b.sort end
+            return a.display < b.display
+        end)
+        return list
+    end
+
+    -- "Heading, 2, 3; Other heading" with every part a link
+    local function places(node)
+        local out = {}
+        local previous, count = nil, 0
+        for _, place in ipairs(node.places) do
+            if place.heading == previous then
+                count = count + 1
+                table.insert(out, pandoc.Str(","))
+                table.insert(out, pandoc.Space())
+                table.insert(out, pandoc.Link({pandoc.Str(tostring(count))}, "#" .. place.id))
+            else
+                table.insert(out, pandoc.Str(#out == 0 and "" or ";"))
+                if #out > 1 then table.insert(out, pandoc.Space()) end
+                table.insert(out, pandoc.Link({pandoc.Str(place.heading.text)}, "#" .. place.id))
+                previous, count = place.heading, 1
+            end
+        end
+        return out
+    end
+
+    local function entry(node)
+        local inlines = display_inlines(node.display)
+        if #node.places > 0 then
+            table.insert(inlines, pandoc.Str(":"))
+            table.insert(inlines, pandoc.Space())
+            for _, inline in ipairs(places(node)) do table.insert(inlines, inline) end
+        end
+        local blocks = {pandoc.Plain(inlines)}
+        local children = sorted(node.children)
+        if #children > 0 then
+            local items = {}
+            for _, child in ipairs(children) do table.insert(items, entry(child)) end
+            table.insert(blocks, pandoc.BulletList(items))
+        end
+        return blocks
+    end
+
+    local index_blocks = {pandoc.Header(1, pandoc.Str("Index"), pandoc.Attr("index", {"unnumbered"}))}
+    local current_letter = nil
+    local items = {}
+    local function flush()
+        if #items > 0 then table.insert(index_blocks, pandoc.BulletList(items)) end
+        items = {}
+    end
+    for _, node in ipairs(sorted(root.children)) do
+        local first = node.sort:sub(1, 1)
+        local letter = first:match("%a") and first:upper() or "Symbols and numbers"
+        if letter ~= current_letter then
+            flush()
+            current_letter = letter
+            table.insert(index_blocks, pandoc.Header(2, pandoc.Str(letter), pandoc.Attr("", {"unnumbered", "unlisted"})))
+        end
+        table.insert(items, entry(node))
+    end
+    flush()
 
     for _, block in ipairs(index_blocks) do
         table.insert(doc.blocks, block)
     end
-
     return doc
 end
 

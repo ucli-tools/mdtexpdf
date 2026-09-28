@@ -808,14 +808,18 @@ _setup_epub_bibliography() {
 # Returns: 0 on success, 1 on failure
 _execute_epub_pandoc() {
     _EPUB_CMD="$_EPUB_CMD $_EPUB_OPTS --standalone"
-    local filter_path quoted_filter epub_result
+    local filter_path quoted_filter index_path quoted_index epub_result
     filter_path=$(find_lua_filter "epub_latex_filter.lua")
-    if [ -z "$filter_path" ]; then
-        echo -e "${RED}Error: epub_latex_filter.lua is missing; reinstall mdtexpdf.${NC}"
+    index_path=$(find_lua_filter "index_filter.lua")
+    if [ -z "$filter_path" ] || [ -z "$index_path" ]; then
+        echo -e "${RED}Error: epub_latex_filter.lua or index_filter.lua is missing; reinstall mdtexpdf.${NC}"
         epub_result=1
     else
+        # Index markers become anchors and a linked index; then print layout, raw
+        # TeX, numbering and maths are made fit for the EPUB
         printf -v quoted_filter '%q' "$filter_path"
-        _EPUB_CMD="$_EPUB_CMD --lua-filter=$quoted_filter"
+        printf -v quoted_index '%q' "$index_path"
+        _EPUB_CMD="$_EPUB_CMD --lua-filter=$quoted_index --lua-filter=$quoted_filter"
         echo -e "${BLUE}Running: $_EPUB_CMD${NC}"
         eval "$_EPUB_CMD"
         epub_result=$?
@@ -905,6 +909,12 @@ generate_epub() {
     [ -n "$_EPUB_DESCRIPTION" ] && _EPUB_CMD="$_EPUB_CMD --metadata description=\"$_EPUB_DESCRIPTION\""
     [ -n "$_EPUB_LANGUAGE" ] && _EPUB_CMD="$_EPUB_CMD --metadata lang=\"$_EPUB_LANGUAGE\""
     [ -n "$_EPUB_COVER" ] && _EPUB_CMD="$_EPUB_CMD --epub-cover-image=\"$_EPUB_COVER\""
+    # What the PDF numbers, so that the EPUB numbers equations, figures and tables
+    # the same way (see epub_latex_filter.lua)
+    [ "$META_EQUATION_NUMBERS" = "true" ] && _EPUB_CMD="$_EPUB_CMD --metadata equation_numbers=true"
+    [ "$META_NO_FIGURE_NUMBERS" = "true" ] && _EPUB_CMD="$_EPUB_CMD --metadata no_figure_numbers=true"
+    local epub_format="${ARG_FORMAT:-$META_FORMAT}"
+    [ -n "$epub_format" ] && _EPUB_CMD="$_EPUB_CMD --metadata mdtexpdf-format=\"$epub_format\""
 
     # Step 6: Setup bibliography, CSL, and custom CSS
     _setup_epub_bibliography

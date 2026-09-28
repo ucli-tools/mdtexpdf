@@ -261,11 +261,41 @@ code. This support does not convert arbitrary LaTeX documents: custom environmen
 external files used by drawings, and document-wide page-layout settings may need
 adaptation. Inspect the EPUB in a reader as well as running structural validation.
 
+### Raw LaTeX, numbers and the index
+
+An EPUB writer drops raw LaTeX it does not understand, so mdtexpdf converts what a
+book typically writes that way before the writer sees it:
+
+- `table` environments, a `figure` holding a `tabular`, and a `tabular` inside
+  `center` become real tables with their captions. Print-only column types
+  (`R{3cm}` from a `\newcolumntype`, `>{..}`, `@{..}`), row spacing (`\\[11pt]`,
+  `\noalign`, `\arraystretch`) and size commands are set aside first.
+- `\begin{center}...\end{center}` text, including a `\parbox` inside it, stays as
+  centred text.
+- A wide equation fitted for print as `\[\sbox0{$\displaystyle ...$}...\]` becomes
+  an ordinary display equation, keeping a `\tag` written after the box.
+- Commands that only shape the printed page (`\newpage`, `\nopagebreak`,
+  `\enlargethispage`, `\begingroup` penalty groups, vertical spacing) are removed.
+- Other raw LaTeX that carries text is read with pandoc's LaTeX reader; anything
+  still left out is named in the build output.
+
+Numbers follow the PDF. With `equation_numbers: true`, display equations are
+numbered as LaTeX numbers them (by chapter in a book, where every `Chapter N:` or
+`Appendix X:` heading restarts the count); `\tag{..}` labels are shown as written,
+and `\notag` equations stay unnumbered. Captioned figures and tables are labelled
+"Figure 2.1:" and "Table 2.1:" unless `no_figure_numbers: true` removes figure
+labels, as it does in the PDF. The number sits beside its equation.
+
+`[index:term]` markers become anchors, and an Index at the end lists every term with
+links to where it occurs, named by the chapter or section heading above each
+occurrence (`[index:main|sub]` nests; `[index:sort@display]` sorts by its first
+part and shows its second).
+
 ### What Has Limitations in EPUB
 
 | Feature | EPUB Behavior |
 |---------|---------------|
-| LaTeX math | Converted to Unicode where possible |
+| LaTeX math | MathML (see Math in EPUB) |
 | Complex tables | May reflow awkwardly |
 | Page breaks | Suggestions only (e-reader decides) |
 | Footnotes | Converted to endnotes or pop-ups |
@@ -275,18 +305,15 @@ adaptation. Inspect the EPUB in a reader as well as running structural validatio
 
 ### Math in EPUB
 
-Simple math works:
-```markdown
-$E = mc^2$  →  E = mc²
-$x^2$       →  x²
-$H_2O$      →  H₂O
-```
+Maths is written as MathML, which current readers display directly or typeset with
+MathJax. Every formula is first converted exactly as written. Only a formula pandoc
+cannot convert is repaired, one rule at a time (`\mathbbm` as `\mathbb`; a pair of
+quotation marks inside maths set as text), and each repair is listed in the build
+output. A formula that no rule repairs stops the build and is named, so no formula
+is ever shown to a reader as raw TeX.
 
-Complex math may need alternatives:
-```markdown
-<!-- Instead of complex LaTeX, use Unicode or images -->
-∫₀^∞ e^(-x²) dx = √π/2
-```
+A display equation is set in a block of its own that scrolls sideways when it is
+wider than the screen, so it never runs into the next page or over the text.
 
 ### Images
 
