@@ -257,7 +257,38 @@ local function convert_with_reader(text)
   if shown:match('%S') then return blocks end
 end
 
+-- An environment pandoc's LaTeX reader does not know (theorem, lemma, a book's own):
+-- its body is read as Markdown, which is how such bodies are written, headed by the
+-- environment's name ("Theorem.", "Theorem (Pythagoras)."; a proof's in italics)
+local function named_environment(text)
+  local name, rest = text:match('^%s*\\begin{(%a+)%*?}(.*)$')
+  if not name then return nil end
+  local body = rest:match('^(.*)\\end{' .. name .. '%*?}%s*$')
+  if not body then return nil end
+  local note
+  body = body:gsub('^%s*(%b[])', function(value) note = value:sub(2, -2); return '' end, 1)
+  local blocks = pandoc.read(body, 'markdown').blocks
+  if #blocks == 0 then return nil end
+  local label = name:sub(1, 1):upper() .. name:sub(2) .. (note and (' (' .. note .. ')') or '') .. '.'
+  local head = name == 'proof' and pandoc.Emph({pandoc.Str(label)}) or pandoc.Strong({pandoc.Str(label)})
+  local first = blocks[1]
+  if first.t == 'Para' or first.t == 'Plain' then
+    first.content:insert(1, pandoc.Space())
+    first.content:insert(1, head)
+  else
+    blocks:insert(1, pandoc.Para({head}))
+  end
+  return pandoc.Div(blocks, pandoc.Attr('', {name}))
+end
+
+-- An HTML comment is an author's note: it shows nowhere, and one holding "--" (a
+-- command-line option, say) makes the XHTML invalid, so it is left out of the EPUB
+local function html_comment(raw)
+  if raw.format == 'html' and raw.text:match('^%s*<!%-%-.*%-%->%s*$') then return {} end
+end
+
 convert_raw = function(block)
+  if block.format == 'html' then return html_comment(block) end
   if block.format ~= 'tex' and block.format ~= 'latex' then return nil end
   local text = block.text
   if text:find('\\begin{minipage}', 1, true) or text:find('\\begin{samepage}', 1, true) then
@@ -291,18 +322,23 @@ convert_raw = function(block)
   if not has_visible_text(text) then return {} end
   local blocks = convert_with_reader(text)
   if blocks then return finish(blocks) end
+  local environment = named_environment(text)
+  if environment then return finish({environment}) end
   dropped[#dropped + 1] = text
   return {}
 end
 
 -- Raw TeX inside a paragraph: print layout goes, anything with text is read as LaTeX
 convert_raw_inline = function(inline)
+  if inline.format == 'html' then return html_comment(inline) end
   if inline.format ~= 'tex' and inline.format ~= 'latex' then return nil end
   if inline.text:match('^\\mdtexpdflabel') then return nil end
   local text = strip_page_layout(inline.text)
   if not text:match('%S') or not has_visible_text(text) then return {} end
   local blocks = convert_with_reader(text)
   if blocks then return pandoc.utils.blocks_to_inlines(blocks) end
+  local environment = named_environment(text)
+  if environment then return pandoc.utils.blocks_to_inlines(finish({environment})) end
   dropped[#dropped + 1] = inline.text
   return {}
 end

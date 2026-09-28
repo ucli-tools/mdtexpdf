@@ -544,6 +544,34 @@ Short $x$, then the long $a_1 + a_2 + a_3 + a_4 + a_5 + a_6 + a_7 + a_8$, and on
         for span in glued:
             self.assertTrue((span[-1].tail or '').startswith(',') or ''.join(span.itertext()).endswith(','))
 
+    def test_named_environments_comments_and_front_matter_rules(self):
+        documents, _ = self.convert(r'''---
+title: Environments
+date: "January 2026"
+---
+
+# Chapter
+
+\begin{theorem}[Pythagoras]
+For a right triangle with legs $a$, $b$ and hypotenuse $c$:
+$$a^2 + b^2 = c^2$$
+\end{theorem}
+
+<!-- A note for the author: build with --citeproc -->
+
+---
+
+After a horizontal rule.
+''', cli=True)
+        text = self.text_of(documents)
+        self.assertIn('Theorem (Pythagoras).', text)
+        self.assertIn('For a right triangle', text)
+        self.assertNotIn('citeproc', text)
+        with zipfile.ZipFile(self.directory / 'book with spaces.epub') as archive:
+            opf = archive.read('EPUB/content.opf').decode()
+        self.assertIn('<dc:title id="epub-title-1">Environments</dc:title>', opf)
+        self.assertIn('2026-01', opf)
+
     def test_index_markers_become_a_linked_index(self):
         documents, _ = self.convert(r'''---
 title: Index

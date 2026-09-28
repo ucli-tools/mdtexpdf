@@ -560,6 +560,7 @@ def tex_to_text(tex):
     t = re.sub(r'\\(dimen|skip|count)\d+\s*=?\s*-?[\d.]*\s*\\?\w*', ' ', t)
     t = re.sub(r'\\penalty\s*-?\d+', ' ', t)
     t = strip_environment(t, 'tikzpicture')
+    t = strip_environment(t, '(?:' + TEX_DISPLAY_ENVS + ')')     # display maths is not prose
     t = re.sub(r'\\csname.*?\\endcsname', ' ', t, flags=re.S)
     t = re.sub(r'=\s*-?\d+(\.\d+)?\s*(pt|em|ex|cm|mm|in)?', ' ', t)
     t = re.sub(r'\\captionof\*?\s*\{(?:figure|table)\}', r'\\caption', t)
