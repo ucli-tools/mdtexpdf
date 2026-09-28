@@ -891,6 +891,8 @@ generate_epub() {
 
     # Step 5: Build base pandoc command
     _EPUB_CMD="pandoc \"$_EPUB_TEMP_INPUT\" --from markdown --to epub3 --output \"$OUTPUT_FILE\" --epub-title-page=false --mathml"
+    # Images are found beside the source, wherever the command is run from
+    _EPUB_CMD="$_EPUB_CMD --resource-path=\".:$(dirname "$INPUT_FILE")\""
     [ -n "$_EPUB_TITLE" ] && _EPUB_CMD="$_EPUB_CMD --metadata title=\"$_EPUB_TITLE\""
     [ -n "$_EPUB_AUTHOR" ] && _EPUB_CMD="$_EPUB_CMD --metadata author=\"$_EPUB_AUTHOR\""
     # The package date must be a W3C date: "February 21, 2026" pandoc reads
