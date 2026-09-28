@@ -521,6 +521,16 @@ local function present_math(math)
   }))
 end
 
+-- An image's alt text is read aloud or shown in place of the picture, where maths
+-- cannot be typeset: alt text holding maths or raw TeX becomes plain text (θ, x², 1/2)
+local function plain_alt(image)
+  local needs = false
+  image.caption:walk({Math = function() needs = true end, RawInline = function() needs = true end})
+  if not needs then return nil end
+  image.caption = {pandoc.Str(plain_text({pandoc.Plain(image.caption)}))}
+  return image
+end
+
 local function report_conversions()
   for _, text in ipairs(dropped) do
     io.stderr:write('[mdtexpdf] EPUB: raw LaTeX with text could not be converted and is left out: '
@@ -620,6 +630,7 @@ function Pandoc(doc)
   doc = doc:walk({Span = sized_span})
   doc.blocks = doc.blocks:walk({Math = present_math})
   doc.blocks = doc.blocks:walk({RawInline = caption_label})
+  doc.blocks = doc.blocks:walk({Image = plain_alt})
   report_conversions()
   return doc
 end

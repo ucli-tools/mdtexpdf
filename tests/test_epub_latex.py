@@ -547,6 +547,26 @@ A [index:fruit|pear]pear and the [index:zeta@$\zeta$ function]zeta function.
         self.assertEqual({h.split('#')[1] for _, h in links}, anchors)
         self.assertIn('Index', text)
 
+    def test_image_alt_text_with_maths_is_plain_text(self):
+        picture = self.directory / 'dot.png'
+        import struct, zlib
+        chunk = lambda kind, body: (struct.pack('>I', len(body)) + kind + body
+                                    + struct.pack('>I', zlib.crc32(kind + body)))
+        picture.write_bytes(b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0))
+                            + chunk(b'IDAT', zlib.compress(b'\x00\xff\xff\xff')) + chunk(b'IEND', b''))
+        documents, _ = self.convert(r'''---
+title: Alt text
+---
+
+# Chapter
+
+![A turn by $\theta$ of $\frac{1}{2}$ [index:turn]turn.](dot.png)
+''', cli=True)
+        alts = [el.get('alt') for doc in documents for el in doc.iter() if el.tag.endswith('}img')]
+        self.assertEqual(alts, ['A turn by θ of 1/2 turn.'])
+        captions = [el for doc in documents for el in doc.iter() if el.tag.endswith('}figcaption')]
+        self.assertTrue(any(m.tag.endswith('}math') for m in captions[0].iter()))
+
     # --- the verifier ------------------------------------------------------------------
 
     def verify(self, *arguments):

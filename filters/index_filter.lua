@@ -6,6 +6,7 @@
 local index_entries = {}
 local anchors = {}          -- anchor id -> levels of its term (non-LaTeX formats)
 local anchor_count = 0
+local in_alt_text = false   -- a marker in an image's alt text gets no anchor
 local output_format = FORMAT
 local index_pattern = "%[index:([^%]]+)%]"
 
@@ -65,7 +66,11 @@ local function make_index_inline(term)
         return pandoc.RawInline("latex", "\\index{" .. table.concat(escaped, "!") .. "}")
     end
 
-    -- Other formats (EPUB, HTML): an anchor the linked index points to
+    -- Other formats (EPUB, HTML): an anchor the linked index points to, except in
+    -- an image's alt text, which cannot hold one (the figure caption carries it)
+    if in_alt_text then
+        return nil
+    end
     anchor_count = anchor_count + 1
     local id = "idx-" .. anchor_count
     anchors[id] = levels
@@ -327,7 +332,23 @@ function Pandoc(doc)
     return doc
 end
 
+-- For EPUB/HTML: an image's alt text repeats its figure caption as plain text, so
+-- markers there are removed without anchors; the caption's own markers get them
+local function alt_text(image)
+    if output_format:match("latex") or output_format:match("pdf") then
+        return nil
+    end
+    in_alt_text = true
+    local caption = Inlines(image.caption)
+    in_alt_text = false
+    if caption then
+        image.caption = caption
+        return image
+    end
+end
+
 return {
+    {Image = alt_text},
     {Inlines = Inlines},
     {Pandoc = Pandoc}
 }
