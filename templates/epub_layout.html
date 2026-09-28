@@ -1,0 +1,13 @@
+<style>
+/* mdtexpdf reading layout, after the book's stylesheets: tables break across
+   pages instead of being one scrolling box a page cuts off, and on a narrow
+   screen each row shows its cells one under another */
+table { display: table; overflow: visible; }
+th, td { overflow-wrap: break-word; }
+@media (max-width: 36em) {
+  table, caption, thead, tbody, tfoot, tr, th, td { display: block; width: auto; }
+  colgroup, col { display: none; }
+  tr { padding: 0.35em 0; border-bottom: 1px solid #999; }
+  th, td { padding: 0.1em 0; text-align: left; }
+}
+</style>

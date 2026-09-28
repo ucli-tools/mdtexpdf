@@ -488,12 +488,25 @@ end
 
 local used_labels = {}
 
+-- A rough count of the characters a formula shows, to find inline formulas that
+-- may be wider than a phone screen
+local function shown_length(text)
+  return #(text:gsub('\\%a+', '#'):gsub('[%s{}^_&\\]', ''):gsub('[\128-\191]', ''))
+end
+
 local function present_math(math)
   if math.mathtype ~= 'DisplayMath' then
     local text = repaired(math.text, 'InlineMath')
-    if text == math.text then return nil end
+    local changed = text ~= math.text
     math.text = text
-    return math
+    -- a formula cannot wrap: a long one scrolls sideways on a narrow screen
+    -- rather than running off the page
+    if shown_length(text) > 16 then
+      return pandoc.Span({math}, pandoc.Attr('', {'math-inline-wide'}, {
+        style = 'display:inline-block;max-width:100%;overflow-x:auto;overflow-y:hidden;vertical-align:middle;padding:0 0.1em;'
+      }))
+    end
+    return changed and math or nil
   end
   local text, label, starred = math.text, nil, false
   text = text:gsub('\\tag(%*?)%s*(%b{})', function(star, value)
@@ -501,8 +514,14 @@ local function present_math(math)
     return ''
   end):gsub('\\notag%f[^%a]', ''):gsub('\\nonumber%f[^%a]', '')
   text = repaired(text, 'DisplayMath')
-  local formula = pandoc.Span({pandoc.Math('DisplayMath', text)}, pandoc.Attr('', {}, {
-    style = 'flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;padding:0.4em 0;text-align:center;'
+  -- centred by auto margins, which never push a formula wider than the screen
+  -- off its left edge: it starts at the left and scrolls
+  local centred = pandoc.Span({pandoc.Math('DisplayMath', text)}, pandoc.Attr('', {}, {
+    style = 'flex:none;margin:0 auto;'
+  }))
+  local formula = pandoc.Span({centred}, pandoc.Attr('', {}, {
+    -- side padding keeps a glyph's overhang (an integral sign, a large bracket) inside
+    style = 'display:flex;flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;padding:0.4em 0.25em;'
   }))
   local parts = {formula}
   if label then
@@ -529,6 +548,30 @@ local function plain_alt(image)
   if not needs then return nil end
   image.caption = {pandoc.Str(plain_text({pandoc.Plain(image.caption)}))}
   return image
+end
+
+-- A reader may break the line after an inline formula (MathJax sets each one in a
+-- box), which would start the next line with the comma or full stop that follows
+-- it: that punctuation joins the formula in a span that does not break
+local function keep_punctuation(inlines)
+  local changed = false
+  for i = #inlines - 1, 1, -1 do
+    local here, after = inlines[i], inlines[i + 1]
+    local formula = (here.t == 'Math' and here.mathtype == 'InlineMath')
+      or (here.t == 'Span' and here.classes:includes('math-inline-wide'))
+    if formula and after.t == 'Str' then
+      local mark, rest = after.text:match('^([%.,;:!%?%)%]]+)(.*)$')
+      if not mark then
+        mark, rest = after.text:match('^(\226\128[\153\157]+)(.*)$')    -- ’ ”
+      end
+      if mark then
+        inlines[i] = pandoc.Span({here, pandoc.Str(mark)}, pandoc.Attr('', {}, {style = 'white-space:nowrap;'}))
+        if rest == '' then inlines:remove(i + 1) else after.text = rest end
+        changed = true
+      end
+    end
+  end
+  return changed and inlines or nil
 end
 
 local function report_conversions()
@@ -629,6 +672,7 @@ function Pandoc(doc)
   doc.blocks = doc.blocks:walk({RawBlock = convert_raw, RawInline = convert_raw_inline})
   doc = doc:walk({Span = sized_span})
   doc.blocks = doc.blocks:walk({Math = present_math})
+  doc.blocks = doc.blocks:walk({Inlines = keep_punctuation})
   doc.blocks = doc.blocks:walk({RawInline = caption_label})
   doc.blocks = doc.blocks:walk({Image = plain_alt})
   report_conversions()

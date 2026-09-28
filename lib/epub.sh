@@ -809,6 +809,14 @@ _execute_epub_pandoc() {
         epub_result=$?
     fi
 
+    # The input pandoc converted (includes, bibliography and front matter applied)
+    # is what the written EPUB is checked against
+    local verify_source=""
+    if [ $epub_result -eq 0 ] && [ -f "$_EPUB_TEMP_INPUT" ]; then
+        verify_source=$(mktemp "${INPUT_FILE%.md}_epub_source_XXXXXX.md")
+        cp "$_EPUB_TEMP_INPUT" "$verify_source"
+    fi
+
     # Cleanup temp files
     rm -f "$_EPUB_TEMP_INPUT"
     [ -n "$_EPUB_COVER_GENERATED" ] && rm -f "$_EPUB_COVER_GENERATED"
@@ -837,11 +845,12 @@ _execute_epub_pandoc() {
         # against a PDF is `mdtexpdf validate --pdf`.
         local verify_status
         if [ "$ARG_VALIDATE" = true ]; then
-            validate_epub "$OUTPUT_FILE" --source "$INPUT_FILE" --no-pdf
+            validate_epub "$OUTPUT_FILE" --source "${verify_source:-$INPUT_FILE}" --no-pdf
         else
-            validate_epub "$OUTPUT_FILE" --source "$INPUT_FILE" --quick
+            validate_epub "$OUTPUT_FILE" --source "${verify_source:-$INPUT_FILE}" --quick
         fi
         verify_status=$?
+        [ -n "$verify_source" ] && rm -f "$verify_source"
         if [ $verify_status -eq 1 ]; then
             echo -e "${RED}✗ $OUTPUT_FILE was written but failed verification (see above).${NC}"
             return 1
@@ -893,6 +902,10 @@ generate_epub() {
     _EPUB_CMD="pandoc \"$_EPUB_TEMP_INPUT\" --from markdown --to epub3 --output \"$OUTPUT_FILE\" --epub-title-page=false --mathml"
     # Images are found beside the source, wherever the command is run from
     _EPUB_CMD="$_EPUB_CMD --resource-path=\".:$(dirname "$INPUT_FILE")\""
+    # Reading layout for tables on e-readers (templates/epub_layout.html)
+    local layout_css
+    layout_css=$(find_lua_filter "templates/epub_layout.html")
+    [ -n "$layout_css" ] && _EPUB_CMD="$_EPUB_CMD --include-in-header=\"$layout_css\""
     [ -n "$_EPUB_TITLE" ] && _EPUB_CMD="$_EPUB_CMD --metadata title=\"$_EPUB_TITLE\""
     [ -n "$_EPUB_AUTHOR" ] && _EPUB_CMD="$_EPUB_CMD --metadata author=\"$_EPUB_AUTHOR\""
     # The package date must be a W3C date: "February 21, 2026" pandoc reads

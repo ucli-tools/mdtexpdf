@@ -313,7 +313,18 @@ output. A formula that no rule repairs stops the build and is named, so no formu
 is ever shown to a reader as raw TeX.
 
 A display equation is set in a block of its own that scrolls sideways when it is
-wider than the screen, so it never runs into the next page or over the text.
+wider than the screen, so it never runs into the next page or over the text; it
+starts at its left edge rather than losing it. An inline formula long enough to be
+wider than a phone screen scrolls sideways the same way, since a formula cannot
+wrap.
+
+### Tables on e-readers
+
+Each chapter carries a short reading-layout style (`templates/epub_layout.html`,
+included after the book's stylesheets): tables break across pages instead of being
+one box that a page cuts off at its foot, and on a narrow screen (below 36em) each
+row shows its cells one under another. A book can override these rules with more
+specific selectors in its own `--epub-css`.
 
 ### Images
 

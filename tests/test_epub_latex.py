@@ -521,8 +521,28 @@ $$x = \sum_{n=1}^{100} n$$
         self.assertEqual(len(wrappers), 1)
         scroller = wrappers[0][0]
         self.assertIn('overflow-x:auto', scroller.get('style'))
-        self.assertTrue(scroller[0].tag.endswith('}math'))
+        # centred by auto margins, so a formula wider than the screen starts at its left
+        self.assertIn('margin:0 auto', scroller[0].get('style'))
+        self.assertTrue(scroller[0][0].tag.endswith('}math'))
         self.assertEqual(self.spans(documents, 'eqno'), ['(1)'])
+
+    def test_inline_formulas_keep_their_punctuation_and_fit_the_screen(self):
+        documents, _ = self.convert(r'''---
+title: Inline
+---
+
+# Chapter
+
+Short $x$, then the long $a_1 + a_2 + a_3 + a_4 + a_5 + a_6 + a_7 + a_8$, and on.
+''', cli=True)
+        spans = [el for doc in documents for el in doc.iter() if el.tag.endswith('}span')]
+        wide = [el for el in spans if 'math-inline-wide' in (el.get('class') or '').split()]
+        self.assertEqual(len(wide), 1)                      # only the long formula scrolls
+        self.assertIn('overflow-x:auto', wide[0].get('style'))
+        glued = [el for el in spans if 'white-space:nowrap' in (el.get('style') or '')]
+        self.assertEqual(len(glued), 2)                     # each formula keeps its comma
+        for span in glued:
+            self.assertTrue((span[-1].tail or '').startswith(',') or ''.join(span.itertext()).endswith(','))
 
     def test_index_markers_become_a_linked_index(self):
         documents, _ = self.convert(r'''---
