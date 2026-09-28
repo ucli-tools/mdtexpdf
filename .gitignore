@@ -33,3 +33,6 @@ Thumbs.db
 .idea/
 *.swp
 *~
+
+# Python bytecode (the EPUB verifier)
+__pycache__/

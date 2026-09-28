@@ -326,7 +326,7 @@ install() {
     # Copy module libraries
     SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
     if [ -d "$SCRIPT_DIR/lib" ]; then
-        cp "$SCRIPT_DIR/lib"/*.sh "$INSTALL_SHARE/lib/"
+        cp "$SCRIPT_DIR/lib"/*.sh "$SCRIPT_DIR/lib"/*.py "$INSTALL_SHARE/lib/"
         echo -e "${GREEN}✓ Installed module libraries${NC}"
     fi
 
@@ -453,7 +453,7 @@ help() {
     echo -e "                    ${BLUE}--format FORMAT       Set document format (article or book)${NC}"
     echo -e "                    ${BLUE}--header-footer-policy POLICY Set header/footer policy (default, partial, all). Default: default${NC}"
     echo -e "                    ${BLUE}--epub                Output EPUB format instead of PDF${NC}"
-    echo -e "                    ${BLUE}--validate            Validate EPUB with epubcheck (requires epubcheck)${NC}"
+    echo -e "                    ${BLUE}--validate            Verify the EPUB fully after the build (see validate)${NC}"
     echo -e "                    ${BLUE}-b, --bibliography FILE  Use bibliography file (.bib, .json, .yaml, .md)${NC}"
     echo -e "                    ${BLUE}--csl FILE            Use CSL citation style file${NC}"
     echo -e "                    ${BLUE}--template FILE       Use custom LaTeX template for PDF${NC}"
@@ -472,9 +472,13 @@ help() {
     echo -e "                  ${BLUE}Check if all prerequisites are installed${NC}"
     echo -e "                  ${BLUE}Example:${NC} mdtexpdf check\n"
 
-    echo -e "  ${GREEN}validate <file.epub>${NC}"
-    echo -e "                  ${BLUE}Validate an EPUB file with epubcheck${NC}"
-    echo -e "                  ${BLUE}Example:${NC} mdtexpdf validate book.epub\n"
+    echo -e "  ${GREEN}validate <file.epub> [--source FILE.md] [--pdf FILE.pdf] [--no-pdf] [--no-layout] [--shots DIR]${NC}"
+    echo -e "                  ${BLUE}Verify an EPUB is sound and complete: package, text (no TeX, markers or${NC}"
+    echo -e "                  ${BLUE}Markdown shown), images, links, contents, everything in its source (the .md${NC}"
+    echo -e "                  ${BLUE}beside it by default), numbering against a PDF of the same source, epubcheck,${NC}"
+    echo -e "                  ${BLUE}calibre, and the paginated layout at phone and tablet size (needs Chrome).${NC}"
+    echo -e "                  ${BLUE}Exit status: 0 passed, 1 failed, 2 not verified.${NC}"
+    echo -e "                  ${BLUE}Example:${NC} mdtexpdf validate book.epub --pdf book.pdf\n"
 
     echo -e "  ${GREEN}install${NC}"
     echo -e "                  ${BLUE}Install mdtexpdf system-wide${NC}"
@@ -561,7 +565,8 @@ case "$1" in
             log_error "EPUB file '$1' not found."
             exit $EXIT_USER_ERROR
         fi
-        validate_epub "$1"
+        validate_epub "$@"
+        exit $?
         ;;
     install)
         install

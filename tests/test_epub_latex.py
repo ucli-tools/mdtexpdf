@@ -2,6 +2,7 @@
 """Check actual EPUB contents, including failure paths and source preservation."""
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -545,6 +546,86 @@ A [index:fruit|pear]pear and the [index:zeta@$\zeta$ function]zeta function.
         self.assertEqual([t for t, _ in links], ['Chapter 1: Apples', '2', 'Chapter 2: Pears', 'Chapter 2: Pears'])
         self.assertEqual({h.split('#')[1] for _, h in links}, anchors)
         self.assertIn('Index', text)
+
+    # --- the verifier ------------------------------------------------------------------
+
+    def verify(self, *arguments):
+        return subprocess.run(['python3', str(ROOT / 'lib/epub_verify.py'), *arguments],
+                              capture_output=True, text=True)
+
+    def test_verifier_finds_what_a_plain_conversion_loses(self):
+        manuscript = self.directory / 'plain.md'
+        epub = self.directory / 'plain.epub'
+        manuscript.write_text(r'''---
+title: Plain
+---
+
+# Chapter
+
+A [index:marker]marker in the text.
+
+```{=latex}
+\begin{table}[H]
+\begin{tabular}{ll}
+Left cell & Right cell \\
+\end{tabular}
+\caption{A table the writer drops.}
+\end{table}
+```
+
+$$a = b \tag{4.2}$$
+''')
+        subprocess.run(['pandoc', str(manuscript), '-t', 'epub3', '--mathml', '-o', str(epub)], check=True)
+        result = self.verify(str(epub), '--source', str(manuscript), '--quick')
+        self.assertEqual(result.returncode, 1, result.stdout)
+        for finding in ('index marker in text', 'tables: the EPUB has 0, the source 1',
+                        'equation label (4.2) is not shown', 'A table the writer drops'):
+            self.assertIn(finding, result.stdout)
+
+    def test_verifier_reports_what_it_could_not_check(self):
+        manuscript = self.directory / 'numbered.md'
+        epub = self.directory / 'numbered.epub'
+        manuscript.write_text('---\ntitle: Numbered\nequation_numbers: true\n---\n\n# Chapter\n\n$$a = b$$\n')
+        subprocess.run(['pandoc', str(manuscript), '-t', 'epub3', '--mathml', '-o', str(epub)], check=True)
+        result = self.verify(str(epub), '--source', str(manuscript), '--no-layout')
+        self.assertIn('NOT VERIFIED', result.stdout)
+        self.assertIn(result.returncode, (1, 2))
+
+    def test_numbering_oracle_matches_in_order(self):
+        import sys
+        sys.path.insert(0, str(ROOT / 'lib'))
+        import epub_verify
+
+        def run(pdf, epub, shown=''):
+            report = epub_verify.Report(20)
+            epub_verify.subsequence('numbering', report, 'equation', pdf, epub, lambda label: label in shown)
+            return [level for level, _ in report.findings['numbering']]
+
+        self.assertEqual(run(['(1.1)', '(1.2)'], ['(1.1)', '(1.2)']), [])
+        # a label only in the PDF's column but written in the EPUB's text: a warning
+        self.assertEqual(run(['(1.1)', '(1.9)', '(1.2)'], ['(1.1)', '(1.2)'], shown='see (1.9)'), ['warning'])
+        # a label nowhere in the EPUB, or in the wrong order: errors
+        self.assertEqual(run(['(1.1)', '(1.9)', '(1.2)'], ['(1.1)', '(1.2)']), ['error'])
+        self.assertIn('error', run(['(1.1)', '(1.2)'], ['(1.2)', '(1.1)']))
+
+    @unittest.skipUnless(any(shutil.which(b) for b in ('google-chrome', 'chromium', 'chromium-browser'))
+                         or os.environ.get('MDTEXPDF_CHROME'), 'needs Chrome or Chromium')
+    def test_layout_check_finds_a_formula_wider_than_the_page(self):
+        wide = ' + '.join(f'x_{{{n}}}' for n in range(60))
+        manuscript = self.directory / 'wide.md'
+        manuscript.write_text(f'---\ntitle: Wide\n---\n\n# Chapter\n\nBefore.\n\n$$y = {wide}$$\n\nAfter the formula.\n')
+        plain = self.directory / 'plain.epub'
+        subprocess.run(['pandoc', str(manuscript), '-t', 'epub3', '--mathml', '-o', str(plain)], check=True)
+        result = self.verify(str(plain), '--source', str(manuscript), '--no-pdf')
+        self.assertIn('spills into the next page', result.stdout)
+        self.assertEqual(result.returncode, 1)
+        contained = self.directory / 'contained.epub'
+        subprocess.run(['pandoc', str(manuscript), '-t', 'epub3', '--mathml', '--lua-filter', str(FILTER),
+                        '-o', str(contained)], check=True)
+        result = self.verify(str(contained), '--source', str(manuscript), '--no-pdf')
+        self.assertNotIn('spills into the next page', result.stdout)
+        self.assertIn('scrolls sideways', result.stdout)
+
 
 
 if __name__ == '__main__':

@@ -410,48 +410,32 @@ preprocess_epub_mathml() {
 # EPUB Validation (if epubcheck is available)
 # =============================================================================
 
-# Validate EPUB file using epubcheck
+# Verify an EPUB with lib/epub_verify.py: package, text, images, links, contents,
+# completeness against its source, numbering against its PDF, epubcheck, calibre and
+# the paginated layout. Arguments after the file go to the verifier (--source,
+# --pdf, --no-pdf, --no-layout, --quick, --shots DIR, --json FILE).
+# Returns: 0 passed, 1 failed, 2 not verified, 3 usage error
 validate_epub() {
     local epub_file="$1"
+    shift
 
     if [ ! -f "$epub_file" ]; then
         echo -e "${RED}Error: EPUB file not found for validation${NC}"
-        return 1
+        return 3
     fi
-
-    if ! command -v epubcheck &> /dev/null; then
-        echo -e "${YELLOW}Warning: epubcheck not installed. Install with: sudo apt install epubcheck${NC}"
-        echo -e "${YELLOW}Skipping EPUB validation.${NC}"
-        return 2
+    local verifier="${LIB_DIR:-$SCRIPT_DIR/lib}/epub_verify.py"
+    if ! command -v python3 &> /dev/null || [ ! -f "$verifier" ]; then
+        echo -e "${RED}Error: the EPUB verifier needs python3 and $verifier; reinstall mdtexpdf.${NC}"
+        return 3
     fi
-
-    echo -e "${BLUE}Validating EPUB with epubcheck...${NC}"
-
-    local validation_output
-    local validation_result
-    validation_output=$(epubcheck "$epub_file" 2>&1)
-    validation_result=$?
-
-    if [ $validation_result -eq 0 ]; then
-        echo -e "${GREEN}✓ EPUB validation passed - no errors found${NC}"
-        return 0
-    else
-        echo -e "${YELLOW}EPUB validation completed with issues:${NC}"
-        echo "$validation_output" | grep -E "(ERROR|WARNING)" | head -20
-        local error_count
-        local warning_count
-        error_count=$(echo "$validation_output" | grep -c "ERROR" || echo "0")
-        warning_count=$(echo "$validation_output" | grep -c "WARNING" || echo "0")
-        echo -e "${YELLOW}Summary: $error_count errors, $warning_count warnings${NC}"
-
-        if [ "$error_count" -gt 0 ]; then
-            echo -e "${RED}✗ EPUB has validation errors${NC}"
-            return 1
-        else
-            echo -e "${GREEN}✓ EPUB valid (warnings only)${NC}"
-            return 0
-        fi
+    # The source beside the EPUB, unless one was named
+    local has_source=false arg
+    for arg in "$@"; do [ "$arg" = "--source" ] && has_source=true; done
+    local source_md="${epub_file%.epub}.md"
+    if [ "$has_source" = false ] && [ -f "$source_md" ]; then
+        set -- --source "$source_md" "$@"
     fi
+    python3 "$verifier" "$epub_file" "$@"
 }
 
 # =============================================================================
@@ -838,11 +822,6 @@ _execute_epub_pandoc() {
         declare_epub_nav_mathml "$OUTPUT_FILE"
         declare_epub_accessibility "$OUTPUT_FILE"
 
-        # Validate if requested
-        if [ "$ARG_VALIDATE" = true ]; then
-            validate_epub "$OUTPUT_FILE"
-        fi
-
         # Restore backup
         if [ -f "$BACKUP_FILE" ]; then
             mv "$BACKUP_FILE" "$INPUT_FILE"
@@ -851,6 +830,21 @@ _execute_epub_pandoc() {
         # Clean up combined file
         if [ -n "$COMBINED_FILE" ] && [ -f "$COMBINED_FILE" ]; then
             rm -f "$COMBINED_FILE"
+        fi
+
+        # Check what was written against its source: nothing leaked, nothing left
+        # out. --validate adds epubcheck, calibre and the layout check; numbering
+        # against a PDF is `mdtexpdf validate --pdf`.
+        local verify_status
+        if [ "$ARG_VALIDATE" = true ]; then
+            validate_epub "$OUTPUT_FILE" --source "$INPUT_FILE" --no-pdf
+        else
+            validate_epub "$OUTPUT_FILE" --source "$INPUT_FILE" --quick
+        fi
+        verify_status=$?
+        if [ $verify_status -eq 1 ]; then
+            echo -e "${RED}✗ $OUTPUT_FILE was written but failed verification (see above).${NC}"
+            return 1
         fi
         return 0
     else

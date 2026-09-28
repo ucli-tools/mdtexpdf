@@ -371,16 +371,39 @@ accessibility_summary: "Reflowable text; every figure has a text description; ma
 
 ### Validation
 
-Use epubcheck to validate your EPUB:
+Every EPUB build ends with a quick check of what was written against its source:
+nothing may leak into the visible text (`[index:` markers, TeX commands, `$...$`,
+comment remains, Markdown or pandoc syntax, a formula left as TeX), every image,
+link and contents entry must resolve, and everything in the source must be there
+(headings, display equations, tables, drawings, equation labels, index entries, and
+the text of every block). A build that fails the check says so and exits non-zero.
+
+The full check is `mdtexpdf validate`:
 
 ```bash
-# Install epubcheck
-# macOS
-brew install epubcheck
-
-# Then validate
-epubcheck mybook.epub
+mdtexpdf validate mybook.epub --pdf mybook.pdf
 ```
+
+It adds:
+
+- **epubcheck**, the reference validator;
+- **calibre**, which must open the book and extract clean text (when installed);
+- **numbering against the PDF**: the equation numbers and the figure and table labels
+  printed in a PDF of the same source must appear in the EPUB in the same order;
+- **layout**: headless Chrome or Chromium lays out every chapter as paginated
+  readers do, one screen per page, at phone and tablet size, with native MathML and
+  with MathJax (calibre's copy, or the one `MDTEXPDF_MATHJAX` names). A formula,
+  image or table that paints over text, runs into the next page or is clipped is
+  an error; one that scrolls sideways or is taller than a page is a warning.
+  `--shots DIR` saves a screenshot of every page with an error.
+
+The source defaults to the `.md` beside the EPUB (`--source` names another). Exit
+status is 0 when everything passed, 1 when something failed, and 2 when a check
+could not run (no PDF for a book that numbers its equations, no Chrome, no
+epubcheck): that is "not verified", never "passed". `--no-pdf` and `--no-layout`
+accept a skipped check explicitly.
+
+Install epubcheck with `sudo apt install epubcheck` or `brew install epubcheck`.
 
 ### E-Reader Testing
 
