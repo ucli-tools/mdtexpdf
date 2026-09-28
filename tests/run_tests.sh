@@ -1249,23 +1249,18 @@ EOF
     if $MDTEXPDF convert --epub -t "Validation Test" -a "Test Author" -f "Test Footer" "$test_md" "$test_epub" > /dev/null 2>&1; then
         if [ -f "$test_epub" ]; then
             # Now test the validate command
-            local validate_output
-            validate_output=$($MDTEXPDF validate "$test_epub" 2>&1)
-            local validate_result=$?
+            # 0 passed, 1 failed, 2 not verified (a check could not run here);
+            # the layout check needs Chrome and is covered by test_epub_latex.py
+            local validate_output validate_result=0
+            validate_output=$($MDTEXPDF validate "$test_epub" --no-layout 2>&1) || validate_result=$?
 
-            # Check if epubcheck is available
-            if echo "$validate_output" | grep -q "epubcheck not installed"; then
+            if [ $validate_result -eq 0 ]; then
+                test_pass
+            elif [ $validate_result -eq 2 ] && echo "$validate_output" | grep -q "epubcheck is not installed"; then
                 echo -e "    ${YELLOW}SKIP${NC} (epubcheck not installed)"
                 TESTS_PASSED=$((TESTS_PASSED + 1))
-            elif [ $validate_result -eq 0 ] || echo "$validate_output" | grep -q "validation passed\|valid"; then
-                test_pass
             else
-                # Even with warnings, if no errors, it's a pass
-                if ! echo "$validate_output" | grep -q "ERROR"; then
-                    test_pass
-                else
-                    test_fail "Validation returned errors"
-                fi
+                test_fail "validate exited $validate_result: $(echo "$validate_output" | grep -E 'FAILED|NOT VERIFIED|error' | head -3)"
             fi
         else
             test_fail "EPUB file not created for validation"

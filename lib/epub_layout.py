@@ -188,11 +188,14 @@ MEASURE = r'''
   for (const el of document.querySelectorAll('img'))
     targets.push({el, kind: 'image', display: true, what: el.getAttribute('src') || 'image'});
 
-  const report = (level, kind, what, page, text) => out.problems.push({level, kind, what, page: page + 1, text: text || ''});
+  let current = null;
+  const report = (level, kind, what, page, text) => out.problems.push({level, kind, what, page: page + 1, text: text || '',
+    box: current ? [current.l, current.t, current.r, current.b].map(Math.round) : null});
   for (const target of targets) {
     const {el, display, what} = target;
     const ink = inkOf(el);
     if (!ink) continue;
+    current = ink;
     let seen = ink;
     const clip = clipOf(el);
     if (clip) {
@@ -216,20 +219,33 @@ MEASURE = r'''
         const ix = Math.min(seen.r, line.box.r) - Math.max(seen.l, line.box.l);
         const iy = Math.min(seen.b, line.box.b) - Math.max(seen.t, line.box.t);
         if (ix > 2 && iy > 3) {
-          report(display ? 'error' : 'warning', 'paints over text', what, q, line.text);
+          // an inline formula touching the line above or below in its own paragraph
+          // is a tall formula; over another element's text (a neighbouring table
+          // cell, a caption) it hides that text
+          const own = line.el.contains(el);
+          report(display || !own ? 'error' : 'warning', 'paints over text', what, q, line.text);
           break;
         }
       }
     }
   }
-  for (const row of document.querySelectorAll('tr')) {
-    const box = R(row.getBoundingClientRect());
-    const p = pageOf(box.l);
-    if (box.r > (p + 1) * W + 1) {
-      const table = row.closest('table');
-      const caption = table && table.querySelector('caption');
-      report('error', 'table spills into the next page', caption ? caption.textContent.trim() : row.textContent.trim(), p);
-      break;
+  current = null;
+  for (const table of document.querySelectorAll('table')) {
+    const caption = table.querySelector('caption');
+    const what = caption ? caption.textContent.trim() : table.textContent.trim();
+    // a table that scrolls sideways (in its own scroll box) shows everything; one
+    // that runs past the page does not, nor does one a page cuts at its foot
+    const scroller = getComputedStyle(table).overflowX !== 'visible' ? table : clipOf(table);
+    for (const row of table.querySelectorAll('tr')) {
+      for (const rect of row.getClientRects()) {
+        const box = R(rect), p = pageOf(box.l);
+        if (box.r > (p + 1) * W + 1) {
+          if (scroller) report('warning', 'table scrolls sideways', what, p);
+          else report('error', 'table spills into the next page', what, p);
+          break;
+        }
+        if (box.b > H + 1 && box.b - box.t <= H) report('error', 'table cut at the foot of the page', what, p);
+      }
     }
   }
   return JSON.stringify(out);

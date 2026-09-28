@@ -231,9 +231,10 @@ def block_text(root):
 
 
 def all_text(root, with_math=False):
+    """The text inside `root` (never the text that follows it)."""
     parts = []
 
-    def walk(el):
+    def walk(el, top=False):
         if tag(el) in ('script', 'style', 'head') or (ns(el) == MATHML and not with_math):
             pass
         elif tag(el) == 'annotation' or tag(el) == 'annotation-xml':
@@ -243,9 +244,9 @@ def all_text(root, with_math=False):
                 parts.append(el.text)
             for child in el:
                 walk(child)
-        if el.tail:
+        if el.tail and not top:
             parts.append(el.tail)
-    walk(root)
+    walk(root, top=True)
     return ''.join(parts)
 
 
@@ -599,6 +600,7 @@ class Source:
         self.images = 0
         self.tags = []              # (label, starred)
         self.index_markers = 0
+        self.captions = 0           # captioned figures and tables, which LaTeX numbers
         self.meta = {}
         document = json.loads(subprocess.run(
             ['pandoc', path, '-f', 'markdown', '-t', 'json'],
@@ -623,6 +625,7 @@ class Source:
         self.tables += len(re.findall(r'\\begin\{(?:tabular\*?|tabularx|longtable)\}', without_drawings))
         self.tags += [(m.group(2), m.group(1) == '*') for m in re.finditer(r'\\tag(\*?)\s*\{([^}]*)\}', without_drawings)]
         self.index_markers += len(re.findall(r'\[index:', text))
+        self.captions += len(re.findall(r'\\caption(?:of)?(?![*\w])', without_drawings.replace('\\caption*', '')))
 
     def inline_text(self, inlines, out):
         for el in inlines:
@@ -647,8 +650,11 @@ class Source:
                 self.inline_text(c, out)
             elif t == 'Quoted':
                 self.inline_text(c[1], out)
-            elif t in ('Cite',):
-                self.inline_text(c[1], out)
+            elif t == 'Cite':
+                # a citation is rendered by citeproc, not copied; but pandoc also
+                # reads [index:sort@display] as one, so its markers still count
+                self.inline_text(c[1], [])
+                out.append('\u2063')
             elif t in ('Link', 'Span'):
                 self.inline_text(c[1], out)
             elif t == 'Image':
@@ -706,10 +712,12 @@ class Source:
                     for definition in definitions:
                         self.walk_blocks(definition)
             elif t == 'Figure':
+                self.captions += bool(c[1][1])
                 self.walk_blocks(c[1][1])            # caption
                 self.walk_blocks(c[2])
             elif t == 'Table':
                 self.tables += 1
+                self.captions += bool(c[1][1])
                 self.walk_blocks(c[1][1])            # caption
                 head, bodies, foot = c[3], c[4], c[5]
                 rows = list(head[1]) + [row for body in bodies for row in body[2] + body[3]] + list(foot[1])
@@ -719,6 +727,10 @@ class Source:
 
     def numbers_equations(self):
         return str(self.meta.get('equation_numbers', '')).lower() == 'true' or bool(self.tags)
+
+    def prints_numbers(self):
+        """Does a PDF of this source print numbers the EPUB must match?"""
+        return self.numbers_equations() or self.captions > 0
 
 
 def stringify_meta(value):
@@ -1044,7 +1056,7 @@ def main(argv=None):
     elif args.pdf:
         check_numbering(epub, args.pdf, report)
     else:
-        needs = source is not None and (source.numbers_equations() or str(source.meta.get('no_figure_numbers', '')).lower() != 'true')
+        needs = source is not None and source.prints_numbers()
         report.skip('numbering', 'no --pdf given: equation, figure and table numbers not checked against a PDF',
                     required=needs and not args.no_pdf)
     if not args.quick:
