@@ -226,7 +226,7 @@ BOOK_CMDS_EOF
     \\usepackage{dutchcal}  % DCTX Calligraphic: extends \\mathcal to lowercase a-z
     \\usepackage{makeidx}  % For index generation (must load before hyperref)
     \\usepackage{hyperref}
-    \\usepackage{xcolor}
+    \\usepackage[table]{xcolor}  % table: \\cellcolor in table cells (colortbl)
     \\usepackage{longtable}
     \\usepackage{booktabs}
     \\usepackage{array}

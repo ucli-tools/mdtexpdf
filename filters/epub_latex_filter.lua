@@ -671,6 +671,70 @@ local function sized_span(el)
   return el
 end
 
+-- Colour kept from a Word document's tables (docx2md): a cell's background, written as raw TeX
+-- `\cellcolor[HTML]{RRGGBB}` at the start of the cell, and a value's colour, written as
+-- `\textcolor[HTML]{RRGGBB}{...}` around the cell's formula. The PDF reads both as TeX; here the
+-- background becomes the cell's style, and a formula wholly in one colour becomes the formula in
+-- a span of that colour (MathML takes the colour of its text). A colour inside a formula is
+-- dropped, keeping the formula, since the maths converter does not read \textcolor.
+local function hex(model, spec)
+  if model == '[HTML]' and spec:match('^%x%x%x%x%x%x$') then return '#' .. spec end
+  if model == '' and spec:match('^#%x%x%x%x%x%x$') then return spec end
+  if model == '' and spec:match('^%a+$') then return spec end
+  return nil
+end
+
+local function uncolour(tex)
+  local out = tex:gsub('\\textcolor%s*(%[?[^%]{]*%]?)%s*(%b{})%s*(%b{})', function(_, _, body)
+    return body:sub(2, -2)
+  end)
+  out = out:gsub('\\color%s*(%[?[^%]{]*%]?)%s*(%b{})', '')
+  return out
+end
+
+local function colour_math(math)
+  local text = math.text
+  local lead = text:match('^%s*\\displaystyle%s*') or text:match('^%s*')
+  local model, spec, body = text:sub(#lead + 1):match(
+    '^\\textcolor%s*(%[?[^%]{]*%]?)%s*{([^{}]*)}%s*(%b{})%s*$')
+  local colour = body and hex(model, spec)
+  if colour then
+    local inner = pandoc.Math(math.mathtype, lead .. uncolour(body:sub(2, -2)))
+    return pandoc.Span({inner}, pandoc.Attr('', {}, {{'style', 'color:' .. colour}}))
+  end
+  if text:find('\\textcolor', 1, true) or text:find('\\color', 1, true) then
+    return pandoc.Math(math.mathtype, uncolour(text))
+  end
+  return nil
+end
+
+local function colour_cells(tbl)
+  local function cell_colour(cell)
+    local first = cell.contents[1]
+    if not first or (first.t ~= 'Plain' and first.t ~= 'Para') then return end
+    local raw = first.content[1]
+    if not raw or raw.t ~= 'RawInline' or (raw.format ~= 'latex' and raw.format ~= 'tex') then return end
+    local model, spec = raw.text:match('^%s*\\cellcolor%s*(%[?[^%]{]*%]?)%s*{([^{}]*)}%s*$')
+    local colour = model and hex(model, spec)
+    if not colour then return end
+    first.content:remove(1)
+    local style = cell.attr.attributes.style
+    cell.attr.attributes.style = (style and (style .. ';') or '') .. 'background-color:' .. colour
+  end
+  local function rows(list)
+    for _, row in ipairs(list) do
+      for _, cell in ipairs(row.cells) do cell_colour(cell) end
+    end
+  end
+  rows(tbl.head.rows)
+  for _, body in ipairs(tbl.bodies) do
+    rows(body.head)
+    rows(body.body)
+  end
+  rows(tbl.foot.rows)
+  return tbl
+end
+
 function Pandoc(doc)
   if not FORMAT:match('epub') then return nil end
   local headers = doc.meta['header-includes']
@@ -705,6 +769,8 @@ function Pandoc(doc)
   if #colours > 0 then preamble = preamble .. table.concat(colours, '\n') .. '\n' end
   doc = number_document(doc)
   doc = doc:walk({Blocks = describe_figures})
+  doc.blocks = doc.blocks:walk({Table = colour_cells})
+  doc.blocks = doc.blocks:walk({Math = colour_math})
   doc.blocks = doc.blocks:walk({RawBlock = convert_raw, RawInline = convert_raw_inline})
   doc = doc:walk({Span = sized_span})
   doc.blocks = doc.blocks:walk({Math = present_math})
