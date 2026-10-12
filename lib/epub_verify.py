@@ -571,6 +571,9 @@ def tex_to_text(tex):
     t = re.sub(r'\$[^$]*\$', ' ', t)
     t = re.sub(r'\\newcolumntype\{[^}]*\}(\[[^\]]*\])?\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}', ' ', t)
     t = re.sub(r'\\(definecolor|colorlet)\s*(\{[^}]*\}\s*){2,3}', ' ', t)
+    # A colour is not text: a cell's or a row's background, and a colour's model and value before
+    # the text it colours (`\cellcolor[HTML]{BFBFBF}`, `\textcolor[HTML]{FF0000}{…}`: the text stays).
+    t = re.sub(r'\\(cellcolor|rowcolor|columncolor|color|textcolor|colorbox)\s*(\[[^\]]*\])?\s*\{[^{}]*\}', ' ', t)
     t = re.sub(r'\\(renewcommand|newcommand|setlength|addtolength|setcounter)\s*\{[^}]*\}\s*(\[[^\]]*\])?\s*\{(?:[^{}]|\{[^{}]*\})*\}', ' ', t)
     t = re.sub(r'\\(vspace|hspace|vskip|hskip|color|pagecolor|rule|arraystretch|noalign|enlargethispage)\*?\s*(\{(?:[^{}]|\{[^{}]*\})*\}\s*)*', ' ', t)
     t = re.sub(r'\\begin\{(tabular\*?|tabularx|longtable|array)\}\s*(\{[^{}]*\}\s*|\[[^\]]*\]\s*)?\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}', ' ', t)

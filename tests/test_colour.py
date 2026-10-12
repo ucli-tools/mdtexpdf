@@ -59,5 +59,16 @@ class ColourTest(unittest.TestCase):
         self.assertNotIn('textcolor', re.sub(r'<annotation.*?</annotation>', '', text))
 
 
+    def test_the_epub_check_reads_no_colour_as_text(self):
+        import sys
+        sys.path.insert(0, str(ROOT / 'lib'))
+        from epub_verify import tex_to_text
+        words = lambda tex: tex_to_text(tex).split()
+        self.assertEqual(words('\\cellcolor[HTML]{BFBFBF}'), [])
+        self.assertEqual(words('\\rowcolor{gray}'), [])
+        self.assertEqual(words('\\textcolor[HTML]{FF0000}{prime} vertices'), ['prime', 'vertices'])
+        self.assertEqual(words('\\color[HTML]{1E48FF} blue'), ['blue'])
+
+
 if __name__ == '__main__':
     unittest.main()
