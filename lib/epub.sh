@@ -63,13 +63,13 @@ declare_epub_nav_mathml() {
 # package document, as EPUB Accessibility 1.1 and the e-book stores ask), from what the
 # EPUB actually holds: its images and whether each has a text alternative, MathML,
 # headings, and any audio, video or animation. An accessibility_summary in the metadata
-# replaces the generated summary.
+# replaces the generated summary. Metadata pandoc already wrote is replaced, so the
+# declaration is the same whichever pandoc version built the EPUB.
 # Arguments: $1=EPUB file
 declare_epub_accessibility() {
     local epub_file_abs opf xhtml
     epub_file_abs=$(realpath "$1")
     opf=$(unzip -p "$epub_file_abs" EPUB/content.opf 2>/dev/null) || return 1
-    printf '%s' "$opf" | grep -q 'schema:accessMode' && return 0
     xhtml=$(unzip -p "$epub_file_abs" 'EPUB/text/*.xhtml' 2>/dev/null)
 
     local images unlabelled has_math=false has_headings=false moving=false
@@ -116,7 +116,9 @@ declare_epub_accessibility() {
     temp_dir=$(mktemp -d)
     original_dir=$(pwd)
     unzip -q "$epub_file_abs" -d "$temp_dir" 2>/dev/null || { rm -rf "$temp_dir"; return 1; }
-    META_BLOCK="$meta" awk '/<\/metadata>/ { n = split(ENVIRON["META_BLOCK"], lines, "\n")
+    # Newer pandoc writes its own, less exact, accessibility metadata: ours replaces it.
+    META_BLOCK="$meta" awk '/<meta property="schema:access/ { next }
+                           /<\/metadata>/ { n = split(ENVIRON["META_BLOCK"], lines, "\n")
                                             for (i = 1; i <= n; i++) print "    " lines[i] }
                            { print }' "$temp_dir/EPUB/content.opf" > "$temp_dir/content.opf.new" \
         && mv "$temp_dir/content.opf.new" "$temp_dir/EPUB/content.opf"

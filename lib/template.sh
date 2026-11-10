@@ -1015,8 +1015,12 @@ $figure_numbering_commands
 \\setlength{\\cslhangindent}{1.5em}
 \\newlength{\\cslentryspacingunit}
 \\setlength{\\cslentryspacingunit}{\\parskip}
+% Newer pandoc writes each entry after a bibitem: here it only starts a paragraph
+\\NewDocumentCommand{\\citeproctext}{}{}
+\\NewDocumentCommand{\\citeproc}{mm}{#2}
 \\newenvironment{CSLReferences}[2]
- {\\setlength{\\parindent}{0pt}
+ {\\RenewDocumentCommand{\\bibitem}{om}{\\par}
+  \\setlength{\\parindent}{0pt}
   \\ifodd #1
   \\let\\oldpar\\par
   \\def\\par{\\hangindent=\\cslhangindent\\oldpar}
